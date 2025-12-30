@@ -205,7 +205,7 @@
             const color = getMPIColor(region.mpi);
             const marker = L.circleMarker(region.centroid, {
                 radius: 10, fillColor: color, color: 'white',
-                weight: 2.5, opacity: 1, fillOpacity: 0.95
+                weight: 2.5, opacity: 1, fillOpacity: 1.0
             });
             mpiMarkers.push(marker); // Store reference to marker
             
@@ -667,13 +667,6 @@
             div.innerHTML = headerHTML + `
 
                 <label><input type="checkbox" id="mpiToggle" checked> MPI - Regions (18)</label>
-                <div style="margin-left: 20px; margin-top: 5px; margin-bottom: 8px;">
-                    <label style="font-size: 0.85em; color: #94a3b8; display: block; margin-bottom: 3px;">
-                        Transparency: <span id="mpiOpacityValue">95</span>%
-                    </label>
-                    <input type="range" id="mpiOpacitySlider" min="0" max="100" value="95"
-                           style="width: 100%; cursor: pointer;">
-                </div>
                 <label><input type="checkbox" id="nightlightToggle" checked> 💡 Nightlight Points</label>
                 <div style="margin-left: 20px; border-left: 2px solid #fbbf24; padding-left: 10px;">
                     <label style="font-size: 0.9em;"><input type="checkbox" id="nightlightOverviewToggle" checked> Overview (1,571)</label>
@@ -822,15 +815,6 @@
             // Simple layer toggles
             document.getElementById('mpiToggle').addEventListener('change', function(e) {
                 e.target.checked ? map.addLayer(mpiLayer) : map.removeLayer(mpiLayer);
-            });
-
-            // MPI opacity slider
-            document.getElementById('mpiOpacitySlider').addEventListener('input', function(e) {
-                const opacity = e.target.value / 100;
-                document.getElementById('mpiOpacityValue').textContent = e.target.value;
-                mpiMarkers.forEach(marker => {
-                    marker.setStyle({ fillOpacity: opacity });
-                });
             });
 
             document.getElementById('nightlightToggle').addEventListener('change', function(e) {
