@@ -45,6 +45,23 @@
             border-radius: 8px; border: 2px solid #334155;
             max-height: 70vh; overflow-y: auto; font-size: 0.85em;
         }
+
+        /* Custom scrollbar styling for legend */
+        .legend::-webkit-scrollbar {
+            width: 8px;
+        }
+        .legend::-webkit-scrollbar-track {
+            background: rgba(51, 65, 85, 0.3);
+            border-radius: 4px;
+        }
+        .legend::-webkit-scrollbar-thumb {
+            background: #0ea5e9;
+            border-radius: 4px;
+        }
+        .legend::-webkit-scrollbar-thumb:hover {
+            background: #0284c7;
+        }
+
         .legend-title { color: #0ea5e9; margin-bottom: 10px; font-weight: bold; }
         .legend-item { display: flex; align-items: center; margin-bottom: 5px; }
         .legend-color {
@@ -53,12 +70,66 @@
         }
         .legend-label { flex: 1; }
         .legend-value { color: #94a3b8; margin-left: 8px; font-weight: bold; }
+        .controls-wrapper {
+            display: flex;
+            gap: 10px;
+        }
+
         .layer-control {
             background: rgba(30, 41, 59, 0.95); padding: 10px;
             border-radius: 8px; border: 2px solid #334155;
-            width: 340px;
+            width: 255px;
+            max-height: 70vh;
+            overflow-y: auto;
         }
-        .layer-control label { display: block; margin: 5px 0; cursor: pointer; font-size: 0.85em; }
+
+        .ai-insights-control {
+            background: rgba(30, 41, 59, 0.95); padding: 10px;
+            border-radius: 8px; border: 2px solid #334155;
+            width: 255px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        /* Custom scrollbar styling for layer control */
+        .layer-control::-webkit-scrollbar {
+            width: 8px;
+        }
+        .layer-control::-webkit-scrollbar-track {
+            background: rgba(51, 65, 85, 0.3);
+            border-radius: 4px;
+        }
+        .layer-control::-webkit-scrollbar-thumb {
+            background: #0ea5e9;
+            border-radius: 4px;
+        }
+        .layer-control::-webkit-scrollbar-thumb:hover {
+            background: #0284c7;
+        }
+
+        /* Custom scrollbar styling for AI insights control */
+        .ai-insights-control::-webkit-scrollbar {
+            width: 8px;
+        }
+        .ai-insights-control::-webkit-scrollbar-track {
+            background: rgba(51, 65, 85, 0.3);
+            border-radius: 4px;
+        }
+        .ai-insights-control::-webkit-scrollbar-thumb {
+            background: #10b981;
+            border-radius: 4px;
+        }
+        .ai-insights-control::-webkit-scrollbar-thumb:hover {
+            background: #059669;
+        }
+
+        .layer-control label,
+        .ai-insights-control label {
+            display: block;
+            margin: 5px 0;
+            cursor: pointer;
+            font-size: 0.85em;
+        }
         .info-box {
             background: rgba(30, 41, 59, 0.95); padding: 12px;
             border-radius: 8px; border: 2px solid #334155;

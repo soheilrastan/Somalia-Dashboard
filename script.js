@@ -3,12 +3,26 @@
         const isTablet = window.innerWidth > 767 && window.innerWidth <= 1024;
 
         const map = L.map('map').setView([5.5, 46.2], isMobile ? 5 : 6);
-        
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+
+        // Define base layers
+        const darkMap = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; OpenStreetMap &copy; CARTO',
             subdomains: 'abcd',
             maxZoom: 20
-        }).addTo(map);
+        });
+
+        // High-resolution satellite imagery from Google
+        const satelliteMap = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+            attribution: '&copy; Google &copy; Maxar &copy; CNES/Airbus',
+            maxZoom: 22,  // Higher zoom level for detailed imagery
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+        });
+
+        // Add dark map by default
+        darkMap.addTo(map);
+
+        // Track current base layer
+        let currentBaseLayer = 'dark';
 
         function getMPIColor(mpi) {
             if (mpi >= 90) return '#7f1d1d';
@@ -286,12 +300,138 @@
         console.log('✓ Nightlight points loaded with purple-yellow gradient');
 
         mpiLayer.addTo(map);
-        nightlightLayer.addTo(map);
+        // nightlightLayer not added by default - user must check it
 
-        const detailedNLBakool = L.layerGroup();
+        const detailedNLBakool2022 = L.layerGroup();
+        const detailedNLBakool2023 = L.layerGroup();
         const detailedNLLS = L.layerGroup();
-        
-        
+
+        // Add Bakool detailed nightlight 2022 (500m polygons with classification)
+        console.log(`Loading ${bakoolNightlightPolygons2022.features.length} Bakool nightlight polygons (2022)...`);
+
+        L.geoJSON(bakoolNightlightPolygons2022, {
+            style: function(feature) {
+                return {
+                    fillColor: feature.properties.color,
+                    color: feature.properties.color,
+                    weight: 1,
+                    opacity: 0.8,
+                    fillOpacity: 0.7
+                };
+            },
+            onEachFeature: function(feature, layer) {
+                const props = feature.properties;
+
+                layer.bindTooltip(`${props.value.toFixed(2)} nW (2022) - ${props.label}`, {
+                    permanent: false,
+                    direction: 'top',
+                    offset: [0, -5]
+                });
+
+                layer.bindPopup(`
+                    <div class="popup-header" style="background: ${props.color}; color: white;">💡 Nightlight 2022</div>
+                    <div class="popup-body">
+                        <div class="popup-metric">
+                            <span class="metric-label">💡 Radiance:</span>
+                            <span class="metric-value">${props.value.toFixed(3)} nW/cm²/sr</span>
+                        </div>
+                        <div class="popup-metric">
+                            <span class="metric-label">🏷️ Category:</span>
+                            <span class="metric-value">${props.category}</span>
+                        </div>
+                        <div class="popup-metric">
+                            <span class="metric-label">📅 Year:</span>
+                            <span class="metric-value">2022</span>
+                        </div>
+                        <div class="popup-metric">
+                            <span class="metric-label">📍 Location:</span>
+                            <span class="metric-value" style="font-size: 0.85em;">${props.lat.toFixed(4)}°N, ${props.lon.toFixed(4)}°E</span>
+                        </div>
+                        <div class="popup-metric">
+                            <span class="metric-label">📏 Grid:</span>
+                            <span class="metric-value">${props.grid_size}</span>
+                        </div>
+                        <div class="popup-metric">
+                            <span class="metric-label">🗺️ Region:</span>
+                            <span class="metric-value">Bakool</span>
+                        </div>
+                        <div class="source-link">
+                            📋 <a href="https://developers.google.com/earth-engine/datasets/catalog/NOAA_VIIRS_DNB_ANNUAL_V22" target="_blank">VIIRS DNB Annual 2022</a>
+                        </div>
+                    </div>
+                `, {
+                    maxWidth: 300,
+                    autoPan: false,
+                    className: 'fixed-right-popup'
+                });
+            }
+        }).addTo(detailedNLBakool2022);
+
+        console.log('Bakool 2022 nightlight polygons loaded');
+
+        // Add Bakool detailed nightlight 2023 (500m polygons with classification)
+        console.log(`Loading ${bakoolNightlightPolygons2023.features.length} Bakool nightlight polygons (2023)...`);
+
+        L.geoJSON(bakoolNightlightPolygons2023, {
+            style: function(feature) {
+                return {
+                    fillColor: feature.properties.color,
+                    color: feature.properties.color,
+                    weight: 1,
+                    opacity: 0.8,
+                    fillOpacity: 0.7
+                };
+            },
+            onEachFeature: function(feature, layer) {
+                const props = feature.properties;
+
+                layer.bindTooltip(`${props.value.toFixed(2)} nW (2023) - ${props.label}`, {
+                    permanent: false,
+                    direction: 'top',
+                    offset: [0, -5]
+                });
+
+                layer.bindPopup(`
+                    <div class="popup-header" style="background: ${props.color}; color: white;">💡 Nightlight 2023</div>
+                    <div class="popup-body">
+                        <div class="popup-metric">
+                            <span class="metric-label">💡 Radiance:</span>
+                            <span class="metric-value">${props.value.toFixed(3)} nW/cm²/sr</span>
+                        </div>
+                        <div class="popup-metric">
+                            <span class="metric-label">🏷️ Category:</span>
+                            <span class="metric-value">${props.category}</span>
+                        </div>
+                        <div class="popup-metric">
+                            <span class="metric-label">📅 Year:</span>
+                            <span class="metric-value">2023</span>
+                        </div>
+                        <div class="popup-metric">
+                            <span class="metric-label">📍 Location:</span>
+                            <span class="metric-value" style="font-size: 0.85em;">${props.lat.toFixed(4)}°N, ${props.lon.toFixed(4)}°E</span>
+                        </div>
+                        <div class="popup-metric">
+                            <span class="metric-label">📏 Grid:</span>
+                            <span class="metric-value">${props.grid_size}</span>
+                        </div>
+                        <div class="popup-metric">
+                            <span class="metric-label">🗺️ Region:</span>
+                            <span class="metric-value">Bakool</span>
+                        </div>
+                        <div class="source-link">
+                            📋 <a href="https://developers.google.com/earth-engine/datasets/catalog/NOAA_VIIRS_DNB_ANNUAL_V22" target="_blank">VIIRS DNB Annual 2023</a>
+                        </div>
+                    </div>
+                `, {
+                    maxWidth: 300,
+                    autoPan: false,
+                    className: 'fixed-right-popup'
+                });
+            }
+        }).addTo(detailedNLBakool2023);
+
+        console.log('Bakool 2023 nightlight polygons loaded');
+
         // Add Somalia ADM1 (regional) boundaries - thicker lines
         let selectedRegion = null;  // Track selected region
         
@@ -462,9 +602,9 @@
             }
         });
         
-        
-        
-        adm2Layer.addTo(map);
+
+
+        // adm2Layer not added by default - user must check it
 
         // ROADS LAYER - Bakool & Lower Shebelle
         function getRoadColor(roadType) {
@@ -539,7 +679,7 @@
                     </div>
                 `);
             }
-        }).addTo(map);
+        });  // Not added to map by default - user must check it
 
         // POPULATION LAYER - Females Age 0-12 months (500m grid, 3 classes)
         // Create separate layers for each class for individual control
@@ -630,8 +770,8 @@
                     </div>
                 `);
             }
-        }).addTo(map);
-        
+        });  // Not added to map by default - user must check it
+
         // Function to refresh population layer based on active classes
         function refreshPopulationLayer() {
             map.removeLayer(populationLayer);
@@ -650,13 +790,18 @@
             }
         }
 
-        // Layer control
-        const layerControl = L.control({position: 'topleft'});
-        layerControl.onAdd = function() {
-            const div = L.DomUtil.create('div', 'layer-control');
+        // Combined Layer Control and AI Insights (side-by-side wrapper)
+        const combinedControl = L.control({position: 'topleft'});
+        combinedControl.onAdd = function() {
+            const wrapper = L.DomUtil.create('div', 'controls-wrapper');
+            wrapper.style.display = 'flex';
+            wrapper.style.gap = '10px';
+
+            // Create Layer Control div
+            const layerDiv = L.DomUtil.create('div', 'layer-control', wrapper);
 
             // Add collapsible header for mobile
-            const headerHTML = isMobile ? `
+            const layerHeaderHTML = isMobile ? `
                 <div onclick="this.parentElement.classList.toggle('collapsed')"
                      style="color: #0ea5e9; font-weight: bold; margin-bottom: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
                     <span>🗺️ Layers</span>
@@ -664,56 +809,62 @@
                 </div>
             ` : `<div style="color: #0ea5e9; font-weight: bold; margin-bottom: 8px;">🗺️ Layers</div>`;
 
-            div.innerHTML = headerHTML + `
+            layerDiv.innerHTML = layerHeaderHTML + `
+                <div style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 2px solid #334155;">
+                    <label style="font-weight: bold; color: #10b981;">
+                        <input type="checkbox" id="satelliteToggle"> 🛰️ Satellite Imagery
+                    </label>
+                </div>
 
                 <label><input type="checkbox" id="mpiToggle" checked> MPI - Regions (18)</label>
-                <label><input type="checkbox" id="nightlightToggle" checked> 💡 Nightlight Points</label>
+                <label><input type="checkbox" id="nightlightToggle"> 💡 Nightlight Points</label>
                 <div style="margin-left: 20px; border-left: 2px solid #fbbf24; padding-left: 10px;">
-                    <label style="font-size: 0.9em;"><input type="checkbox" id="nightlightOverviewToggle" checked> Overview (1,571)</label>
-                    <label style="font-size: 0.9em; display: block; margin-top: 5px;"><span style="color: #fde047;">✨</span> Detailed (500m)</label>
+                    <label style="font-size: 0.9em;"><input type="checkbox" id="nightlightOverviewToggle"> Overview (1,571)</label>
+                    <label style="font-size: 0.9em; display: block; margin-top: 5px;"><span style="color: #fde047;">✨</span> Detailed (500m polygons)</label>
                     <div style="margin-left: 20px; border-left: 2px solid #a855f7; padding-left: 10px; margin-top: 5px;">
-                        <label style="font-size: 0.85em; color: #94a3b8;"><input type="checkbox" disabled> Bakool <span style="color: #fbbf24; font-style: italic;">(Coming Soon)</span></label>
+                        <label style="font-size: 0.85em;"><input type="checkbox" id="bakool2022Toggle"> <span style="color: #a855f7;">■</span> Bakool 2022 (2 polygons)</label>
+                        <label style="font-size: 0.85em; display: block; margin-top: 3px;"><input type="checkbox" id="bakool2023Toggle"> <span style="color: #a855f7;">■</span> Bakool 2023 (15 polygons)</label>
                         <label style="font-size: 0.85em; color: #94a3b8; display: block; margin-top: 3px;"><input type="checkbox" disabled> Lower Shebelle <span style="color: #fbbf24; font-style: italic;">(Coming Soon)</span></label>
                     </div>
                 </div>
-                <label><input type="checkbox" id="roadsToggle" checked> Roads (9,063)</label>
-                
+                <label><input type="checkbox" id="roadsToggle"> Roads (9,063)</label>
+
                 <!-- Population hierarchical structure -->
                 <div style="margin-top: 8px; border-left: 2px solid #EC407A; padding-left: 8px;">
                     <label style="font-weight: bold; color: #EC407A;">
-                        <input type="checkbox" id="populationMainToggle" checked> Population
+                        <input type="checkbox" id="populationMainToggle"> Population
                     </label>
-                    
+
                     <!-- Female sub-level -->
                     <div style="margin-left: 12px; margin-top: 4px; border-left: 2px solid #F48FB1; padding-left: 8px;">
                         <label style="font-weight: 600; color: #F48FB1;">
-                            <input type="checkbox" id="femaleToggle" checked> Female
+                            <input type="checkbox" id="femaleToggle"> Female
                         </label>
-                        
+
                         <!-- Infants sub-sub-level -->
                         <div style="margin-left: 12px; margin-top: 4px; border-left: 2px solid #FCE4EC; padding-left: 8px;">
                             <label style="font-weight: 500; color: #C2185B;">
-                                <input type="checkbox" id="infantsToggle" checked> Infants (0-12mo)
+                                <input type="checkbox" id="infantsToggle"> Infants (0-12mo)
                             </label>
-                            
+
                             <!-- 3 class categories -->
                             <div style="margin-left: 12px; margin-top: 4px; font-size: 0.9em;">
                                 <label style="color: #666;">
-                                    <input type="checkbox" id="pop_1_25_Toggle" checked> 
+                                    <input type="checkbox" id="pop_1_25_Toggle">
                                     <span style="color: #F48FB1;">●</span> 1-25 (number of infants)
                                 </label>
                                 <label style="color: #666;">
-                                    <input type="checkbox" id="pop_25_50_Toggle" checked> 
+                                    <input type="checkbox" id="pop_25_50_Toggle">
                                     <span style="color: #EC407A;">●</span> 25-50 (number of infants)
                                 </label>
                                 <label style="color: #666;">
-                                    <input type="checkbox" id="pop_50plus_Toggle" checked> 
+                                    <input type="checkbox" id="pop_50plus_Toggle">
                                     <span style="color: #AD1457;">●</span> 50+ (number of infants)
                                 </label>
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Male sub-level (placeholder for future) -->
                     <div style="margin-left: 12px; margin-top: 4px; border-left: 2px solid #90CAF9; padding-left: 8px;">
                         <label style="font-weight: 600; color: #90CAF9; opacity: 0.5;">
@@ -721,23 +872,58 @@
                         </label>
                     </div>
                 </div>
-                
+
                 <label style="margin-top: 8px;"><input type="checkbox" id="adm1Toggle" checked> Regional Boundaries ADM1 (18)</label>
-                <label><input type="checkbox" id="adm2Toggle" checked> District Boundaries ADM2 (118)</label>
+                <label><input type="checkbox" id="adm2Toggle"> District Boundaries ADM2 (118)</label>
             `;
 
-            // Disable map dragging and interactions when interacting with the control
-            L.DomEvent.disableClickPropagation(div);
-            L.DomEvent.disableScrollPropagation(div);
+            // Create AI Insights Control div
+            const aiDiv = L.DomUtil.create('div', 'ai-insights-control', wrapper);
 
-            return div;
+            // Add collapsible header for mobile
+            const aiHeaderHTML = isMobile ? `
+                <div onclick="this.parentElement.classList.toggle('collapsed')"
+                     style="color: #10b981; font-weight: bold; margin-bottom: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                    <span>🧠 Geo-AI Insights</span>
+                    <span style="font-size: 1.2em;">▼</span>
+                </div>
+            ` : `<div style="color: #10b981; font-weight: bold; margin-bottom: 8px;">🧠 Geo-AI Insights</div>`;
+
+            aiDiv.innerHTML = aiHeaderHTML + `
+                <label><input type="checkbox" id="nightlightAnalysisToggle"> 📊 Nightlight Distribution Analysis</label>
+                <label style="color: #94a3b8;"><input type="checkbox" disabled> 📈 Temporal Trends Analysis <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                <label style="color: #94a3b8;"><input type="checkbox" disabled> 🏘️ Settlement Detection <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                <label style="color: #94a3b8;"><input type="checkbox" disabled> 🛣️ Infrastructure Mapping <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                <label style="color: #94a3b8;"><input type="checkbox" disabled> 🌾 Land Use Classification <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                <label style="color: #94a3b8;"><input type="checkbox" disabled> 👥 Population Density Analysis <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                <label style="color: #94a3b8;"><input type="checkbox" disabled> 📉 Poverty Correlation Analysis <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                <label style="color: #94a3b8;"><input type="checkbox" disabled> 🌍 Environmental Impact <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                <label style="color: #94a3b8;"><input type="checkbox" disabled> 🔮 Predictive Modeling <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                <label style="color: #94a3b8;"><input type="checkbox" disabled> 🌐 Accessibility Analysis <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                <label style="color: #94a3b8;"><input type="checkbox" disabled> 💧 Water Resources Mapping <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                <label style="color: #94a3b8;"><input type="checkbox" disabled> 🏥 Healthcare Facility Coverage <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                <label style="color: #94a3b8;"><input type="checkbox" disabled> 🏫 Education Infrastructure <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                <label style="color: #94a3b8;"><input type="checkbox" disabled> 🌡️ Climate Vulnerability <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                <label style="color: #94a3b8;"><input type="checkbox" disabled> 📡 Connectivity Analysis <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                <label style="color: #94a3b8;"><input type="checkbox" disabled> 🌾 Agricultural Productivity <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                <label style="color: #94a3b8;"><input type="checkbox" disabled> 🚰 WASH Facilities Coverage <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                <label style="color: #94a3b8;"><input type="checkbox" disabled> 🏚️ Housing Quality Assessment <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                <label style="color: #94a3b8;"><input type="checkbox" disabled> 📊 Market Access Analysis <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                <label style="color: #94a3b8;"><input type="checkbox" disabled> 📑 Custom Report Generator <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+            `;
+
+            // Disable map dragging and interactions when interacting with both controls
+            L.DomEvent.disableClickPropagation(wrapper);
+            L.DomEvent.disableScrollPropagation(wrapper);
+            L.DomEvent.disableClickPropagation(layerDiv);
+            L.DomEvent.disableScrollPropagation(layerDiv);
+            L.DomEvent.disableClickPropagation(aiDiv);
+            L.DomEvent.disableScrollPropagation(aiDiv);
+
+            return wrapper;
         };
-        layerControl.addTo(map);
+        combinedControl.addTo(map);
 
-        // ==========================================
-                
-        // ==========================================
-        
         // ==========================================
         // COMBINED INFO BOX - Data Summary + Sources
         // ==========================================
@@ -765,7 +951,9 @@
                 <div class="info-text" style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 2px solid #334155; line-height: 1.3;">
                     <strong>MPI Range:</strong> 23-67<br>
                     <strong>Nightlight Overview:</strong> 1,571<br>
-                    <strong>Nightlight Detailed (500m):</strong> <span style="color: #fbbf24; font-style: italic;">Coming Soon</span><br>
+                    <strong>Nightlight Detailed (500m polygons):</strong><br>
+                    <span style="margin-left: 10px;">• Bakool 2022: 2 cells (>= 0.5 nW)</span><br>
+                    <span style="margin-left: 10px;">• Bakool 2023: 15 cells (>= 0.5 nW)</span><br>
                     <strong>Roads (2 regions):</strong> 9,063<br>
                     <strong>Population F 0-12mo:</strong> 16,478<br>
                     <strong>Coverage:</strong> Bakool & Lower Shebelle
@@ -773,21 +961,22 @@
                 
                 <div class="info-title" style="margin-top: 5px;">📋 Data Sources</div>
                 <div class="info-text" style="line-height: 1.3;">
+                    <strong>🛰️ Satellite Imagery:</strong><br>
+                    <a href="https://www.google.com/earth/" target="_blank" style="color: #0ea5e9; text-decoration: none; font-size: 0.85em;">Google Satellite</a><br>
+                    <span style="color: #64748b; font-size: 0.75em;">High-resolution imagery (up to zoom 22) from Maxar, CNES/Airbus</span><br>
+
                     <strong>📊 MPI:</strong><br>
                     <a href="https://ophi.org.uk/sites/default/files/2024-12/Somalia_MPI_report_2024.pdf" target="_blank" style="color: #0ea5e9; text-decoration: none; font-size: 0.85em;">OPHI Somalia MPI Report 2024</a><br>
                     <span style="color: #64748b; font-size: 0.75em;">(SIHBS 2022)</span><br>
-                    
+
                     <strong>💡 Nightlight Overview:</strong><br>
                     <a href="https://eogdata.mines.edu/products/vnl/" target="_blank" style="color: #0ea5e9; text-decoration: none; font-size: 0.85em;">VIIRS Day/Night Band</a><br>
                     <span style="color: #64748b; font-size: 0.75em;">(2023-2024, sampled)</span><br>
                     
-                    <strong>✨ Nightlight Detailed (500m):</strong><br>
-                    <span style="color: #fbbf24; font-size: 0.85em; font-weight: bold;">⏳ COMING SOON</span><br>
-                    <span style="color: #94a3b8; font-size: 0.75em;">Real VIIRS 2023/2024 via Google Earth Engine</span><br>
-                    <span style="color: #64748b; font-size: 0.7em;">
-                    Source: <a href="https://developers.google.com/earth-engine/datasets/catalog/NOAA_VIIRS_DNB_ANNUAL_V22" target="_blank" style="color: #0ea5e9;">NOAA/VIIRS/DNB/ANNUAL_V22</a><br>
-                    500m resolution, clipped to regions
-                    </span><br>
+                    <strong>✨ Nightlight Detailed (500m polygons):</strong><br>
+                    <a href="https://developers.google.com/earth-engine/datasets/catalog/NOAA_VIIRS_DNB_ANNUAL_V22" target="_blank" style="color: #0ea5e9; text-decoration: none; font-size: 0.85em;">NOAA VIIRS DNB Annual V22</a><br>
+                    <span style="color: #64748b; font-size: 0.75em;">Bakool 2022-2023, 500m × 500m polygons, filtered >= 0.5 nW/cm²/sr</span><br>
+                    <span style="color: #94a3b8; font-size: 0.7em;">17 polygons total (brightest nightlight cells only)</span><br>
                     
                     <strong>🛣️ Roads:</strong><br>
                     <a href="https://data.humdata.org/dataset/somalia-roads" target="_blank" style="color: #0ea5e9; text-decoration: none; font-size: 0.85em;">Somalia All Roads 2021</a><br>
@@ -812,6 +1001,23 @@
         
 
         setTimeout(() => {
+            // Satellite imagery toggle
+            document.getElementById('satelliteToggle').addEventListener('change', function(e) {
+                if (e.target.checked) {
+                    // Switch to satellite view
+                    map.removeLayer(darkMap);
+                    map.addLayer(satelliteMap);
+                    currentBaseLayer = 'satellite';
+                    console.log('Switched to satellite imagery');
+                } else {
+                    // Switch back to dark map
+                    map.removeLayer(satelliteMap);
+                    map.addLayer(darkMap);
+                    currentBaseLayer = 'dark';
+                    console.log('Switched to dark map');
+                }
+            });
+
             // Simple layer toggles
             document.getElementById('mpiToggle').addEventListener('change', function(e) {
                 e.target.checked ? map.addLayer(mpiLayer) : map.removeLayer(mpiLayer);
@@ -831,6 +1037,15 @@
             document.getElementById('nightlightOverviewToggle').addEventListener('change', function(e) {
                 e.target.checked ? map.addLayer(nightlightLayer) : map.removeLayer(nightlightLayer);
             });
+
+            // Bakool detailed nightlight toggles
+            document.getElementById('bakool2022Toggle').addEventListener('change', function(e) {
+                e.target.checked ? map.addLayer(detailedNLBakool2022) : map.removeLayer(detailedNLBakool2022);
+            });
+            document.getElementById('bakool2023Toggle').addEventListener('change', function(e) {
+                e.target.checked ? map.addLayer(detailedNLBakool2023) : map.removeLayer(detailedNLBakool2023);
+            });
+
             document.getElementById('roadsToggle').addEventListener('change', function(e) {
                 e.target.checked ? map.addLayer(roadsLayer) : map.removeLayer(roadsLayer);
             });
@@ -920,6 +1135,368 @@
             });
         }, 100);
 
+        // ==========================================
+        // NIGHTLIGHT DISTRIBUTION ANALYSIS WINDOW
+        // ==========================================
+        let analysisWindow = null;
+
+        document.getElementById('nightlightAnalysisToggle').addEventListener('change', function(e) {
+            if (e.target.checked) {
+                showNightlightAnalysis();
+            } else {
+                if (analysisWindow) {
+                    analysisWindow.close();
+                    analysisWindow = null;
+                }
+            }
+        });
+
+        function showNightlightAnalysis() {
+            const analysisHTML = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nightlight Distribution Analysis - Bakool Region</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e5e7eb;
+            padding: 20px;
+            margin: 0;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(30, 41, 59, 0.95);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+            color: #10b981;
+            border-bottom: 3px solid #10b981;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        h2 {
+            color: #0ea5e9;
+            margin-top: 30px;
+            border-left: 4px solid #0ea5e9;
+            padding-left: 15px;
+        }
+        h3 {
+            color: #fbbf24;
+            margin-top: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        th {
+            background: linear-gradient(135deg, #0ea5e9 0%, #10b981 100%);
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(100, 116, 139, 0.3);
+        }
+        tr:hover {
+            background: rgba(59, 130, 246, 0.1);
+        }
+        .summary-box {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(14, 165, 233, 0.1) 100%);
+            border: 2px solid #10b981;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .key-stat {
+            display: inline-block;
+            background: rgba(14, 165, 233, 0.2);
+            padding: 8px 15px;
+            border-radius: 6px;
+            margin: 5px;
+            font-weight: 600;
+        }
+        .expand-btn {
+            background: linear-gradient(135deg, #10b981 0%, #0ea5e9 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin: 10px 0;
+            transition: transform 0.2s;
+        }
+        .expand-btn:hover {
+            transform: scale(1.05);
+        }
+        .expandable {
+            display: none;
+            margin-top: 20px;
+        }
+        .expandable.show {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .color-swatch {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            margin-right: 8px;
+            vertical-align: middle;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+        .positive { color: #10b981; }
+        .highlight { background: rgba(251, 191, 36, 0.2); padding: 2px 6px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧠 Geo-AI Insights: Nightlight Distribution Analysis</h1>
+        <p style="color: #94a3b8; font-size: 0.95em;">Bakool Region, Somalia | VIIRS DNB Annual Composite (2022-2023)</p>
+
+        <div class="summary-box">
+            <h2 style="margin-top: 0;">📊 Executive Summary</h2>
+            <p><strong>Key Finding:</strong> Bakool region shows <span class="positive">+10.92% increase</span> in average nightlight intensity from 2022 to 2023, indicating economic growth and increased electrification.</p>
+
+            <h3>Critical Statistics:</h3>
+            <span class="key-stat">📈 Mean: 0.295 → 0.327 nW/cm²/sr (+10.92%)</span>
+            <span class="key-stat">📊 Median: 0.295 → 0.327 nW/cm²/sr (+10.85%)</span>
+            <span class="key-stat">⭐ Max: 0.655 → 0.807 nW/cm²/sr (+23.21%)</span>
+
+            <button class="expand-btn" onclick="toggleSection('fullStats')">📖 Read More - Full Statistical Analysis</button>
+        </div>
+
+        <div id="fullStats" class="expandable">
+            <h2>📈 Complete Year-over-Year Comparison</h2>
+            <table>
+                <tr>
+                    <th>Metric</th>
+                    <th>2022</th>
+                    <th>2023</th>
+                    <th>Change</th>
+                </tr>
+                <tr>
+                    <td><strong>Mean</strong></td>
+                    <td>0.295 nW/cm²/sr</td>
+                    <td>0.327 nW/cm²/sr</td>
+                    <td class="positive">+10.92%</td>
+                </tr>
+                <tr>
+                    <td><strong>Median</strong></td>
+                    <td>0.295 nW/cm²/sr</td>
+                    <td>0.327 nW/cm²/sr</td>
+                    <td class="positive">+10.85%</td>
+                </tr>
+                <tr>
+                    <td><strong>Maximum</strong></td>
+                    <td>0.655 nW/cm²/sr</td>
+                    <td>0.807 nW/cm²/sr</td>
+                    <td class="positive">+23.21%</td>
+                </tr>
+                <tr>
+                    <td><strong>Minimum</strong></td>
+                    <td>0.238 nW/cm²/sr</td>
+                    <td>0.254 nW/cm²/sr</td>
+                    <td class="positive">+6.72%</td>
+                </tr>
+                <tr>
+                    <td><strong>Std Deviation</strong></td>
+                    <td>0.013</td>
+                    <td>0.017</td>
+                    <td class="positive">+27% (more variation)</td>
+                </tr>
+            </table>
+
+            <h3>Percentile Analysis</h3>
+            <table>
+                <tr>
+                    <th>Percentile</th>
+                    <th>2022</th>
+                    <th>2023</th>
+                    <th>Change</th>
+                </tr>
+                <tr><td>25th</td><td>0.286</td><td>0.316</td><td class="positive">+10.5%</td></tr>
+                <tr><td>50th (Median)</td><td>0.295</td><td>0.327</td><td class="positive">+10.8%</td></tr>
+                <tr><td>75th</td><td>0.303</td><td>0.338</td><td class="positive">+11.6%</td></tr>
+                <tr><td>90th</td><td>0.311</td><td>0.348</td><td class="positive">+11.9%</td></tr>
+                <tr><td>95th</td><td>0.316</td><td>0.354</td><td class="positive">+12.0%</td></tr>
+                <tr><td>99th</td><td>0.325</td><td>0.365</td><td class="positive">+12.3%</td></tr>
+            </table>
+
+            <h2>🎯 Recommended Classification</h2>
+            <table>
+                <tr>
+                    <th>Bin</th>
+                    <th>Category</th>
+                    <th>Range</th>
+                    <th>Color</th>
+                    <th>2022 Count</th>
+                    <th>2022 %</th>
+                    <th>2023 Count</th>
+                    <th>2023 %</th>
+                </tr>
+                <tr>
+                    <td>1</td>
+                    <td>Very Low (Background)</td>
+                    <td>0.000 - 0.260</td>
+                    <td><span class="color-swatch" style="background: #1e1b4b;"></span>#1e1b4b</td>
+                    <td>297</td>
+                    <td>0.28%</td>
+                    <td>2</td>
+                    <td>0.00%</td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>Low Rural</td>
+                    <td>0.260 - 0.285</td>
+                    <td><span class="color-swatch" style="background: #5b21b6;"></span>#5b21b6</td>
+                    <td>21,870</td>
+                    <td>20.99%</td>
+                    <td>325</td>
+                    <td>0.31%</td>
+                </tr>
+                <tr class="highlight">
+                    <td>3</td>
+                    <td>Rural</td>
+                    <td>0.285 - 0.310</td>
+                    <td><span class="color-swatch" style="background: #8b5cf6;"></span>#8b5cf6</td>
+                    <td>68,779</td>
+                    <td><strong>66.00%</strong></td>
+                    <td>13,900</td>
+                    <td>13.34%</td>
+                </tr>
+                <tr class="highlight">
+                    <td>4</td>
+                    <td>Moderate Rural</td>
+                    <td>0.310 - 0.350</td>
+                    <td><span class="color-swatch" style="background: #a855f7;"></span>#a855f7</td>
+                    <td>13,240</td>
+                    <td>12.70%</td>
+                    <td>81,442</td>
+                    <td><strong>78.15%</strong></td>
+                </tr>
+                <tr>
+                    <td>5</td>
+                    <td>Bright Rural</td>
+                    <td>0.350 - 0.500</td>
+                    <td><span class="color-swatch" style="background: #fbbf24;"></span>#fbbf24</td>
+                    <td>23</td>
+                    <td>0.02%</td>
+                    <td>8,527</td>
+                    <td>8.18%</td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>Settlement/Urban</td>
+                    <td>0.500+</td>
+                    <td><span class="color-swatch" style="background: #fde047;"></span>#fde047</td>
+                    <td>2</td>
+                    <td>0.00%</td>
+                    <td>15</td>
+                    <td>0.01%</td>
+                </tr>
+            </table>
+        </div>
+
+        <button class="expand-btn" onclick="toggleSection('findings')">💡 Read More - Key Findings & Interpretation</button>
+
+        <div id="findings" class="expandable">
+            <h2>💡 Key Findings</h2>
+
+            <h3>1. Overall Brightening (2022 → 2023)</h3>
+            <p>Average nightlight intensity increased by <strong class="positive">10.92%</strong>, indicating economic growth and increased electrification in Bakool region.</p>
+
+            <h3>2. Dramatic Shift to Higher Categories</h3>
+            <ul>
+                <li><strong>2022:</strong> 66% of area was in "Rural" category (0.285-0.310)</li>
+                <li><strong>2023:</strong> 78% of area shifted to "Moderate Rural" (0.310-0.350)</li>
+                <li><strong class="positive">370x increase</strong> in "Bright Rural" areas (23 → 8,527 cells)</li>
+                <li><strong class="positive">7.5x increase</strong> in "Settlement/Urban" areas (2 → 15 cells)</li>
+            </ul>
+
+            <h3>3. Distribution Pattern Evolution</h3>
+            <p><strong>2022:</strong> Highly concentrated (66%) in lowest rural category<br>
+            <strong>2023:</strong> Shifted to moderate rural category (78%) - showing upward development trajectory</p>
+
+            <h3>4. Regional Context</h3>
+            <p>Despite improvements, Bakool remains <strong>extremely rural</strong> with maximum values (0.807 nW/cm²/sr) far below typical urban centers (which would show 10+ nW/cm²/sr). This is consistent with Bakool being a pastoral/agricultural region with limited urban infrastructure.</p>
+
+            <h2>🔍 Interpretation</h2>
+
+            <div class="summary-box">
+                <h3 style="color: #10b981; margin-top: 0;">Positive Development Trend</h3>
+                <p>Bakool region shows clear signs of development between 2022-2023:</p>
+                <ul>
+                    <li>✅ Reduced "background" areas (297 → 2 cells) - nearly eliminated</li>
+                    <li>✅ Major shift from basic rural to moderate rural lighting</li>
+                    <li>✅ Emergence of brighter rural centers (370x increase)</li>
+                    <li>✅ More visible settlements (7.5x increase)</li>
+                    <li>✅ Consistent improvements across all percentiles (+10-12%)</li>
+                </ul>
+
+                <h3 style="color: #fbbf24;">Development Indicators</h3>
+                <p>The nightlight data suggests:</p>
+                <ul>
+                    <li>📱 Increased electrification and grid coverage</li>
+                    <li>🏘️ Growth of existing settlements</li>
+                    <li>💡 Improved street lighting and public infrastructure</li>
+                    <li>🏪 Expansion of commercial activities</li>
+                    <li>👥 Potential population growth or concentration in certain areas</li>
+                </ul>
+            </div>
+        </div>
+
+        <hr style="border: 1px solid rgba(100, 116, 139, 0.3); margin: 30px 0;">
+
+        <p style="text-align: center; color: #64748b; font-size: 0.9em;">
+            🤖 Generated by Geo-AI Insights | Data: NOAA VIIRS DNB Annual V22 | Analysis Date: ${new Date().toLocaleDateString()}
+        </p>
+    </div>
+
+    <script>
+        function toggleSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            section.classList.toggle('show');
+
+            // Update button text
+            event.target.textContent = section.classList.contains('show')
+                ? event.target.textContent.replace('Read More', 'Show Less')
+                : event.target.textContent.replace('Show Less', 'Read More');
+        }
+    </script>
+</body>
+</html>
+            `;
+
+            analysisWindow = window.open('', 'Nightlight Analysis', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+            analysisWindow.document.write(analysisHTML);
+            analysisWindow.document.close();
+
+            // Uncheck the checkbox if window is closed
+            analysisWindow.onbeforeunload = function() {
+                document.getElementById('nightlightAnalysisToggle').checked = false;
+                analysisWindow = null;
+            };
+        }
 
         // Legend with gradient bars for both MPI and Nightlight
         const legend = L.control({position: 'topright'});
