@@ -878,46 +878,55 @@
             `;
 
             // Create AI Insights Control div
-            const aiDiv = L.DomUtil.create('div', 'ai-insights-control', wrapper);
+            const aiDiv = L.DomUtil.create('div', 'ai-insights-control collapsed', wrapper);
 
-            // Add collapsible header for mobile
-            const aiHeaderHTML = isMobile ? `
-                <div onclick="this.parentElement.classList.toggle('collapsed')"
-                     style="color: #10b981; font-weight: bold; margin-bottom: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+            // Collapsible header with fold/unfold icon
+            aiDiv.innerHTML = `
+                <div class="ai-header" style="color: #10b981; font-weight: bold; margin-bottom: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
                     <span>🧠 Geo-AI Insights</span>
-                    <span style="font-size: 1.2em;">▼</span>
+                    <span class="toggle-icon" style="font-size: 1.2em;">▶</span>
                 </div>
-            ` : `<div style="color: #10b981; font-weight: bold; margin-bottom: 8px;">🧠 Geo-AI Insights</div>`;
-
-            aiDiv.innerHTML = aiHeaderHTML + `
-                <label><input type="checkbox" id="nightlightAnalysisToggle"> 📊 Nightlight Distribution Analysis</label>
-                <label style="color: #94a3b8;"><input type="checkbox" disabled> 📈 Temporal Trends Analysis <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                <label style="color: #94a3b8;"><input type="checkbox" disabled> 🏘️ Settlement Detection <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                <label style="color: #94a3b8;"><input type="checkbox" disabled> 🛣️ Infrastructure Mapping <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                <label style="color: #94a3b8;"><input type="checkbox" disabled> 🌾 Land Use Classification <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                <label style="color: #94a3b8;"><input type="checkbox" disabled> 👥 Population Density Analysis <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                <label style="color: #94a3b8;"><input type="checkbox" disabled> 📉 Poverty Correlation Analysis <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                <label style="color: #94a3b8;"><input type="checkbox" disabled> 🌍 Environmental Impact <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                <label style="color: #94a3b8;"><input type="checkbox" disabled> 🔮 Predictive Modeling <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                <label style="color: #94a3b8;"><input type="checkbox" disabled> 🌐 Accessibility Analysis <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                <label style="color: #94a3b8;"><input type="checkbox" disabled> 💧 Water Resources Mapping <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                <label style="color: #94a3b8;"><input type="checkbox" disabled> 🏥 Healthcare Facility Coverage <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                <label style="color: #94a3b8;"><input type="checkbox" disabled> 🏫 Education Infrastructure <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                <label style="color: #94a3b8;"><input type="checkbox" disabled> 🌡️ Climate Vulnerability <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                <label style="color: #94a3b8;"><input type="checkbox" disabled> 📡 Connectivity Analysis <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                <label style="color: #94a3b8;"><input type="checkbox" disabled> 🌾 Agricultural Productivity <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                <label style="color: #94a3b8;"><input type="checkbox" disabled> 🚰 WASH Facilities Coverage <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                <label style="color: #94a3b8;"><input type="checkbox" disabled> 🏚️ Housing Quality Assessment <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                <label style="color: #94a3b8;"><input type="checkbox" disabled> 📊 Market Access Analysis <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                <label style="color: #94a3b8;"><input type="checkbox" disabled> 📑 Custom Report Generator <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                <div class="ai-content">
+                    <label><input type="checkbox" id="nightlightAnalysisToggle"> 📊 Nightlight Distribution Analysis</label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 📈 Temporal Trends Analysis <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🏘️ Settlement Detection <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🛣️ Infrastructure Mapping <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🌾 Land Use Classification <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 👥 Population Density Analysis <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 📉 Poverty Correlation Analysis <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🌍 Environmental Impact <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🔮 Predictive Modeling <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🌐 Accessibility Analysis <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 💧 Water Resources Mapping <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🏥 Healthcare Facility Coverage <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🏫 Education Infrastructure <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🌡️ Climate Vulnerability <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 📡 Connectivity Analysis <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🌾 Agricultural Productivity <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🚰 WASH Facilities Coverage <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🏚️ Housing Quality Assessment <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 📊 Market Access Analysis <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 📑 Custom Report Generator <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                </div>
             `;
+
+            // Add click handler for collapsible header
+            const aiHeader = aiDiv.querySelector('.ai-header');
+            const aiContent = aiDiv.querySelector('.ai-content');
+
+            aiHeader.addEventListener('click', function(e) {
+                e.stopPropagation();
+                aiDiv.classList.toggle('collapsed');
+                const icon = this.querySelector('.toggle-icon');
+                icon.textContent = aiDiv.classList.contains('collapsed') ? '▶' : '▼';
+            });
 
             // Disable map dragging and interactions when interacting with both controls
             L.DomEvent.disableClickPropagation(wrapper);
             L.DomEvent.disableScrollPropagation(wrapper);
             L.DomEvent.disableClickPropagation(layerDiv);
             L.DomEvent.disableScrollPropagation(layerDiv);
-            L.DomEvent.disableClickPropagation(aiDiv);
+            L.DomEvent.disableClickPropagation(aiContent);
             L.DomEvent.disableScrollPropagation(aiDiv);
 
             return wrapper;
