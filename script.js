@@ -906,6 +906,16 @@
                     <label style="color: #94a3b8;"><input type="checkbox" disabled> 🚰 WASH Facilities Coverage <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
                     <label style="color: #94a3b8;"><input type="checkbox" disabled> 🏚️ Housing Quality Assessment <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
                     <label style="color: #94a3b8;"><input type="checkbox" disabled> 📊 Market Access Analysis <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 📐 Spatial Autocorrelation (Moran's I) <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🎯 Hotspot Analysis (Getis-Ord Gi*) <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 📍 Point Pattern Analysis <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🗺️ Kriging Interpolation <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🔗 Spatial Regression Models <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 📏 Distance-Based Analysis <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🌊 Kernel Density Estimation <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🔄 Change Detection Analysis <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🧮 Spatial Clustering (K-means) <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🎲 Geographically Weighted Regression <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
                     <label style="color: #94a3b8;"><input type="checkbox" disabled> 📑 Custom Report Generator <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
                 </div>
             `;
