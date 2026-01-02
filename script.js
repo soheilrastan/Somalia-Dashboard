@@ -914,12 +914,22 @@
             const aiHeader = aiDiv.querySelector('.ai-header');
             const aiContent = aiDiv.querySelector('.ai-content');
 
-            aiHeader.addEventListener('click', function(e) {
-                e.stopPropagation();
-                aiDiv.classList.toggle('collapsed');
-                const icon = this.querySelector('.toggle-icon');
-                icon.textContent = aiDiv.classList.contains('collapsed') ? '▶' : '▼';
-            });
+            if (aiHeader) {
+                aiHeader.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    console.log('Geo-AI header clicked, current state:', aiDiv.classList.contains('collapsed'));
+                    aiDiv.classList.toggle('collapsed');
+                    const icon = this.querySelector('.toggle-icon');
+                    if (icon) {
+                        icon.textContent = aiDiv.classList.contains('collapsed') ? '▶' : '▼';
+                    }
+                    console.log('New state:', aiDiv.classList.contains('collapsed'));
+                });
+                console.log('Geo-AI Insights collapsible handler attached');
+            } else {
+                console.error('AI header not found!');
+            }
 
             // Disable map dragging and interactions when interacting with both controls
             L.DomEvent.disableClickPropagation(wrapper);
