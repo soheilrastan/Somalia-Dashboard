@@ -89,9 +89,15 @@
             width: 255px;
             max-height: 70vh;
             overflow-y: auto;
+            transition: max-height 0.3s ease;
         }
 
         /* Collapsible AI insights control */
+        .ai-insights-control.collapsed {
+            max-height: 50px;
+            overflow: hidden;
+        }
+
         .ai-insights-control.collapsed .ai-content {
             display: none;
         }
