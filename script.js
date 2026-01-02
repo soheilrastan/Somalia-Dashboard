@@ -1031,71 +1031,91 @@
         // ==========================================
         const infoBox = L.control({position: 'topright'});
         infoBox.onAdd = function() {
-            const div = L.DomUtil.create('div', 'info-box square');
+            const div = L.DomUtil.create('div', 'info-box square collapsed');
             div.style.width = isMobile ? '100%' : '280px';
-            div.style.height = isMobile ? 'auto' : '70vh';
             div.style.maxHeight = isMobile ? '40vh' : '70vh';
             div.style.overflowY = 'auto';
             div.style.position = isMobile ? 'relative' : 'absolute';
             div.style.top = isMobile ? 'auto' : '10px';
-            div.style.right = isMobile ? 'auto' : '280px'; // Position directly adjacent to the legend with no gap
+            div.style.right = isMobile ? 'auto' : '280px';
+            div.style.transition = 'max-height 0.3s ease';
 
-            const infoHeaderHTML = isMobile ? `
-                <div onclick="this.parentElement.classList.toggle('collapsed')"
-                     style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;"
-                     class="info-title">
+            div.innerHTML = `
+                <div class="info-header" style="color: #10b981; font-weight: bold; margin-bottom: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
                     <span>📊 Data Summary</span>
-                    <span style="font-size: 1.2em;">▼</span>
+                    <span class="info-toggle-icon" style="font-size: 1.2em;">▶</span>
                 </div>
-            ` : '<div class="info-title">📊 Data Summary</div>';
+                <div class="info-content">
+                    <div class="info-text" style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 2px solid #334155; line-height: 1.3;">
+                        <strong>MPI Range:</strong> 23-67<br>
+                        <strong>Nightlight Overview:</strong> 1,571<br>
+                        <strong>Nightlight Detailed (500m polygons):</strong><br>
+                        <span style="margin-left: 10px;">• Bakool 2022: 2 cells (>= 0.5 nW)</span><br>
+                        <span style="margin-left: 10px;">• Bakool 2023: 15 cells (>= 0.5 nW)</span><br>
+                        <strong>Roads (2 regions):</strong> 9,063<br>
+                        <strong>Population F 0-12mo:</strong> 16,478<br>
+                        <strong>Coverage:</strong> Bakool & Lower Shebelle
+                    </div>
 
-            div.innerHTML = infoHeaderHTML + `
-                <div class="info-text" style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 2px solid #334155; line-height: 1.3;">
-                    <strong>MPI Range:</strong> 23-67<br>
-                    <strong>Nightlight Overview:</strong> 1,571<br>
-                    <strong>Nightlight Detailed (500m polygons):</strong><br>
-                    <span style="margin-left: 10px;">• Bakool 2022: 2 cells (>= 0.5 nW)</span><br>
-                    <span style="margin-left: 10px;">• Bakool 2023: 15 cells (>= 0.5 nW)</span><br>
-                    <strong>Roads (2 regions):</strong> 9,063<br>
-                    <strong>Population F 0-12mo:</strong> 16,478<br>
-                    <strong>Coverage:</strong> Bakool & Lower Shebelle
-                </div>
-                
-                <div class="info-title" style="margin-top: 5px;">📋 Data Sources</div>
-                <div class="info-text" style="line-height: 1.3;">
-                    <strong>🛰️ Satellite Imagery:</strong><br>
-                    <a href="https://www.google.com/earth/" target="_blank" style="color: #0ea5e9; text-decoration: none; font-size: 0.85em;">Google Satellite</a><br>
-                    <span style="color: #64748b; font-size: 0.75em;">High-resolution imagery (up to zoom 22) from Maxar, CNES/Airbus</span><br>
+                    <div class="info-title" style="margin-top: 5px;">📋 Data Sources</div>
+                    <div class="info-text" style="line-height: 1.3;">
+                        <strong>🛰️ Satellite Imagery:</strong><br>
+                        <a href="https://www.google.com/earth/" target="_blank" style="color: #0ea5e9; text-decoration: none; font-size: 0.85em;">Google Satellite</a><br>
+                        <span style="color: #64748b; font-size: 0.75em;">High-resolution imagery (up to zoom 22) from Maxar, CNES/Airbus</span><br>
 
-                    <strong>📊 MPI:</strong><br>
-                    <a href="https://ophi.org.uk/sites/default/files/2024-12/Somalia_MPI_report_2024.pdf" target="_blank" style="color: #0ea5e9; text-decoration: none; font-size: 0.85em;">OPHI Somalia MPI Report 2024</a><br>
-                    <span style="color: #64748b; font-size: 0.75em;">(SIHBS 2022)</span><br>
+                        <strong>📊 MPI:</strong><br>
+                        <a href="https://ophi.org.uk/sites/default/files/2024-12/Somalia_MPI_report_2024.pdf" target="_blank" style="color: #0ea5e9; text-decoration: none; font-size: 0.85em;">OPHI Somalia MPI Report 2024</a><br>
+                        <span style="color: #64748b; font-size: 0.75em;">(SIHBS 2022)</span><br>
 
-                    <strong>💡 Nightlight Overview:</strong><br>
-                    <a href="https://eogdata.mines.edu/products/vnl/" target="_blank" style="color: #0ea5e9; text-decoration: none; font-size: 0.85em;">VIIRS Day/Night Band</a><br>
-                    <span style="color: #64748b; font-size: 0.75em;">(2023-2024, sampled)</span><br>
-                    
-                    <strong>✨ Nightlight Detailed (500m polygons):</strong><br>
-                    <a href="https://developers.google.com/earth-engine/datasets/catalog/NOAA_VIIRS_DNB_ANNUAL_V22" target="_blank" style="color: #0ea5e9; text-decoration: none; font-size: 0.85em;">NOAA VIIRS DNB Annual V22</a><br>
-                    <span style="color: #64748b; font-size: 0.75em;">Bakool 2022-2023, 500m × 500m polygons, filtered >= 0.5 nW/cm²/sr</span><br>
-                    <span style="color: #94a3b8; font-size: 0.7em;">17 polygons total (brightest nightlight cells only)</span><br>
-                    
-                    <strong>🛣️ Roads:</strong><br>
-                    <a href="https://data.humdata.org/dataset/somalia-roads" target="_blank" style="color: #0ea5e9; text-decoration: none; font-size: 0.85em;">Somalia All Roads 2021</a><br>
-                    <span style="color: #64748b; font-size: 0.75em;">Bakool & Lower Shebelle only</span><br>
-                    
-                    <strong>👶 Population:</strong><br>
-                    <a href="https://hub.worldpop.org/geodata/summary?id=83199" target="_blank" style="color: #0ea5e9; text-decoration: none; font-size: 0.85em;">WorldPop Age/Sex 2025</a><br>
-                    <span style="color: #64748b; font-size: 0.75em;">F 0-12 months, 500m grid</span><br>
-                    
-                    <strong>🗺️ Boundaries ADM1:</strong><br>
-                    <a href="https://data.humdata.org/dataset/somalia-administrative-boundaries" target="_blank" style="color: #0ea5e9; text-decoration: none; font-size: 0.85em;">Somalia Admin Boundaries (HDX)</a><br>
-                    
-                    <strong>🗺️ Districts ADM2:</strong><br>
-                    <a href="https://www.geoboundaries.org/index.html#getdata" target="_blank" style="color: #0ea5e9; text-decoration: none; font-size: 0.85em;">geoBoundaries Somalia ADM2</a><br>
-                    <span style="color: #64748b; font-size: 0.75em;">(118 districts)</span>
+                        <strong>💡 Nightlight Overview:</strong><br>
+                        <a href="https://eogdata.mines.edu/products/vnl/" target="_blank" style="color: #0ea5e9; text-decoration: none; font-size: 0.85em;">VIIRS Day/Night Band</a><br>
+                        <span style="color: #64748b; font-size: 0.75em;">(2023-2024, sampled)</span><br>
+
+                        <strong>✨ Nightlight Detailed (500m polygons):</strong><br>
+                        <a href="https://developers.google.com/earth-engine/datasets/catalog/NOAA_VIIRS_DNB_ANNUAL_V22" target="_blank" style="color: #0ea5e9; text-decoration: none; font-size: 0.85em;">NOAA VIIRS DNB Annual V22</a><br>
+                        <span style="color: #64748b; font-size: 0.75em;">Bakool 2022-2023, 500m × 500m polygons, filtered >= 0.5 nW/cm²/sr</span><br>
+                        <span style="color: #94a3b8; font-size: 0.7em;">17 polygons total (brightest nightlight cells only)</span><br>
+
+                        <strong>🛣️ Roads:</strong><br>
+                        <a href="https://data.humdata.org/dataset/somalia-roads" target="_blank" style="color: #0ea5e9; text-decoration: none; font-size: 0.85em;">Somalia All Roads 2021</a><br>
+                        <span style="color: #64748b; font-size: 0.75em;">Bakool & Lower Shebelle only</span><br>
+
+                        <strong>👶 Population:</strong><br>
+                        <a href="https://hub.worldpop.org/geodata/summary?id=83199" target="_blank" style="color: #0ea5e9; text-decoration: none; font-size: 0.85em;">WorldPop Age/Sex 2025</a><br>
+                        <span style="color: #64748b; font-size: 0.75em;">F 0-12 months, 500m grid</span><br>
+
+                        <strong>🗺️ Boundaries ADM1:</strong><br>
+                        <a href="https://data.humdata.org/dataset/somalia-administrative-boundaries" target="_blank" style="color: #0ea5e9; text-decoration: none; font-size: 0.85em;">Somalia Admin Boundaries (HDX)</a><br>
+
+                        <strong>🗺️ Districts ADM2:</strong><br>
+                        <a href="https://www.geoboundaries.org/index.html#getdata" target="_blank" style="color: #0ea5e9; text-decoration: none; font-size: 0.85em;">geoBoundaries Somalia ADM2</a><br>
+                        <span style="color: #64748b; font-size: 0.75em;">(118 districts)</span>
+                    </div>
                 </div>
             `;
+
+            // Add click handler for collapsible header
+            const infoHeader = div.querySelector('.info-header');
+            const infoContent = div.querySelector('.info-content');
+
+            if (infoHeader) {
+                infoHeader.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    div.classList.toggle('collapsed');
+                    const icon = this.querySelector('.info-toggle-icon');
+                    if (icon) {
+                        icon.textContent = div.classList.contains('collapsed') ? '▶' : '▼';
+                    }
+                });
+            }
+
+            // Disable click propagation only on content, not header
+            if (infoContent) {
+                L.DomEvent.disableClickPropagation(infoContent);
+                L.DomEvent.disableScrollPropagation(infoContent);
+            }
+
             return div;
         };
         infoBox.addTo(map);

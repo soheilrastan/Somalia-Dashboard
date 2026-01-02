@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Geo-MPI* Extensions, Somalia - Geo-Insight Lab, ESCWA</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -18,9 +21,13 @@
         </div>
         <div id="map"></div>
     </div>
-    <script src="data.js"></script>
-    <script src="bakool_nightlight_polygons_2022.js"></script>
-    <script src="bakool_nightlight_polygons_2023.js"></script>
-    <script src="script.js"></script>
+    <script>
+        // Add timestamp to force cache refresh
+        const timestamp = new Date().getTime();
+        document.write('<script src="data.js?' + timestamp + '"><\/script>');
+        document.write('<script src="bakool_nightlight_polygons_2022.js?' + timestamp + '"><\/script>');
+        document.write('<script src="bakool_nightlight_polygons_2023.js?' + timestamp + '"><\/script>');
+        document.write('<script src="script.js?' + timestamp + '"><\/script>');
+    </script>
 </body>
 </html>
