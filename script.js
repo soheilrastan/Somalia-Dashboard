@@ -887,25 +887,43 @@
                     <span class="toggle-icon" style="font-size: 1.2em;">▶</span>
                 </div>
                 <div class="ai-content">
+                    <!-- Remote Sensing & Detection -->
+                    <div style="color: #0ea5e9; font-weight: bold; margin-top: 8px; margin-bottom: 4px; font-size: 0.9em;">🛰️ Remote Sensing & Detection</div>
                     <label><input type="checkbox" id="nightlightAnalysisToggle"> 📊 Nightlight Distribution Analysis</label>
-                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 📈 Temporal Trends Analysis 🔒</label>
                     <label style="color: #94a3b8;"><input type="checkbox" disabled> 🏘️ Settlement Detection 🔒</label>
-                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🛣️ Infrastructure Mapping 🔒</label>
                     <label style="color: #94a3b8;"><input type="checkbox" disabled> 🌾 Land Use Classification 🔒</label>
-                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 👥 Population Density Analysis 🔒</label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🔄 Change Detection Analysis 🔒</label>
+
+                    <!-- Socioeconomic Analytics -->
+                    <div style="color: #0ea5e9; font-weight: bold; margin-top: 12px; margin-bottom: 4px; font-size: 0.9em;">📊 Socioeconomic Analytics</div>
                     <label style="color: #94a3b8;"><input type="checkbox" disabled> 📉 Poverty Correlation Analysis 🔒</label>
-                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🌍 Environmental Impact 🔒</label>
-                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🔮 Predictive Modeling 🔒</label>
-                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🌐 Accessibility Analysis 🔒</label>
-                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 💧 Water Resources Mapping 🔒</label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 👥 Population Density Analysis 🔒</label>
                     <label style="color: #94a3b8;"><input type="checkbox" disabled> 🏥 Healthcare Facility Coverage 🔒</label>
                     <label style="color: #94a3b8;"><input type="checkbox" disabled> 🏫 Education Infrastructure 🔒</label>
-                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🌡️ Climate Vulnerability 🔒</label>
-                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 📡 Connectivity Analysis 🔒</label>
-                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🌾 Agricultural Productivity 🔒</label>
-                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🚰 WASH Facilities Coverage 🔒</label>
                     <label style="color: #94a3b8;"><input type="checkbox" disabled> 🏚️ Housing Quality Assessment 🔒</label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🚰 WASH Facilities Coverage 🔒</label>
                     <label style="color: #94a3b8;"><input type="checkbox" disabled> 📊 Market Access Analysis 🔒</label>
+
+                    <!-- Environmental & Climate Analysis -->
+                    <div style="color: #0ea5e9; font-weight: bold; margin-top: 12px; margin-bottom: 4px; font-size: 0.9em;">🌍 Environmental & Climate Analysis</div>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🌍 Environmental Impact 🔒</label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🌡️ Climate Vulnerability 🔒</label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 💧 Water Resources Mapping 🔒</label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🌾 Agricultural Productivity 🔒</label>
+
+                    <!-- Infrastructure & Connectivity -->
+                    <div style="color: #0ea5e9; font-weight: bold; margin-top: 12px; margin-bottom: 4px; font-size: 0.9em;">🏗️ Infrastructure & Connectivity</div>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🛣️ Infrastructure Mapping 🔒</label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 📡 Connectivity Analysis 🔒</label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🌐 Accessibility Analysis 🔒</label>
+
+                    <!-- Temporal & Predictive Analytics -->
+                    <div style="color: #0ea5e9; font-weight: bold; margin-top: 12px; margin-bottom: 4px; font-size: 0.9em;">📈 Temporal & Predictive Analytics</div>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 📈 Temporal Trends Analysis 🔒</label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🔮 Predictive Modeling 🔒</label>
+
+                    <!-- Spatial Statistics -->
+                    <div style="color: #0ea5e9; font-weight: bold; margin-top: 12px; margin-bottom: 4px; font-size: 0.9em;">🔬 Spatial Statistics</div>
                     <label style="color: #94a3b8;"><input type="checkbox" disabled> 📐 Spatial Autocorrelation (Moran's I) 🔒</label>
                     <label style="color: #94a3b8;"><input type="checkbox" disabled> 🎯 Hotspot Analysis (Getis-Ord Gi*) 🔒</label>
                     <label style="color: #94a3b8;"><input type="checkbox" disabled> 📍 Point Pattern Analysis 🔒</label>
@@ -913,9 +931,11 @@
                     <label style="color: #94a3b8;"><input type="checkbox" disabled> 🔗 Spatial Regression Models 🔒</label>
                     <label style="color: #94a3b8;"><input type="checkbox" disabled> 📏 Distance-Based Analysis 🔒</label>
                     <label style="color: #94a3b8;"><input type="checkbox" disabled> 🌊 Kernel Density Estimation 🔒</label>
-                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🔄 Change Detection Analysis 🔒</label>
                     <label style="color: #94a3b8;"><input type="checkbox" disabled> 🧮 Spatial Clustering (K-means) 🔒</label>
                     <label style="color: #94a3b8;"><input type="checkbox" disabled> 🎲 Geographically Weighted Regression 🔒</label>
+
+                    <!-- Reporting & Customization -->
+                    <div style="color: #0ea5e9; font-weight: bold; margin-top: 12px; margin-bottom: 4px; font-size: 0.9em;">🛠️ Reporting & Customization</div>
                     <label style="color: #94a3b8;"><input type="checkbox" disabled> 📑 Custom Report Generator 🔒</label>
                 </div>
             `;
