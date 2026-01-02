@@ -888,35 +888,35 @@
                 </div>
                 <div class="ai-content">
                     <label><input type="checkbox" id="nightlightAnalysisToggle"> 📊 Nightlight Distribution Analysis</label>
-                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 📈 Temporal Trends Analysis <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🏘️ Settlement Detection <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🛣️ Infrastructure Mapping <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🌾 Land Use Classification <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 👥 Population Density Analysis <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 📉 Poverty Correlation Analysis <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🌍 Environmental Impact <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🔮 Predictive Modeling <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🌐 Accessibility Analysis <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 💧 Water Resources Mapping <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🏥 Healthcare Facility Coverage <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🏫 Education Infrastructure <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🌡️ Climate Vulnerability <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 📡 Connectivity Analysis <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🌾 Agricultural Productivity <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🚰 WASH Facilities Coverage <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🏚️ Housing Quality Assessment <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 📊 Market Access Analysis <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 📐 Spatial Autocorrelation (Moran's I) <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🎯 Hotspot Analysis (Getis-Ord Gi*) <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 📍 Point Pattern Analysis <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🗺️ Kriging Interpolation <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🔗 Spatial Regression Models <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 📏 Distance-Based Analysis <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🌊 Kernel Density Estimation <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🔄 Change Detection Analysis <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🧮 Spatial Clustering (K-means) <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🎲 Geographically Weighted Regression <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
-                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 📑 Custom Report Generator <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(Coming Soon)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 📈 Temporal Trends Analysis <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(TBD)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🏘️ Settlement Detection <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(TBD)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🛣️ Infrastructure Mapping <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(TBD)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🌾 Land Use Classification <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(TBD)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 👥 Population Density Analysis <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(TBD)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 📉 Poverty Correlation Analysis <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(TBD)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🌍 Environmental Impact <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(TBD)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🔮 Predictive Modeling <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(TBD)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🌐 Accessibility Analysis <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(TBD)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 💧 Water Resources Mapping <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(TBD)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🏥 Healthcare Facility Coverage <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(TBD)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🏫 Education Infrastructure <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(TBD)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🌡️ Climate Vulnerability <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(TBD)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 📡 Connectivity Analysis <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(TBD)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🌾 Agricultural Productivity <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(TBD)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🚰 WASH Facilities Coverage <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(TBD)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🏚️ Housing Quality Assessment <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(TBD)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 📊 Market Access Analysis <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(TBD)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 📐 Spatial Autocorrelation (Moran's I) <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(TBD)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🎯 Hotspot Analysis (Getis-Ord Gi*) <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(TBD)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 📍 Point Pattern Analysis <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(TBD)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🗺️ Kriging Interpolation <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(TBD)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🔗 Spatial Regression Models <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(TBD)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 📏 Distance-Based Analysis <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(TBD)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🌊 Kernel Density Estimation <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(TBD)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🔄 Change Detection Analysis <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(TBD)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🧮 Spatial Clustering (K-means) <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(TBD)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 🎲 Geographically Weighted Regression <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(TBD)</span></label>
+                    <label style="color: #94a3b8;"><input type="checkbox" disabled> 📑 Custom Report Generator <span style="color: #fbbf24; font-style: italic; font-size: 0.85em;">(TBD)</span></label>
                 </div>
             `;
 
