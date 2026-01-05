@@ -1031,7 +1031,7 @@
         // ==========================================
         const infoBox = L.control({position: 'topright'});
         infoBox.onAdd = function() {
-            const div = L.DomUtil.create('div', 'info-box square collapsed');
+            const div = L.DomUtil.create('div', 'info-box collapsed');
             div.style.width = isMobile ? '100%' : '255px';
             div.style.maxHeight = isMobile ? '40vh' : '70vh';
             div.style.overflowY = 'auto';
