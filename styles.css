@@ -102,6 +102,10 @@
             display: none;
         }
 
+        .ai-insights-control.collapsed .ai-header {
+            margin-bottom: 0 !important;
+        }
+
         /* Collapsible Data Summary (info-box) */
         .info-box.collapsed {
             max-height: 50px;
@@ -110,6 +114,10 @@
 
         .info-box.collapsed .info-content {
             display: none;
+        }
+
+        .info-box.collapsed .info-header {
+            margin-bottom: 0 !important;
         }
 
         /* Custom scrollbar styling for layer control */
