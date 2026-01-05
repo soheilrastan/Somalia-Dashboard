@@ -1041,9 +1041,9 @@
             div.style.transition = 'max-height 0.3s ease';
 
             div.innerHTML = `
-                <div class="info-header" style="color: #10b981; font-weight: bold; margin-bottom: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
-                    <span>📚 Concepts, Sources, and Methods</span>
-                    <span class="info-toggle-icon" style="font-size: 1.2em;">▶</span>
+                <div class="info-header" style="color: #10b981; font-weight: bold; margin-bottom: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; white-space: nowrap; overflow: hidden;">
+                    <span style="overflow: hidden; text-overflow: ellipsis;">📚 Concepts, Sources, and Methods</span>
+                    <span class="info-toggle-icon" style="font-size: 1.2em; flex-shrink: 0;">▶</span>
                 </div>
                 <div class="info-content">
                     <!-- Level 2: Sources -->
