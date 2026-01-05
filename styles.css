@@ -152,7 +152,7 @@
             font-size: 0.85em;
         }
         .info-box {
-            background: rgba(30, 41, 59, 0.95); padding: 12px;
+            background: rgba(30, 41, 59, 0.95); padding: 10px;
             border-radius: 8px; border: 2px solid #334155;
             width: 340px;
         }
