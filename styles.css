@@ -120,6 +120,20 @@
             margin-bottom: 0 !important;
         }
 
+        /* Collapsible Legend (MPI by Region) */
+        .legend.collapsed {
+            max-height: 50px;
+            overflow: hidden;
+        }
+
+        .legend.collapsed .legend-content {
+            display: none;
+        }
+
+        .legend.collapsed .legend-header {
+            margin-bottom: 0 !important;
+        }
+
         /* Custom scrollbar styling for layer control */
         .layer-control::-webkit-scrollbar {
             width: 8px;

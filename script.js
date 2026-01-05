@@ -1626,25 +1626,21 @@
         // Legend with gradient bars for both MPI and Nightlight
         const legend = L.control({position: 'topright'});
         legend.onAdd = function() {
-            const div = L.DomUtil.create('div', 'legend');
-            div.style.width = isMobile ? '100%' : '280px';
-            div.style.height = isMobile ? 'auto' : '70vh';
+            const div = L.DomUtil.create('div', 'legend collapsed');
+            div.style.width = isMobile ? '100%' : '255px';
             div.style.maxHeight = isMobile ? '50vh' : '70vh';
             div.style.overflowY = 'auto';
             div.style.position = isMobile ? 'relative' : 'absolute';
             div.style.top = isMobile ? 'auto' : '10px';
             div.style.right = isMobile ? 'auto' : '0px';
+            div.style.transition = 'max-height 0.3s ease';
 
-            const legendHeaderHTML = isMobile ? `
-                <div onclick="this.parentElement.classList.toggle('collapsed')"
-                     style="color: #0ea5e9; font-weight: bold; margin-bottom: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;"
-                     class="legend-title">
-                    <span>🌍 MPI by Region</span>
-                    <span style="font-size: 1.2em;">▼</span>
+            let html = `
+                <div class="legend-header" style="color: #10b981; font-weight: bold; margin-bottom: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; white-space: nowrap; overflow: hidden;">
+                    <span style="overflow: hidden; text-overflow: ellipsis;">🌍 MPI by Region</span>
+                    <span class="legend-toggle-icon" style="font-size: 1.2em; flex-shrink: 0;">▶</span>
                 </div>
-            ` : '<div class="legend-title">🌍 MPI by Region</div>';
-
-            let html = legendHeaderHTML;
+                <div class="legend-content">`;
             
             const sorted = [...regions].sort((a, b) => b.mpi - a.mpi);
             sorted.forEach(r => {
@@ -1713,8 +1709,32 @@
                         500m grid, pop ≥1 only
                     </div>
                 </div>
+                </div>
             `;
             div.innerHTML = html;
+
+            // Add click handler for collapsible header
+            const legendHeader = div.querySelector('.legend-header');
+            const legendContent = div.querySelector('.legend-content');
+
+            if (legendHeader) {
+                legendHeader.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    div.classList.toggle('collapsed');
+                    const icon = this.querySelector('.legend-toggle-icon');
+                    if (icon) {
+                        icon.textContent = div.classList.contains('collapsed') ? '▶' : '▼';
+                    }
+                });
+            }
+
+            // Disable click propagation only on content, not header
+            if (legendContent) {
+                L.DomEvent.disableClickPropagation(legendContent);
+                L.DomEvent.disableScrollPropagation(legendContent);
+            }
+
             return div;
         };
         legend.addTo(map);
