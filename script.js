@@ -1042,23 +1042,13 @@
 
             div.innerHTML = `
                 <div class="info-header" style="color: #10b981; font-weight: bold; margin-bottom: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
-                    <span>📊 Data Summary</span>
+                    <span>📚 Concepts, Sources, and Methods</span>
                     <span class="info-toggle-icon" style="font-size: 1.2em;">▶</span>
                 </div>
                 <div class="info-content">
-                    <div class="info-text" style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 2px solid #334155; line-height: 1.3;">
-                        <strong>MPI Range:</strong> 23-67<br>
-                        <strong>Nightlight Overview:</strong> 1,571<br>
-                        <strong>Nightlight Detailed (500m polygons):</strong><br>
-                        <span style="margin-left: 10px;">• Bakool 2022: 2 cells (>= 0.5 nW)</span><br>
-                        <span style="margin-left: 10px;">• Bakool 2023: 15 cells (>= 0.5 nW)</span><br>
-                        <strong>Roads (2 regions):</strong> 9,063<br>
-                        <strong>Population F 0-12mo:</strong> 16,478<br>
-                        <strong>Coverage:</strong> Bakool & Lower Shebelle
-                    </div>
-
-                    <div class="info-title" style="margin-top: 5px;">📋 Data Sources</div>
-                    <div class="info-text" style="line-height: 1.3;">
+                    <!-- Level 2: Sources -->
+                    <div class="info-title" style="margin-top: 5px; font-size: 1em; color: #0ea5e9; font-weight: 600;">📋 Sources</div>
+                    <div class="info-text" style="line-height: 1.3; margin-bottom: 15px;">
                         <strong>🛰️ Satellite Imagery:</strong><br>
                         <a href="https://www.google.com/earth/" target="_blank" style="color: #0ea5e9; text-decoration: none; font-size: 0.85em;">Google Satellite</a><br>
                         <span style="color: #64748b; font-size: 0.75em;">High-resolution imagery (up to zoom 22) from Maxar, CNES/Airbus</span><br>
@@ -1090,6 +1080,19 @@
                         <strong>🗺️ Districts ADM2:</strong><br>
                         <a href="https://www.geoboundaries.org/index.html#getdata" target="_blank" style="color: #0ea5e9; text-decoration: none; font-size: 0.85em;">geoBoundaries Somalia ADM2</a><br>
                         <span style="color: #64748b; font-size: 0.75em;">(118 districts)</span>
+                    </div>
+
+                    <!-- Level 2: Summary -->
+                    <div class="info-title" style="margin-top: 5px; font-size: 1em; color: #0ea5e9; font-weight: 600;">📊 Summary</div>
+                    <div class="info-text" style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 2px solid #334155; line-height: 1.3;">
+                        <strong>MPI Range:</strong> 23-67<br>
+                        <strong>Nightlight Overview:</strong> 1,571<br>
+                        <strong>Nightlight Detailed (500m polygons):</strong><br>
+                        <span style="margin-left: 10px;">• Bakool 2022: 2 cells (>= 0.5 nW)</span><br>
+                        <span style="margin-left: 10px;">• Bakool 2023: 15 cells (>= 0.5 nW)</span><br>
+                        <strong>Roads (2 regions):</strong> 9,063<br>
+                        <strong>Population F 0-12mo:</strong> 16,478<br>
+                        <strong>Coverage:</strong> Bakool & Lower Shebelle
                     </div>
                 </div>
             `;
