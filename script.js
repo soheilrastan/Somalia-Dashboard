@@ -2826,14 +2826,24 @@
                                     // ========================================
                                     console.log('🔍 Triggering iSEE Analytics for Roads OSM...');
 
-                                    // Update layerRefs with current roads data
-                                    layerRefs.clippedRoadsLayer = activeRoadsOSMLayer;
-                                    layerRefs.roadsData = roadsData;
-                                    layerRefs.activeRoadsRegion = droppedRegion;
-
                                     // Trigger iSEE Analytics after a short delay to let the map settle
                                     setTimeout(() => {
                                         if (typeof runISEEAnalytics === 'function') {
+                                            // Create layerRefs object with current roads data
+                                            const layerRefs = {
+                                                detailedNLBakool2022: detailedNLBakool2022,
+                                                detailedNLBakool2023: detailedNLBakool2023,
+                                                bakoolNightlightPolygons2022: bakoolNightlightPolygons2022,
+                                                bakoolNightlightPolygons2023: bakoolNightlightPolygons2023,
+                                                clippedRoadsLayer: activeRoadsOSMLayer,
+                                                activeRoadsRegion: droppedRegion,
+                                                roadsData: roadsData,
+                                                regionLayer: droppedRegionLayer,
+                                                allRegionLayers: allRegionLayers,
+                                                somaliaData: adm1Boundaries
+                                            };
+
+                                            console.log('🔍 Calling runISEEAnalytics with layerRefs:', layerRefs);
                                             runISEEAnalytics(activeBakoolLayers, map, layerRefs, droppedRegion);
                                         } else {
                                             console.warn('⚠️ iSEE Analytics not available');
