@@ -2124,6 +2124,7 @@
             const roadsLabel = document.getElementById('roadsLabel');
             let clippedRoadsLayer = null;
             let activeRoadsRegion = null; // Track which region has roads displayed
+            let roadsData = null; // Store roads GeoJSON data with metadata
 
             // Store region references
             let lowerShebelleRegionLayer = null;
@@ -2748,14 +2749,14 @@
                                 (1, eval)(scriptContent);
 
                                 // Now access the variable
-                                const roadsData = window[roadsVarName];
+                                const loadedRoadsData = window[roadsVarName];
 
-                                if (roadsData && roadsData.features) {
+                                if (loadedRoadsData && loadedRoadsData.features) {
                                     console.log(`✓ Found ${roadsVarName}!`);
-                                    console.log(`✓ Data contains ${roadsData.features.length} road features`);
+                                    console.log(`✓ Data contains ${loadedRoadsData.features.length} road features`);
 
                                     // Create Leaflet GeoJSON layer
-                                    activeRoadsOSMLayer = L.geoJSON(roadsData, {
+                                    activeRoadsOSMLayer = L.geoJSON(loadedRoadsData, {
                                     style: function(feature) {
                                         // Color roads by type (fclass)
                                         const fclass = feature.properties.fclass || 'unknown';
@@ -2802,7 +2803,7 @@
                                     className: 'drop-success-popup'
                                 })
                                 .setLatLng(latlng)
-                                .setContent(`✓ Loaded ${roadsData.metadata.total_roads.toLocaleString()} OSM Roads for ${droppedRegion}`)
+                                .setContent(`✓ Loaded ${loadedRoadsData.metadata.total_roads.toLocaleString()} OSM Roads for ${droppedRegion}`)
                                 .openOn(map);
 
                                 setTimeout(() => {
@@ -2828,9 +2829,11 @@
                                     // (Roads data is now available for when user drags iSEE Analytics label)
                                     clippedRoadsLayer = activeRoadsOSMLayer;
                                     activeRoadsRegion = droppedRegion;
-                                    // Note: roadsData already set above
+                                    roadsData = loadedRoadsData; // Set global roadsData from loaded data
 
                                     console.log('✅ Roads loaded! Now drag "iSEE Analytics" label to analyze this region.');
+                                    console.log('📊 Roads data has metadata:', !!roadsData.metadata);
+                                    console.log('📊 Roads data:', roadsData);
                                 } else {
                                     // Variable not found after eval
                                     console.log(`❌ ${roadsVarName} not found in window after eval`);
