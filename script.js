@@ -1,4 +1,6 @@
-        // VERSION 2.6 - Roads OSM Analytics Fixed (2026-01-09)
+        // VERSION 2.7 - Manual Analytics Trigger Only (2026-01-09)
+        console.log('🚀 Dashboard v2.7: Manual iSEE Analytics trigger (no auto-run)');
+
         // Mobile detection and initial setup
         const isMobile = window.innerWidth <= 767;
         const isTablet = window.innerWidth > 767 && window.innerWidth <= 1024;
@@ -2827,6 +2829,8 @@
                                     clippedRoadsLayer = activeRoadsOSMLayer;
                                     activeRoadsRegion = droppedRegion;
                                     // Note: roadsData already set above
+
+                                    console.log('✅ Roads loaded! Now drag "iSEE Analytics" label to analyze this region.');
                                 } else {
                                     // Variable not found after eval
                                     console.log(`❌ ${roadsVarName} not found in window after eval`);
