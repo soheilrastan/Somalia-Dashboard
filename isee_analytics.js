@@ -1,10 +1,10 @@
 // ========================================
-// iSEE ANALYTICS ENGINE v2.5 (ROADS OSM ANALYTICS ENABLED)
+// iSEE ANALYTICS ENGINE v2.7 (OSM FORMAT DEBUG)
 // Integrated Socioeconomic and Environmental Analysis
 // ========================================
 
 function runISEEAnalytics(activeBakoolLayersParam, mapParam, layerRefs, targetRegion) {
-    console.log('🔍 iSEE Analytics v2.5: Starting comprehensive analysis...');
+    console.log('🔍 iSEE Analytics v2.7: Starting comprehensive analysis...');
     console.log('🔍 Function called successfully!');
     console.log('🔍 Parameters received:', { activeBakoolLayersParam, mapParam, layerRefs, targetRegion });
     console.log('🔍 LayerRefs.clippedRoadsLayer:', layerRefs.clippedRoadsLayer);
@@ -147,8 +147,17 @@ function configureDatasets(layers, targetRegion) {
             };
         } else if (layer.type === 'infrastructure') {
             // Detect if this is OSM format (has fclass and Length_m properties)
+            console.log('🔍 Checking road data format:', {
+                hasFeatures: !!layer.data.features,
+                featureCount: layer.data.features?.length,
+                firstFeature: layer.data.features?.[0],
+                firstProperties: layer.data.features?.[0]?.properties
+            });
+
             const isOSMFormat = layer.data.features?.[0]?.properties?.fclass != null &&
                                layer.data.features?.[0]?.properties?.Length_m != null;
+
+            console.log('🔍 Is OSM format?', isOSMFormat);
 
             if (isOSMFormat) {
                 // Use OSM roads extraction
