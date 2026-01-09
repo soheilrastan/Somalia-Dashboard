@@ -132,14 +132,35 @@ function configureDatasets(layers, targetRegion) {
                 values: extractMPIStats(layer.data, targetRegion)
             };
         } else if (layer.type === 'infrastructure') {
-            config.metadata = {
-                dataSource: 'Humanitarian Data Exchange - Somalia Roads (2021)',
-                sourceUrl: 'https://data.humdata.org/dataset/somalia-roads',
-                region: layer.region,
-                totalRoads: extractRoadsStats(layer.data, layer.region).count,
-                unit: 'road segments',
-                values: extractRoadsStats(layer.data, layer.region)
-            };
+            // Detect if this is OSM format (has fclass and Length_m properties)
+            const isOSMFormat = layer.data.features?.[0]?.properties?.fclass != null &&
+                               layer.data.features?.[0]?.properties?.Length_m != null;
+
+            if (isOSMFormat) {
+                // Use OSM roads extraction
+                const osmStats = extractOSMRoadsStats(layer.data, layer.region);
+                config.metadata = {
+                    dataSource: 'OpenStreetMap Roads (OSM) - Somalia 2023',
+                    sourceUrl: 'https://www.openstreetmap.org/',
+                    region: layer.region,
+                    totalRoads: osmStats.count,
+                    unit: 'road segments',
+                    values: osmStats,
+                    format: 'OSM',
+                    sourceYear: layer.data.metadata?.data_source || 'OpenStreetMap Somalia Roads 2023'
+                };
+            } else {
+                // Use legacy roads extraction
+                config.metadata = {
+                    dataSource: 'Humanitarian Data Exchange - Somalia Roads (2021)',
+                    sourceUrl: 'https://data.humdata.org/dataset/somalia-roads',
+                    region: layer.region,
+                    totalRoads: extractRoadsStats(layer.data, layer.region).count,
+                    unit: 'road segments',
+                    values: extractRoadsStats(layer.data, layer.region),
+                    format: 'Legacy'
+                };
+            }
         }
 
         return config;
@@ -325,6 +346,98 @@ function calculateStats(values) {
     };
 }
 
+// ========================================
+// OSM ROADS ANALYSIS (OpenStreetMap Format)
+// ========================================
+function extractOSMRoadsStats(data, region) {
+    console.log('🛣️ extractOSMRoadsStats called for region:', region);
+    console.log('🛣️ OSM Roads data features count:', data.features?.length);
+
+    // All features are for this region (pre-filtered by drag-and-drop)
+    const regionRoads = data.features || [];
+
+    // Count roads and calculate statistics by road class (fclass)
+    const roadsByClass = {};
+    const lengthByClass = {}; // Length in km by road class
+    const roadsBySourceYear = {};
+    let totalLength = 0;
+    let totalRoads = 0;
+    const allLengths = [];
+
+    regionRoads.forEach((road, index) => {
+        const fclass = road.properties.fclass || 'unknown';
+        const lengthMeters = parseFloat(road.properties.Length_m) || 0;
+        const lengthKm = lengthMeters / 1000;
+        const sourceYear = road.properties.Source_Yea || 'Unknown';
+
+        // Count by road class
+        roadsByClass[fclass] = (roadsByClass[fclass] || 0) + 1;
+        lengthByClass[fclass] = (lengthByClass[fclass] || 0) + lengthKm;
+
+        // Count by source year
+        roadsBySourceYear[sourceYear] = (roadsBySourceYear[sourceYear] || 0) + 1;
+
+        totalLength += lengthKm;
+        totalRoads += 1;
+        allLengths.push(lengthKm);
+
+        if (index < 3) {
+            console.log(`🛣️ Road ${index}: ${fclass}, ${lengthKm.toFixed(2)} km, year: ${sourceYear}`);
+        }
+    });
+
+    // Calculate road statistics
+    const lengthStats = calculateStats(allLengths);
+
+    // Calculate road density categories
+    const roadClassHierarchy = {
+        'motorway': 1,
+        'trunk': 2,
+        'primary': 3,
+        'secondary': 4,
+        'tertiary': 5,
+        'residential': 6,
+        'unclassified': 7,
+        'track': 8,
+        'track_grade1': 8,
+        'track_grade2': 8,
+        'track_grade3': 8,
+        'track_grade4': 8,
+        'track_grade5': 8,
+        'service': 9,
+        'unknown': 10
+    };
+
+    // Calculate infrastructure quality score (0-100)
+    let qualityScore = 0;
+    let totalWeight = 0;
+
+    Object.keys(lengthByClass).forEach(fclass => {
+        const weight = 11 - (roadClassHierarchy[fclass] || 10);
+        const length = lengthByClass[fclass];
+        qualityScore += weight * length;
+        totalWeight += length;
+    });
+
+    qualityScore = totalWeight > 0 ? (qualityScore / totalWeight / 10 * 100) : 0;
+
+    console.log('🛣️ Total roads:', totalRoads);
+    console.log('🛣️ Total length:', totalLength.toFixed(2), 'km');
+    console.log('🛣️ Quality score:', qualityScore.toFixed(1));
+
+    return {
+        count: totalRoads,
+        byClass: roadsByClass,
+        lengthByClass: lengthByClass,
+        totalLength: totalLength,
+        region: region,
+        lengthStats: lengthStats,
+        bySourceYear: roadsBySourceYear,
+        qualityScore: qualityScore.toFixed(1),
+        metadata: data.metadata || {}
+    };
+}
+
 // STEP 3: Perform statistical analysis
 function performStatisticalAnalysis(datasets, targetRegion, layerRefs) {
     const results = {
@@ -496,34 +609,120 @@ function analyzeLayer(dataset) {
     if (dataset.type === 'infrastructure' && dataset.metadata.values) {
         const roads = dataset.metadata.values;
         const totalLength = roads.totalLength ? roads.totalLength.toFixed(2) : 'N/A';
-        analysis.insights.push(`${roads.count} road segments identified in ${roads.region} with total length of ${totalLength} km`);
+        const isOSM = dataset.metadata.format === 'OSM';
 
-        // Analyze road types with lengths
-        const roadTypes = Object.entries(roads.byType).sort((a, b) => b[1] - a[1]);
-        const topType = roadTypes[0];
-        const topTypeLength = roads.lengthByType && roads.lengthByType[topType[0]]
-            ? roads.lengthByType[topType[0]].toFixed(2)
-            : 'N/A';
-        analysis.insights.push(`Predominant road type: ${topType[0]} (${topType[1]} segments, ${(topType[1]/roads.count*100).toFixed(1)}%, ${topTypeLength} km)`);
+        // ========================================
+        // OSM ROADS AI-POWERED INSIGHTS
+        // ========================================
+        if (isOSM) {
+            // Basic statistics
+            analysis.insights.push(`🛣️ <strong>${roads.count.toLocaleString()} OpenStreetMap road segments</strong> analyzed in <strong>${roads.region}</strong> region with total network length of <strong>${totalLength} km</strong>`);
 
-        // Infrastructure quality assessment
-        if (roads.byType['Major road']) {
-            const majorLength = roads.lengthByType && roads.lengthByType['Major road']
-                ? roads.lengthByType['Major road'].toFixed(2)
-                : 'N/A';
-            analysis.insights.push(`Presence of major roads (${majorLength} km) indicates some connectivity infrastructure`);
+            // Road classification analysis
+            const roadsByClass = Object.entries(roads.byClass || {}).sort((a, b) => b[1] - a[1]);
+            if (roadsByClass.length > 0) {
+                const topClass = roadsByClass[0];
+                const topClassLength = roads.lengthByClass[topClass[0]].toFixed(2);
+                const topClassPercent = (topClass[1] / roads.count * 100).toFixed(1);
+                analysis.insights.push(`📊 Predominant road classification: <strong>${topClass[0]}</strong> (${topClass[1].toLocaleString()} segments, ${topClassPercent}%, ${topClassLength} km)`);
+            }
+
+            // Infrastructure quality score
+            analysis.insights.push(`⭐ Infrastructure Quality Score: <strong>${roads.qualityScore}/100</strong> - ${
+                parseFloat(roads.qualityScore) >= 70 ? 'Excellent road network with diverse classifications' :
+                parseFloat(roads.qualityScore) >= 50 ? 'Moderate infrastructure quality' :
+                parseFloat(roads.qualityScore) >= 30 ? 'Basic road network, mostly rural tracks' :
+                'Limited infrastructure, primarily unpaved tracks'
+            }`);
+
+            // Road type hierarchy analysis
+            const hasHighwayRoads = roads.byClass['motorway'] || roads.byClass['trunk'] || roads.byClass['primary'];
+            if (hasHighwayRoads) {
+                const highwayLength = (roads.lengthByClass['motorway'] || 0) +
+                                     (roads.lengthByClass['trunk'] || 0) +
+                                     (roads.lengthByClass['primary'] || 0);
+                analysis.insights.push(`🛤️ <strong>Major highway infrastructure present</strong>: ${highwayLength.toFixed(2)} km of motorway/trunk/primary roads indicates good regional connectivity`);
+            }
+
+            const hasSecondaryTertiary = roads.byClass['secondary'] || roads.byClass['tertiary'];
+            if (hasSecondaryTertiary) {
+                const secondaryLength = (roads.lengthByClass['secondary'] || 0) + (roads.lengthByClass['tertiary'] || 0);
+                analysis.insights.push(`🛣️ Secondary/Tertiary roads: ${secondaryLength.toFixed(2)} km providing district-level connectivity`);
+            }
+
+            // Track analysis (rural roads)
+            const trackTypes = Object.keys(roads.byClass).filter(k => k.includes('track'));
+            if (trackTypes.length > 0) {
+                const trackLength = trackTypes.reduce((sum, type) => sum + (roads.lengthByClass[type] || 0), 0);
+                const trackPercent = (trackLength / roads.totalLength * 100).toFixed(1);
+                analysis.insights.push(`🚜 Rural tracks comprise ${trackPercent}% of road network (${trackLength.toFixed(2)} km) - indicates predominately rural/agricultural access roads`);
+            }
+
+            // Road density calculation (assuming average Somalia region size)
+            const avgRegionSize = 35000; // km² approximate average
+            const roadDensity = (roads.totalLength / avgRegionSize).toFixed(2);
+            analysis.insights.push(`📏 <strong>Road density</strong>: ${roadDensity} km/km² ${
+                roadDensity > 0.5 ? '(High - well-connected region)' :
+                roadDensity > 0.2 ? '(Moderate - typical rural connectivity)' :
+                roadDensity > 0.1 ? '(Low - sparse road network)' :
+                '(Very low - limited access infrastructure)'
+            }`);
+
+            // Average road segment length analysis
+            if (roads.lengthStats) {
+                const avgLength = (roads.lengthStats.mean * 1000).toFixed(0); // Convert to meters
+                const medianLength = (roads.lengthStats.median * 1000).toFixed(0);
+                analysis.insights.push(`📐 Average road segment: ${avgLength}m (median: ${medianLength}m) - ${
+                    roads.lengthStats.mean > 1 ? 'longer segments indicate inter-settlement highways' :
+                    roads.lengthStats.mean > 0.5 ? 'moderate segments typical of mixed urban-rural roads' :
+                    'short segments indicate dense local/residential networks'
+                }`);
+            }
+
+            // AI-Powered Development Insights
+            analysis.insights.push(`🤖 <strong>AI Development Insight</strong>: Based on ${roads.count.toLocaleString()} road segments with quality score ${roads.qualityScore}/100, ${roads.region} shows ${
+                parseFloat(roads.qualityScore) >= 60 ? 'strong transportation infrastructure supporting economic activity and market access' :
+                parseFloat(roads.qualityScore) >= 40 ? 'moderate infrastructure with potential for improvement in higher-grade roads' :
+                'basic rural infrastructure requiring significant investment for economic development'
+            }`);
+
+            // Connectivity recommendation
+            analysis.insights.push(`💡 <strong>Recommendation</strong>: ${
+                parseFloat(roads.qualityScore) >= 60 ? 'Maintain existing infrastructure and focus on upgrading secondary roads to tertiary standards' :
+                parseFloat(roads.qualityScore) >= 40 ? 'Prioritize upgrading major tracks to secondary/tertiary roads and improve connectivity between settlements' :
+                'Critical need for infrastructure investment - focus on establishing paved primary/secondary road corridors'
+            }`);
+
         } else {
-            analysis.insights.push(`Limited to secondary roads and tracks - basic infrastructure only`);
-        }
+            // Legacy roads format analysis
+            analysis.insights.push(`${roads.count} road segments identified in ${roads.region} with total length of ${totalLength} km`);
 
-        // Road density indicator (based on length)
-        let densityMetric = 'Very Low';
-        if (roads.totalLength) {
-            if (roads.totalLength >= 1000) densityMetric = 'High';
-            else if (roads.totalLength >= 500) densityMetric = 'Moderate';
-            else if (roads.totalLength >= 200) densityMetric = 'Low';
+            const roadTypes = Object.entries(roads.byType || {}).sort((a, b) => b[1] - a[1]);
+            if (roadTypes.length > 0) {
+                const topType = roadTypes[0];
+                const topTypeLength = roads.lengthByType && roads.lengthByType[topType[0]]
+                    ? roads.lengthByType[topType[0]].toFixed(2)
+                    : 'N/A';
+                analysis.insights.push(`Predominant road type: ${topType[0]} (${topType[1]} segments, ${(topType[1]/roads.count*100).toFixed(1)}%, ${topTypeLength} km)`);
+            }
+
+            if (roads.byType && roads.byType['Major road']) {
+                const majorLength = roads.lengthByType && roads.lengthByType['Major road']
+                    ? roads.lengthByType['Major road'].toFixed(2)
+                    : 'N/A';
+                analysis.insights.push(`Presence of major roads (${majorLength} km) indicates some connectivity infrastructure`);
+            } else {
+                analysis.insights.push(`Limited to secondary roads and tracks - basic infrastructure only`);
+            }
+
+            let densityMetric = 'Very Low';
+            if (roads.totalLength) {
+                if (roads.totalLength >= 1000) densityMetric = 'High';
+                else if (roads.totalLength >= 500) densityMetric = 'Moderate';
+                else if (roads.totalLength >= 200) densityMetric = 'Low';
+            }
+            analysis.insights.push(`Road network density: ${densityMetric} (${totalLength} km total length)`);
         }
-        analysis.insights.push(`Road network density: ${densityMetric} (${totalLength} km total length)`);
     }
 
     return analysis;

@@ -2820,6 +2820,25 @@
 
                                     // Update checkbox
                                     document.getElementById('roadsOSMToggle').checked = true;
+
+                                    // ========================================
+                                    // TRIGGER iSEE ANALYTICS FOR ROADS OSM
+                                    // ========================================
+                                    console.log('🔍 Triggering iSEE Analytics for Roads OSM...');
+
+                                    // Update layerRefs with current roads data
+                                    layerRefs.clippedRoadsLayer = activeRoadsOSMLayer;
+                                    layerRefs.roadsData = roadsData;
+                                    layerRefs.activeRoadsRegion = droppedRegion;
+
+                                    // Trigger iSEE Analytics after a short delay to let the map settle
+                                    setTimeout(() => {
+                                        if (typeof runISEEAnalytics === 'function') {
+                                            runISEEAnalytics(activeBakoolLayers, map, layerRefs, droppedRegion);
+                                        } else {
+                                            console.warn('⚠️ iSEE Analytics not available');
+                                        }
+                                    }, 1500);
                                 } else {
                                     // Variable not found after eval
                                     console.log(`❌ ${roadsVarName} not found in window after eval`);
