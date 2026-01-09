@@ -511,7 +511,24 @@
         });
         
         adm1Layer.addTo(map);
-        
+
+        // Store references to ALL regions for drag-drop (iSEE Analytics can now work with any region)
+        let bakoolRegionLayer = null;
+        let allRegionLayers = {}; // Store all region layers by name
+
+        adm1Layer.eachLayer(function(layer) {
+            if (layer.feature && layer.feature.properties &&
+                layer.feature.properties.name) {
+                const regionName = layer.feature.properties.name;
+                allRegionLayers[regionName] = layer;
+
+                // Keep Bakool reference for backward compatibility
+                if (regionName === 'Bakool') {
+                    bakoolRegionLayer = layer;
+                }
+            }
+        });
+
         // Update map click to deselect both region and district
         map.on('click', function() {
             if (selectedRegion) {
@@ -798,84 +815,137 @@
             wrapper.style.gap = '10px';
 
             // Create Layer Control div
-            const layerDiv = L.DomUtil.create('div', 'layer-control', wrapper);
+            const layerDiv = L.DomUtil.create('div', 'layer-control collapsed', wrapper);
 
-            // Add collapsible header for mobile
-            const layerHeaderHTML = isMobile ? `
-                <div onclick="this.parentElement.classList.toggle('collapsed')"
-                     style="color: #0ea5e9; font-weight: bold; margin-bottom: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
-                    <span>🗺️ Layers</span>
-                    <span style="font-size: 1.2em;">▼</span>
+            layerDiv.innerHTML = `
+                <div class="layer-header" style="color: #10b981; font-weight: bold; margin-bottom: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; white-space: nowrap; overflow: hidden;">
+                    <span style="overflow: hidden; text-overflow: ellipsis;">🗺️ Layers</span>
+                    <span class="layer-toggle-icon" style="font-size: 1.2em; flex-shrink: 0;">▶</span>
                 </div>
-            ` : `<div style="color: #0ea5e9; font-weight: bold; margin-bottom: 8px;">🗺️ Layers</div>`;
-
-            layerDiv.innerHTML = layerHeaderHTML + `
-                <div style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 2px solid #334155;">
-                    <label style="font-weight: bold; color: #10b981;">
-                        <input type="checkbox" id="satelliteToggle"> 🛰️ Satellite Imagery
-                    </label>
-                </div>
-
-                <label><input type="checkbox" id="mpiToggle" checked> MPI - Regions (18)</label>
-                <label><input type="checkbox" id="nightlightToggle"> 💡 Nightlight Points</label>
-                <div style="margin-left: 20px; border-left: 2px solid #fbbf24; padding-left: 10px;">
-                    <label style="font-size: 0.9em;"><input type="checkbox" id="nightlightOverviewToggle"> Overview (1,571)</label>
-                    <label style="font-size: 0.9em; display: block; margin-top: 5px;"><span style="color: #fde047;">✨</span> Detailed (500m polygons)</label>
-                    <div style="margin-left: 20px; border-left: 2px solid #a855f7; padding-left: 10px; margin-top: 5px;">
-                        <label style="font-size: 0.85em;"><input type="checkbox" id="bakool2022Toggle"> <span style="color: #a855f7;">■</span> Bakool 2022 (2 polygons)</label>
-                        <label style="font-size: 0.85em; display: block; margin-top: 3px;"><input type="checkbox" id="bakool2023Toggle"> <span style="color: #a855f7;">■</span> Bakool 2023 (15 polygons)</label>
-                        <label style="font-size: 0.85em; color: #94a3b8; display: block; margin-top: 3px;"><input type="checkbox" disabled> Lower Shebelle <span style="color: #fbbf24; font-style: italic;">(Coming Soon)</span></label>
-                    </div>
-                </div>
-                <label><input type="checkbox" id="roadsToggle"> Roads (9,063)</label>
-
-                <!-- Population hierarchical structure -->
-                <div style="margin-top: 8px; border-left: 2px solid #EC407A; padding-left: 8px;">
-                    <label style="font-weight: bold; color: #EC407A;">
-                        <input type="checkbox" id="populationMainToggle"> Population
-                    </label>
-
-                    <!-- Female sub-level -->
-                    <div style="margin-left: 12px; margin-top: 4px; border-left: 2px solid #F48FB1; padding-left: 8px;">
-                        <label style="font-weight: 600; color: #F48FB1;">
-                            <input type="checkbox" id="femaleToggle"> Female
+                <div class="layer-content">
+                    <div style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 2px solid #334155;">
+                        <label style="font-weight: bold; color: #10b981;">
+                            <input type="checkbox" id="satelliteToggle"> 🛰️ Satellite Imagery
                         </label>
+                    </div>
 
-                        <!-- Infants sub-sub-level -->
-                        <div style="margin-left: 12px; margin-top: 4px; border-left: 2px solid #FCE4EC; padding-left: 8px;">
-                            <label style="font-weight: 500; color: #C2185B;">
-                                <input type="checkbox" id="infantsToggle"> Infants (0-12mo)
+                    <label><input type="checkbox" id="mpiToggle" checked> MPI - Regions (18)</label>
+                    <label><input type="checkbox" id="nightlightToggle"> 💡 Nightlight Points</label>
+                    <div style="margin-left: 20px; border-left: 2px solid #fbbf24; padding-left: 10px;">
+                        <label style="font-size: 0.9em;"><input type="checkbox" id="nightlightOverviewToggle"> Overview (1,571)</label>
+                        <label style="font-size: 0.9em; display: block; margin-top: 5px;"><span style="color: #fde047;">✨</span> Detailed (500m polygons)</label>
+                        <div style="margin-left: 20px; border-left: 2px solid #a855f7; padding-left: 10px; margin-top: 5px;">
+                            <label style="font-size: 0.85em; position: relative;">
+                                <input type="checkbox" id="bakool2022Toggle">
+                                <span style="color: #a855f7;">■</span>
+                                <span id="bakool2022Label" draggable="true" style="cursor: grab; user-select: none; display: inline-flex; align-items: center; gap: 4px;">
+                                    <span class="drag-handle" style="opacity: 0; transition: opacity 0.2s;">⋮⋮</span>
+                                    <span>Bakool 2022 (2 polygons)</span>
+                                </span>
                             </label>
+                            <label style="font-size: 0.85em; display: block; margin-top: 3px; position: relative;">
+                                <input type="checkbox" id="bakool2023Toggle">
+                                <span style="color: #a855f7;">■</span>
+                                <span id="bakool2023Label" draggable="true" style="cursor: grab; user-select: none; display: inline-flex; align-items: center; gap: 4px;">
+                                    <span class="drag-handle" style="opacity: 0; transition: opacity 0.2s;">⋮⋮</span>
+                                    <span>Bakool 2023 (15 polygons)</span>
+                                </span>
+                            </label>
+                            <label style="font-size: 0.85em; color: #94a3b8; display: block; margin-top: 3px;"><input type="checkbox" disabled> Lower Shebelle <span style="color: #fbbf24; font-style: italic;">(Coming Soon)</span></label>
+                        </div>
+                    </div>
+                    <label style="font-size: 0.85em;">
+                        <input type="checkbox" id="roadsToggle">
+                        <span style="color: #F48FB1;">■</span>
+                        <span id="roadsLabel" draggable="true" style="cursor: grab; user-select: none; display: inline-flex; align-items: center; gap: 4px;">
+                            <span class="drag-handle" style="opacity: 0; transition: opacity 0.2s;">⋮⋮</span>
+                            <span>Roads (9,063 - 2 regions)</span>
+                        </span>
+                    </label>
 
-                            <!-- 3 class categories -->
-                            <div style="margin-left: 12px; margin-top: 4px; font-size: 0.9em;">
-                                <label style="color: #666;">
-                                    <input type="checkbox" id="pop_1_25_Toggle">
-                                    <span style="color: #F48FB1;">●</span> 1-25 (number of infants)
-                                </label>
-                                <label style="color: #666;">
-                                    <input type="checkbox" id="pop_25_50_Toggle">
-                                    <span style="color: #EC407A;">●</span> 25-50 (number of infants)
-                                </label>
-                                <label style="color: #666;">
-                                    <input type="checkbox" id="pop_50plus_Toggle">
-                                    <span style="color: #AD1457;">●</span> 50+ (number of infants)
-                                </label>
-                            </div>
+                    <!-- Roads OSM category -->
+                    <div style="margin-top: 8px; margin-bottom: 8px; padding: 10px; background: rgba(244, 143, 177, 0.1); border-left: 3px solid #F48FB1; border-radius: 4px;">
+                        <label style="font-weight: bold; color: #F48FB1; display: block; margin-bottom: 5px;">
+                            <input type="checkbox" id="roadsOSMToggle">
+                            <span id="roadsOSMLabel" draggable="true" style="cursor: grab; user-select: none; display: inline-flex; align-items: center; gap: 4px;">
+                                <span class="drag-handle" style="opacity: 0; transition: opacity 0.2s;">⋮⋮</span>
+                                <span>🛣️ Roads OSM</span>
+                            </span>
+                        </label>
+                        <div style="margin-left: 12px; font-size: 0.85em; color: #94a3b8; margin-top: 5px;">
+                            OpenStreetMap Road Network (Coming Soon)
                         </div>
                     </div>
 
-                    <!-- Male sub-level (placeholder for future) -->
-                    <div style="margin-left: 12px; margin-top: 4px; border-left: 2px solid #90CAF9; padding-left: 8px;">
-                        <label style="font-weight: 600; color: #90CAF9; opacity: 0.5;">
-                            <input type="checkbox" id="maleToggle" disabled> Male (coming soon)
+                    <!-- Population hierarchical structure -->
+                    <div style="margin-top: 8px; border-left: 2px solid #EC407A; padding-left: 8px;">
+                        <label style="font-weight: bold; color: #EC407A;">
+                            <input type="checkbox" id="populationMainToggle"> Population
                         </label>
-                    </div>
-                </div>
 
-                <label style="margin-top: 8px;"><input type="checkbox" id="adm1Toggle" checked> Regional Boundaries ADM1 (18)</label>
-                <label><input type="checkbox" id="adm2Toggle"> District Boundaries ADM2 (118)</label>
+                        <!-- Female sub-level -->
+                        <div style="margin-left: 12px; margin-top: 4px; border-left: 2px solid #F48FB1; padding-left: 8px;">
+                            <label style="font-weight: 600; color: #F48FB1;">
+                                <input type="checkbox" id="femaleToggle"> Female
+                            </label>
+
+                            <!-- Infants sub-sub-level -->
+                            <div style="margin-left: 12px; margin-top: 4px; border-left: 2px solid #FCE4EC; padding-left: 8px;">
+                                <label style="font-weight: 500; color: #C2185B;">
+                                    <input type="checkbox" id="infantsToggle"> Infants (0-12mo)
+                                </label>
+
+                                <!-- 3 class categories -->
+                                <div style="margin-left: 12px; margin-top: 4px; font-size: 0.9em;">
+                                    <label style="color: #666;">
+                                        <input type="checkbox" id="pop_1_25_Toggle">
+                                        <span style="color: #F48FB1;">●</span> 1-25 (number of infants)
+                                    </label>
+                                    <label style="color: #666;">
+                                        <input type="checkbox" id="pop_25_50_Toggle">
+                                        <span style="color: #EC407A;">●</span> 25-50 (number of infants)
+                                    </label>
+                                    <label style="color: #666;">
+                                        <input type="checkbox" id="pop_50plus_Toggle">
+                                        <span style="color: #AD1457;">●</span> 50+ (number of infants)
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Male sub-level (placeholder for future) -->
+                        <div style="margin-left: 12px; margin-top: 4px; border-left: 2px solid #90CAF9; padding-left: 8px;">
+                            <label style="font-weight: 600; color: #90CAF9; opacity: 0.5;">
+                                <input type="checkbox" id="maleToggle" disabled> Male (coming soon)
+                            </label>
+                        </div>
+                    </div>
+
+                    <label style="margin-top: 8px;"><input type="checkbox" id="adm1Toggle" checked> Regional Boundaries ADM1 (18)</label>
+                    <label><input type="checkbox" id="adm2Toggle"> District Boundaries ADM2 (118)</label>
+                </div>
             `;
+
+            // Add click handler for collapsible layer header
+            const layerHeader = layerDiv.querySelector('.layer-header');
+            if (layerHeader) {
+                layerHeader.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    layerDiv.classList.toggle('collapsed');
+                    const icon = this.querySelector('.layer-toggle-icon');
+                    if (icon) {
+                        icon.textContent = layerDiv.classList.contains('collapsed') ? '▶' : '▼';
+                    }
+                });
+            }
+
+            // Disable click propagation only on layer content
+            const layerContent = layerDiv.querySelector('.layer-content');
+            if (layerContent) {
+                L.DomEvent.disableClickPropagation(layerContent);
+                L.DomEvent.disableScrollPropagation(layerContent);
+            }
 
             // Create AI Insights Control div
             const aiDiv = L.DomUtil.create('div', 'ai-insights-control collapsed', wrapper);
@@ -887,6 +957,18 @@
                     <span class="toggle-icon" style="font-size: 1.2em;">▶</span>
                 </div>
                 <div class="ai-content">
+                    <!-- iSEE Analytics - Single entity at top -->
+                    <label style="color: #94a3b8; margin-top: 8px; position: relative;">
+                        <input type="checkbox" id="iseeAnalyticsToggle">
+                        <span id="iseeAnalyticsLabel" draggable="true" style="cursor: grab; user-select: none; display: inline-flex; align-items: center; gap: 4px;">
+                            <span class="drag-handle" style="opacity: 0; transition: opacity 0.2s;">⋮⋮</span>
+                            <span>🔍 iSEE Analytics</span>
+                        </span>
+                    </label>
+
+                    <!-- Separator line -->
+                    <div style="border-bottom: 2px solid #334155; margin: 12px 0;"></div>
+
                     <!-- Remote Sensing & Detection -->
                     <div class="category-header collapsed" data-category="remote-sensing" style="color: #0ea5e9; font-weight: bold; margin-top: 8px; margin-bottom: 4px; font-size: 0.9em; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
                         <span>🛰️ Remote Sensing & Detection</span>
@@ -1036,7 +1118,7 @@
             div.style.maxHeight = isMobile ? '40vh' : '70vh';
             div.style.overflowY = 'auto';
             div.style.position = isMobile ? 'relative' : 'absolute';
-            div.style.top = isMobile ? 'auto' : '10px';
+            div.style.top = isMobile ? 'auto' : '0px';
             div.style.right = isMobile ? 'auto' : '280px';
             div.style.transition = 'max-height 0.3s ease';
 
@@ -1163,17 +1245,1655 @@
                 e.target.checked ? map.addLayer(nightlightLayer) : map.removeLayer(nightlightLayer);
             });
 
+            // Track active layers on regions to prevent duplicates
+            const activeBakoolLayers = {
+                'bakool2022': false,
+                'bakool2023': false
+            };
+
             // Bakool detailed nightlight toggles
             document.getElementById('bakool2022Toggle').addEventListener('change', function(e) {
-                e.target.checked ? map.addLayer(detailedNLBakool2022) : map.removeLayer(detailedNLBakool2022);
+                if (e.target.checked) {
+                    map.addLayer(detailedNLBakool2022);
+                    activeBakoolLayers['bakool2022'] = true;
+                    bakool2022Label.classList.add('layer-dropped');
+                } else {
+                    map.removeLayer(detailedNLBakool2022);
+                    activeBakoolLayers['bakool2022'] = false;
+                    bakool2022Label.classList.remove('layer-dropped');
+                }
             });
             document.getElementById('bakool2023Toggle').addEventListener('change', function(e) {
-                e.target.checked ? map.addLayer(detailedNLBakool2023) : map.removeLayer(detailedNLBakool2023);
+                if (e.target.checked) {
+                    map.addLayer(detailedNLBakool2023);
+                    activeBakoolLayers['bakool2023'] = true;
+                    bakool2023Label.classList.add('layer-dropped');
+                } else {
+                    map.removeLayer(detailedNLBakool2023);
+                    activeBakoolLayers['bakool2023'] = false;
+                    bakool2023Label.classList.remove('layer-dropped');
+                }
             });
 
-            document.getElementById('roadsToggle').addEventListener('change', function(e) {
-                e.target.checked ? map.addLayer(roadsLayer) : map.removeLayer(roadsLayer);
+            // iSEE Analytics checkbox toggle
+            const iseeAnalyticsLabel = document.getElementById('iseeAnalyticsLabel');
+            document.getElementById('iseeAnalyticsToggle').addEventListener('change', function(e) {
+                if (e.target.checked) {
+                    // Activate iSEE Analytics
+                    iseeAnalyticsActive = true;
+                    iseeAnalyticsLabel.classList.add('layer-dropped');
+                } else {
+                    // Deactivate iSEE Analytics
+                    iseeAnalyticsActive = false;
+                    iseeAnalyticsLabel.classList.remove('layer-dropped');
+                }
             });
+
+            // ========================================
+            // DRAG-AND-DROP: Bakool 2022 Layer
+            // ========================================
+
+            const bakool2022Label = document.getElementById('bakool2022Label');
+            let draggedLayerId = null;
+            let dragGhost = null;
+            let cursorIndicator = null;
+            let iseeAnalyticsActive = false;
+
+            // Drag start
+            bakool2022Label.addEventListener('dragstart', function(e) {
+                draggedLayerId = 'bakool2022';
+
+                // Add dragging class to body for cursor control
+                document.body.classList.add('dragging');
+
+                // Create cursor indicator
+                cursorIndicator = document.createElement('div');
+                cursorIndicator.className = 'cursor-indicator';
+                document.body.appendChild(cursorIndicator);
+
+                // Create ghost element (preview while dragging)
+                dragGhost = document.createElement('div');
+                dragGhost.style.cssText = `
+                    position: fixed;
+                    background: rgba(168, 85, 247, 0.9);
+                    color: white;
+                    padding: 8px 12px;
+                    border-radius: 6px;
+                    font-size: 0.85em;
+                    pointer-events: none;
+                    z-index: 10000;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                `;
+                dragGhost.textContent = '💡 Bakool 2022 Nightlight';
+                document.body.appendChild(dragGhost);
+
+                // Add dragging class
+                bakool2022Label.classList.add('dragging-layer');
+
+                // Store data
+                e.dataTransfer.effectAllowed = 'copy';
+                e.dataTransfer.setData('text/plain', 'bakool2022');
+
+                // Hide default drag image
+                const img = new Image();
+                img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+                e.dataTransfer.setDragImage(img, 0, 0);
+            });
+
+            // Drag over - update ghost and cursor indicator position
+            document.addEventListener('drag', function(e) {
+                if (dragGhost && e.clientX !== 0 && e.clientY !== 0) {
+                    dragGhost.style.left = (e.clientX + 10) + 'px';
+                    dragGhost.style.top = (e.clientY + 10) + 'px';
+                }
+                if (cursorIndicator && e.clientX !== 0 && e.clientY !== 0) {
+                    cursorIndicator.style.left = e.clientX + 'px';
+                    cursorIndicator.style.top = e.clientY + 'px';
+                }
+            });
+
+            // Drag end - cleanup
+            bakool2022Label.addEventListener('dragend', function(e) {
+                bakool2022Label.classList.remove('dragging-layer');
+                document.body.classList.remove('dragging');
+
+                if (dragGhost) {
+                    document.body.removeChild(dragGhost);
+                    dragGhost = null;
+                }
+
+                if (cursorIndicator) {
+                    document.body.removeChild(cursorIndicator);
+                    cursorIndicator = null;
+                }
+
+                draggedLayerId = null;
+
+                // Remove highlight from Bakool region
+                if (bakoolRegionLayer) {
+                    adm1Layer.resetStyle(bakoolRegionLayer);
+                }
+
+                // Remove cursor classes
+                mapContainer.classList.remove('drop-target');
+                mapContainer.classList.remove('drop-invalid');
+            });
+
+            // Map dragover - highlight drop zones and update cursor (using DOM events)
+            const mapContainer = map.getContainer();
+
+            mapContainer.addEventListener('dragover', function(e) {
+                if (draggedLayerId === 'bakool2022' && bakoolRegionLayer) {
+                    e.preventDefault(); // Allow drop
+                    e.stopPropagation();
+
+                    const rect = mapContainer.getBoundingClientRect();
+                    const latlng = map.containerPointToLatLng([e.clientX - rect.left, e.clientY - rect.top]);
+                    const bounds = bakoolRegionLayer.getBounds();
+
+                    if (bounds.contains(latlng)) {
+                        // Check if layer is already active on this region
+                        if (activeBakoolLayers['bakool2022']) {
+                            // Layer already active - show warning
+                            mapContainer.classList.add('drop-invalid');
+                            mapContainer.classList.remove('drop-target');
+
+                            // Deactivate cursor indicator
+                            if (cursorIndicator) {
+                                cursorIndicator.classList.remove('active');
+                            }
+
+                            // Update ghost with warning
+                            if (dragGhost) {
+                                dragGhost.style.background = 'rgba(251, 146, 60, 0.9)'; // Orange for warning
+                                dragGhost.textContent = '⚠ Bakool 2022 already active';
+                            }
+
+                            // Highlight region in orange
+                            bakoolRegionLayer.setStyle({
+                                color: '#fb923c',
+                                weight: 4,
+                                opacity: 1,
+                                fillColor: '#fb923c',
+                                fillOpacity: 0.2,
+                                dashArray: '10, 5'
+                            });
+                        } else {
+                            // Over Bakool region - valid drop zone
+                            mapContainer.classList.add('drop-target');
+                            mapContainer.classList.remove('drop-invalid');
+
+                            // Activate cursor indicator (green glow)
+                            if (cursorIndicator) {
+                                cursorIndicator.classList.add('active');
+                            }
+
+                            // Update ghost visual feedback
+                            if (dragGhost) {
+                                dragGhost.style.background = 'rgba(34, 197, 94, 0.9)'; // Green for valid
+                                dragGhost.textContent = '✓ Drop to activate Bakool 2022';
+                            }
+
+                            // Highlight region
+                            bakoolRegionLayer.setStyle({
+                                color: '#a855f7',
+                                weight: 4,
+                                opacity: 1,
+                                fillColor: '#a855f7',
+                                fillOpacity: 0.2,
+                                dashArray: '10, 5'
+                            });
+                        }
+                    } else {
+                        // Outside Bakool - invalid drop zone
+                        mapContainer.classList.add('drop-invalid');
+                        mapContainer.classList.remove('drop-target');
+
+                        // Deactivate cursor indicator
+                        if (cursorIndicator) {
+                            cursorIndicator.classList.remove('active');
+                        }
+
+                        // Update ghost visual feedback
+                        if (dragGhost) {
+                            dragGhost.style.background = 'rgba(239, 68, 68, 0.9)'; // Red for invalid
+                            dragGhost.textContent = '✗ Drop only on Bakool region';
+                        }
+
+                        // Reset region style
+                        adm1Layer.resetStyle(bakoolRegionLayer);
+                    }
+                }
+            });
+
+            // Map dragleave - reset styles
+            mapContainer.addEventListener('dragleave', function(e) {
+                if (bakoolRegionLayer) {
+                    adm1Layer.resetStyle(bakoolRegionLayer);
+                }
+                mapContainer.classList.remove('drop-target');
+                mapContainer.classList.remove('drop-invalid');
+            });
+
+            // Drop handler for map (using DOM events)
+            mapContainer.addEventListener('drop', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                if (draggedLayerId === 'bakool2022') {
+                    // Get drop location
+                    const rect = mapContainer.getBoundingClientRect();
+                    const latlng = map.containerPointToLatLng([e.clientX - rect.left, e.clientY - rect.top]);
+
+                    // Check if dropped on Bakool region
+                    let droppedOnBakool = false;
+
+                    if (bakoolRegionLayer) {
+                        const bounds = bakoolRegionLayer.getBounds();
+                        if (bounds.contains(latlng)) {
+                            droppedOnBakool = true;
+                        }
+                    }
+
+                    if (droppedOnBakool) {
+                        // Reset region style
+                        adm1Layer.resetStyle(bakoolRegionLayer);
+
+                        // Check if layer is already active
+                        if (activeBakoolLayers['bakool2022']) {
+                            // Show warning notification - layer already active
+                            const warningNotification = L.popup({
+                                closeButton: false,
+                                autoClose: true,
+                                autoPan: false,
+                                className: 'drop-warning-popup'
+                            })
+                            .setLatLng(latlng)
+                            .setContent('⚠ Bakool 2022 is already active - Cannot add duplicate layer')
+                            .openOn(map);
+
+                            setTimeout(() => {
+                                map.closePopup(warningNotification);
+                            }, 3000);
+                        } else {
+                            // 1. Enable the layer
+                            if (!map.hasLayer(detailedNLBakool2022)) {
+                                map.addLayer(detailedNLBakool2022);
+                                document.getElementById('bakool2022Toggle').checked = true;
+                                activeBakoolLayers['bakool2022'] = true; // Mark as active
+                            }
+
+                            // 2. Add flashing green class to show layer is dropped
+                            bakool2022Label.classList.add('layer-dropped');
+
+                            // 3. Zoom to Bakool region
+                            const bakoolBounds = bakoolRegionLayer.getBounds();
+                            map.fitBounds(bakoolBounds, {
+                                padding: [50, 50],
+                                maxZoom: 10,
+                                animate: true,
+                                duration: 1.0
+                            });
+
+                            // 4. Show success notification
+                            const notification = L.popup({
+                                closeButton: false,
+                                autoClose: true,
+                                autoPan: false,
+                                className: 'drop-success-popup'
+                            })
+                            .setLatLng(latlng)
+                            .setContent('✓ Bakool 2022 Nightlight Layer Activated')
+                            .openOn(map);
+
+                            setTimeout(() => {
+                                map.closePopup(notification);
+                            }, 2000);
+                        }
+                    } else {
+                        // Dropped outside Bakool - reset region style
+                        if (bakoolRegionLayer) {
+                            adm1Layer.resetStyle(bakoolRegionLayer);
+                        }
+                    }
+
+                    // Remove cursor classes
+                    mapContainer.classList.remove('drop-target');
+                    mapContainer.classList.remove('drop-invalid');
+                }
+            });
+
+            // ========================================
+            // DRAG-AND-DROP: Bakool 2023 Layer
+            // ========================================
+
+            const bakool2023Label = document.getElementById('bakool2023Label');
+            let draggedLayerId2023 = null;
+            let dragGhost2023 = null;
+            let cursorIndicator2023 = null;
+
+            // Drag start
+            bakool2023Label.addEventListener('dragstart', function(e) {
+                draggedLayerId2023 = 'bakool2023';
+
+                // Add dragging class to body for cursor control
+                document.body.classList.add('dragging');
+
+                // Create cursor indicator
+                cursorIndicator2023 = document.createElement('div');
+                cursorIndicator2023.className = 'cursor-indicator';
+                document.body.appendChild(cursorIndicator2023);
+
+                // Create ghost element (preview while dragging)
+                dragGhost2023 = document.createElement('div');
+                dragGhost2023.style.cssText = `
+                    position: fixed;
+                    background: rgba(168, 85, 247, 0.9);
+                    color: white;
+                    padding: 8px 12px;
+                    border-radius: 6px;
+                    font-size: 0.85em;
+                    pointer-events: none;
+                    z-index: 10000;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                `;
+                dragGhost2023.textContent = '💡 Bakool 2023 Nightlight';
+                document.body.appendChild(dragGhost2023);
+
+                // Add dragging class
+                bakool2023Label.classList.add('dragging-layer');
+
+                // Store data
+                e.dataTransfer.effectAllowed = 'copy';
+                e.dataTransfer.setData('text/plain', 'bakool2023');
+
+                // Hide default drag image
+                const img = new Image();
+                img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+                e.dataTransfer.setDragImage(img, 0, 0);
+            });
+
+            // Drag over - update ghost and cursor indicator position
+            document.addEventListener('drag', function(e) {
+                if (dragGhost2023 && e.clientX !== 0 && e.clientY !== 0) {
+                    dragGhost2023.style.left = (e.clientX + 10) + 'px';
+                    dragGhost2023.style.top = (e.clientY + 10) + 'px';
+                }
+                if (cursorIndicator2023 && e.clientX !== 0 && e.clientY !== 0) {
+                    cursorIndicator2023.style.left = e.clientX + 'px';
+                    cursorIndicator2023.style.top = e.clientY + 'px';
+                }
+            });
+
+            // Drag end - cleanup
+            bakool2023Label.addEventListener('dragend', function(e) {
+                bakool2023Label.classList.remove('dragging-layer');
+                document.body.classList.remove('dragging');
+
+                if (dragGhost2023) {
+                    document.body.removeChild(dragGhost2023);
+                    dragGhost2023 = null;
+                }
+
+                if (cursorIndicator2023) {
+                    document.body.removeChild(cursorIndicator2023);
+                    cursorIndicator2023 = null;
+                }
+
+                draggedLayerId2023 = null;
+
+                // Remove highlight from Bakool region
+                if (bakoolRegionLayer) {
+                    adm1Layer.resetStyle(bakoolRegionLayer);
+                }
+
+                // Remove cursor classes
+                mapContainer.classList.remove('drop-target');
+                mapContainer.classList.remove('drop-invalid');
+            });
+
+            // Map dragover - update for Bakool 2023
+            mapContainer.addEventListener('dragover', function(e) {
+                if (draggedLayerId2023 === 'bakool2023' && bakoolRegionLayer) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    const rect = mapContainer.getBoundingClientRect();
+                    const latlng = map.containerPointToLatLng([e.clientX - rect.left, e.clientY - rect.top]);
+                    const bounds = bakoolRegionLayer.getBounds();
+
+                    if (bounds.contains(latlng)) {
+                        // Check if layer is already active on this region
+                        if (activeBakoolLayers['bakool2023']) {
+                            // Layer already active - show warning
+                            mapContainer.classList.add('drop-invalid');
+                            mapContainer.classList.remove('drop-target');
+
+                            if (cursorIndicator2023) {
+                                cursorIndicator2023.classList.remove('active');
+                            }
+
+                            if (dragGhost2023) {
+                                dragGhost2023.style.background = 'rgba(251, 146, 60, 0.9)'; // Orange for warning
+                                dragGhost2023.textContent = '⚠ Bakool 2023 already active';
+                            }
+
+                            bakoolRegionLayer.setStyle({
+                                color: '#fb923c',
+                                weight: 4,
+                                opacity: 1,
+                                fillColor: '#fb923c',
+                                fillOpacity: 0.2,
+                                dashArray: '10, 5'
+                            });
+                        } else {
+                            mapContainer.classList.add('drop-target');
+                            mapContainer.classList.remove('drop-invalid');
+
+                            if (cursorIndicator2023) {
+                                cursorIndicator2023.classList.add('active');
+                            }
+
+                            if (dragGhost2023) {
+                                dragGhost2023.style.background = 'rgba(34, 197, 94, 0.9)';
+                                dragGhost2023.textContent = '✓ Drop to activate Bakool 2023';
+                            }
+
+                            bakoolRegionLayer.setStyle({
+                                color: '#a855f7',
+                                weight: 4,
+                                opacity: 1,
+                                fillColor: '#a855f7',
+                                fillOpacity: 0.2,
+                                dashArray: '10, 5'
+                            });
+                        }
+                    } else {
+                        mapContainer.classList.add('drop-invalid');
+                        mapContainer.classList.remove('drop-target');
+
+                        if (cursorIndicator2023) {
+                            cursorIndicator2023.classList.remove('active');
+                        }
+
+                        if (dragGhost2023) {
+                            dragGhost2023.style.background = 'rgba(239, 68, 68, 0.9)';
+                            dragGhost2023.textContent = '✗ Drop only on Bakool region';
+                        }
+
+                        adm1Layer.resetStyle(bakoolRegionLayer);
+                    }
+                }
+            });
+
+            // Drop handler for Bakool 2023
+            mapContainer.addEventListener('drop', function(e) {
+                if (draggedLayerId2023 === 'bakool2023') {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    const rect = mapContainer.getBoundingClientRect();
+                    const latlng = map.containerPointToLatLng([e.clientX - rect.left, e.clientY - rect.top]);
+
+                    let droppedOnBakool = false;
+
+                    if (bakoolRegionLayer) {
+                        const bounds = bakoolRegionLayer.getBounds();
+                        if (bounds.contains(latlng)) {
+                            droppedOnBakool = true;
+                        }
+                    }
+
+                    if (droppedOnBakool) {
+                        adm1Layer.resetStyle(bakoolRegionLayer);
+
+                        // Check if layer is already active
+                        if (activeBakoolLayers['bakool2023']) {
+                            // Show warning notification - layer already active
+                            const warningNotification = L.popup({
+                                closeButton: false,
+                                autoClose: true,
+                                autoPan: false,
+                                className: 'drop-warning-popup'
+                            })
+                            .setLatLng(latlng)
+                            .setContent('⚠ Bakool 2023 is already active - Cannot add duplicate layer')
+                            .openOn(map);
+
+                            setTimeout(() => {
+                                map.closePopup(warningNotification);
+                            }, 3000);
+                        } else {
+                            if (!map.hasLayer(detailedNLBakool2023)) {
+                                map.addLayer(detailedNLBakool2023);
+                                document.getElementById('bakool2023Toggle').checked = true;
+                                activeBakoolLayers['bakool2023'] = true; // Mark as active
+                            }
+
+                            // Add flashing green class to show layer is dropped
+                            bakool2023Label.classList.add('layer-dropped');
+
+                            const bakoolBounds = bakoolRegionLayer.getBounds();
+                            map.fitBounds(bakoolBounds, {
+                                padding: [50, 50],
+                                maxZoom: 10,
+                                animate: true,
+                                duration: 1.0
+                            });
+
+                            const notification = L.popup({
+                                closeButton: false,
+                                autoClose: true,
+                                autoPan: false,
+                                className: 'drop-success-popup'
+                            })
+                            .setLatLng(latlng)
+                            .setContent('✓ Bakool 2023 Nightlight Layer Activated')
+                            .openOn(map);
+
+                            setTimeout(() => {
+                                map.closePopup(notification);
+                            }, 2000);
+                        }
+                    } else {
+                        if (bakoolRegionLayer) {
+                            adm1Layer.resetStyle(bakoolRegionLayer);
+                        }
+                    }
+
+                    mapContainer.classList.remove('drop-target');
+                    mapContainer.classList.remove('drop-invalid');
+                }
+            });
+
+            // ========================================
+            // DRAG-AND-DROP: iSEE Analytics
+            // ========================================
+
+            // iseeAnalyticsLabel already declared above at line 1250
+            // iseeAnalyticsActive already declared above at line 1271
+
+            // Drag start
+            iseeAnalyticsLabel.addEventListener('dragstart', function(e) {
+                draggedLayerId = 'iseeAnalytics';
+                document.body.classList.add('dragging');
+
+                // Create cursor indicator
+                cursorIndicator = document.createElement('div');
+                cursorIndicator.className = 'cursor-indicator';
+                document.body.appendChild(cursorIndicator);
+
+                // Create ghost element
+                dragGhost = document.createElement('div');
+                dragGhost.style.cssText = `
+                    position: fixed;
+                    background: rgba(168, 85, 247, 0.9);
+                    color: white;
+                    padding: 8px 12px;
+                    border-radius: 6px;
+                    font-size: 0.85em;
+                    pointer-events: none;
+                    z-index: 10000;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                `;
+                dragGhost.textContent = '🔍 iSEE Analytics';
+                document.body.appendChild(dragGhost);
+
+                // Add dragging class
+                iseeAnalyticsLabel.classList.add('dragging-layer');
+
+                // Store data
+                e.dataTransfer.effectAllowed = 'copy';
+                e.dataTransfer.setData('text/plain', 'iseeAnalytics');
+
+                // Hide default drag image
+                const img = new Image();
+                img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+                e.dataTransfer.setDragImage(img, 0, 0);
+            });
+
+            // Drag over - update ghost position
+            document.addEventListener('drag', function(e) {
+                if (dragGhost && e.clientX !== 0 && e.clientY !== 0) {
+                    dragGhost.style.left = (e.clientX + 10) + 'px';
+                    dragGhost.style.top = (e.clientY + 10) + 'px';
+                }
+            });
+
+            // Drag end - cleanup
+            let hoveredRegionName = null; // Track which region is being hovered over
+
+            iseeAnalyticsLabel.addEventListener('dragend', function(e) {
+                iseeAnalyticsLabel.classList.remove('dragging-layer');
+                document.body.classList.remove('dragging');
+
+                if (dragGhost) {
+                    document.body.removeChild(dragGhost);
+                    dragGhost = null;
+                }
+                if (cursorIndicator) {
+                    document.body.removeChild(cursorIndicator);
+                    cursorIndicator = null;
+                }
+                draggedLayerId = null;
+
+                // Remove highlight from ALL regions
+                Object.values(allRegionLayers).forEach(function(regionLayer) {
+                    adm1Layer.resetStyle(regionLayer);
+                });
+                hoveredRegionName = null;
+            });
+
+            // Map dragover handler for iSEE Analytics - NOW WORKS WITH ANY REGION
+            mapContainer.addEventListener('dragover', function(e) {
+                if (draggedLayerId === 'iseeAnalytics') {
+                    e.preventDefault();
+
+                    const rect = mapContainer.getBoundingClientRect();
+                    const latlng = map.containerPointToLatLng([e.clientX - rect.left, e.clientY - rect.top]);
+
+                    // Detect which region we're hovering over using point-in-polygon
+                    let overRegion = null;
+                    let overRegionLayer = null;
+
+                    for (let regionName in allRegionLayers) {
+                        const regionLayer = allRegionLayers[regionName];
+                        if (isPointInPolygon(latlng, regionLayer)) {
+                            overRegion = regionName;
+                            overRegionLayer = regionLayer;
+                            break;
+                        }
+                    }
+
+                    if (overRegion) {
+                        // Hovering over a valid region
+                        if (iseeAnalyticsActive) {
+                            // iSEE Analytics already active - show warning
+                            mapContainer.classList.add('drop-invalid');
+                            mapContainer.classList.remove('drop-target');
+
+                            if (dragGhost) {
+                                dragGhost.style.background = 'rgba(251, 146, 60, 0.9)'; // Orange
+                                dragGhost.textContent = '⚠ iSEE Analytics already active';
+                            }
+
+                            // Highlight region in orange
+                            overRegionLayer.setStyle({
+                                color: '#fb923c',
+                                weight: 4,
+                                opacity: 1,
+                                fillColor: '#fb923c',
+                                fillOpacity: 0.2,
+                                dashArray: '10, 5'
+                            });
+
+                            if (cursorIndicator) {
+                                cursorIndicator.classList.remove('active');
+                            }
+                        } else {
+                            // Valid drop zone - green feedback
+                            mapContainer.classList.add('drop-target');
+                            mapContainer.classList.remove('drop-invalid');
+
+                            if (dragGhost) {
+                                dragGhost.style.background = 'rgba(34, 197, 94, 0.9)'; // Green
+                                dragGhost.textContent = `✓ Drop on ${overRegion} to activate iSEE Analytics`;
+                            }
+
+                            // Highlight region in green
+                            overRegionLayer.setStyle({
+                                color: '#22c55e',
+                                weight: 4,
+                                opacity: 1,
+                                fillColor: '#22c55e',
+                                fillOpacity: 0.2,
+                                dashArray: '10, 5'
+                            });
+
+                            // Show flashing green cursor indicator
+                            if (cursorIndicator) {
+                                cursorIndicator.style.left = e.clientX + 'px';
+                                cursorIndicator.style.top = e.clientY + 'px';
+                                cursorIndicator.classList.add('active');
+                            }
+                        }
+
+                        // Update hoveredRegionName
+                        if (hoveredRegionName !== overRegion) {
+                            // Reset previously hovered region
+                            if (hoveredRegionName && allRegionLayers[hoveredRegionName]) {
+                                adm1Layer.resetStyle(allRegionLayers[hoveredRegionName]);
+                            }
+                            hoveredRegionName = overRegion;
+                        }
+                    } else {
+                        // Not over any region
+                        mapContainer.classList.remove('drop-target');
+                        mapContainer.classList.remove('drop-invalid');
+
+                        if (dragGhost) {
+                            dragGhost.style.background = 'rgba(168, 85, 247, 0.9)'; // Purple (neutral)
+                            dragGhost.textContent = '🔍 iSEE Analytics - Drop on any region';
+                        }
+
+                        // Reset all region styles
+                        if (hoveredRegionName && allRegionLayers[hoveredRegionName]) {
+                            adm1Layer.resetStyle(allRegionLayers[hoveredRegionName]);
+                        }
+                        hoveredRegionName = null;
+
+                        if (cursorIndicator) {
+                            cursorIndicator.classList.remove('active');
+                        }
+                    }
+
+                    // Update cursor indicator position
+                    if (cursorIndicator && e.clientX !== 0 && e.clientY !== 0) {
+                        cursorIndicator.style.left = e.clientX + 'px';
+                        cursorIndicator.style.top = e.clientY + 'px';
+                    }
+                }
+            });
+
+            // Map drop handler for iSEE Analytics - NOW WORKS WITH ANY REGION
+            mapContainer.addEventListener('drop', function(e) {
+                if (draggedLayerId === 'iseeAnalytics') {
+                    e.preventDefault();
+
+                    const rect = mapContainer.getBoundingClientRect();
+                    const latlng = map.containerPointToLatLng([e.clientX - rect.left, e.clientY - rect.top]);
+
+                    // Detect which region was dropped on using point-in-polygon
+                    let droppedRegion = null;
+                    let droppedRegionLayer = null;
+
+                    for (let regionName in allRegionLayers) {
+                        const regionLayer = allRegionLayers[regionName];
+                        if (isPointInPolygon(latlng, regionLayer)) {
+                            droppedRegion = regionName;
+                            droppedRegionLayer = regionLayer;
+                            break;
+                        }
+                    }
+
+                    if (droppedRegion) {
+                        // Reset region style
+                        adm1Layer.resetStyle(droppedRegionLayer);
+
+                        // Check if already active
+                        if (iseeAnalyticsActive) {
+                            // Show warning notification
+                            const warningNotification = L.popup({
+                                closeButton: false,
+                                autoClose: true,
+                                autoPan: false,
+                                className: 'drop-warning-popup'
+                            })
+                            .setLatLng(latlng)
+                            .setContent('⚠ iSEE Analytics is already active - Cannot add duplicate')
+                            .openOn(map);
+
+                            setTimeout(() => {
+                                map.closePopup(warningNotification);
+                            }, 3000);
+                        } else {
+                            // Activate iSEE Analytics
+                            iseeAnalyticsActive = true;
+
+                            // Check the checkbox
+                            document.getElementById('iseeAnalyticsToggle').checked = true;
+
+                            // Add flashing green class to show layer is dropped
+                            iseeAnalyticsLabel.classList.add('layer-dropped');
+
+                            // Zoom to the dropped region
+                            const regionBounds = droppedRegionLayer.getBounds();
+                            map.fitBounds(regionBounds, {
+                                padding: [50, 50],
+                                maxZoom: 10,
+                                animate: true,
+                                duration: 1.0
+                            });
+
+                            // Show success notification
+                            const notification = L.popup({
+                                closeButton: false,
+                                autoClose: true,
+                                autoPan: false,
+                                className: 'drop-success-popup'
+                            })
+                            .setLatLng(latlng)
+                            .setContent(`✓ iSEE Analytics Activated on ${droppedRegion}`)
+                            .openOn(map);
+
+                            setTimeout(() => {
+                                map.closePopup(notification);
+
+                                // ========================================
+                                // RUN iSEE ANALYTICS ENGINE
+                                // ========================================
+                                console.log('='.repeat(60));
+                                console.log('DEBUG: About to call runISEEAnalytics');
+                                console.log('Type of runISEEAnalytics:', typeof runISEEAnalytics);
+                                console.log('Target Region:', droppedRegion);
+                                console.log('='.repeat(60));
+
+                                if (typeof runISEEAnalytics === 'function') {
+                                    // Prepare layer references to pass to analytics function
+                                    const layerRefs = {
+                                        detailedNLBakool2022: detailedNLBakool2022,
+                                        detailedNLBakool2023: detailedNLBakool2023,
+                                        bakoolNightlightPolygons2022: bakoolNightlightPolygons2022,
+                                        bakoolNightlightPolygons2023: bakoolNightlightPolygons2023,
+                                        clippedRoadsLayer: clippedRoadsLayer,
+                                        activeRoadsRegion: activeRoadsRegion,
+                                        roadsData: roadsData,
+                                        regionLayer: droppedRegionLayer,
+                                        allRegionLayers: allRegionLayers,
+                                        somaliaData: adm1Boundaries  // Pass MPI/region data for basic analysis
+                                    };
+
+                                    // Call runISEEAnalytics with region parameter
+                                    runISEEAnalytics(activeBakoolLayers, map, layerRefs, droppedRegion);
+                                } else {
+                                    console.error('ERROR: runISEEAnalytics is not defined!');
+                                    alert('Error: iSEE Analytics function not loaded. Please refresh the page.');
+                                }
+                            }, 2000);
+                        }
+                    } else {
+                        // Dropped outside any region - reset all regions
+                        Object.values(allRegionLayers).forEach(function(regionLayer) {
+                            adm1Layer.resetStyle(regionLayer);
+                        });
+                    }
+
+                    // Remove cursor classes
+                    mapContainer.classList.remove('drop-target');
+                    mapContainer.classList.remove('drop-invalid');
+                }
+            });
+
+            // ========================================
+            // DRAG-AND-DROP: Roads Layer (Multi-Region with Auto-Clipping)
+            // ========================================
+
+            const roadsLabel = document.getElementById('roadsLabel');
+            let clippedRoadsLayer = null;
+            let activeRoadsRegion = null; // Track which region has roads displayed
+
+            // Store region references
+            let lowerShebelleRegionLayer = null;
+
+            // Find Lower Shebelle region layer
+            adm1Layer.eachLayer(function(layer) {
+                if (layer.feature && layer.feature.properties &&
+                    layer.feature.properties.name === 'Lower Shebelle') {
+                    lowerShebelleRegionLayer = layer;
+                }
+            });
+
+            // Helper function: Point-in-polygon detection using ray casting algorithm
+            function isPointInPolygon(point, layer) {
+                const coords = layer.getLatLngs();
+                if (!coords || coords.length === 0) return false;
+
+                // Handle MultiPolygon or Polygon
+                const polygons = Array.isArray(coords[0][0]) ? coords : [coords];
+
+                for (let poly of polygons) {
+                    const ring = Array.isArray(poly[0]) ? poly[0] : poly;
+                    let inside = false;
+
+                    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+                        const xi = ring[i].lng, yi = ring[i].lat;
+                        const xj = ring[j].lng, yj = ring[j].lat;
+
+                        const intersect = ((yi > point.lat) !== (yj > point.lat))
+                            && (point.lng < (xj - xi) * (point.lat - yi) / (yj - yi) + xi);
+                        if (intersect) inside = !inside;
+                    }
+
+                    if (inside) return true;
+                }
+                return false;
+            }
+
+            // Drag start for Roads
+            roadsLabel.addEventListener('dragstart', function(e) {
+                draggedLayerId = 'roads';
+
+                // Add dragging class to body for cursor control
+                document.body.classList.add('dragging');
+
+                // Create cursor indicator
+                cursorIndicator = document.createElement('div');
+                cursorIndicator.className = 'cursor-indicator';
+                document.body.appendChild(cursorIndicator);
+
+                // Create ghost element (preview while dragging)
+                dragGhost = document.createElement('div');
+                dragGhost.style.cssText = `
+                    position: fixed;
+                    background: rgba(244, 143, 177, 0.9);
+                    color: white;
+                    padding: 8px 12px;
+                    border-radius: 6px;
+                    font-size: 0.85em;
+                    pointer-events: none;
+                    z-index: 10000;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                `;
+                dragGhost.textContent = '🛣️ Roads (2 regions)';
+                document.body.appendChild(dragGhost);
+
+                // Add dragging class
+                roadsLabel.classList.add('dragging-layer');
+
+                // Store data
+                e.dataTransfer.effectAllowed = 'copy';
+                e.dataTransfer.setData('text/plain', 'roads');
+
+                // Hide default drag image
+                const img = new Image();
+                img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+                e.dataTransfer.setDragImage(img, 0, 0);
+            });
+
+            // Update ghost position
+            document.addEventListener('drag', function(e) {
+                if (dragGhost && draggedLayerId === 'roads' && e.clientX !== 0 && e.clientY !== 0) {
+                    dragGhost.style.left = (e.clientX + 10) + 'px';
+                    dragGhost.style.top = (e.clientY + 10) + 'px';
+                }
+            });
+
+            // Drag end - cleanup
+            roadsLabel.addEventListener('dragend', function(e) {
+                roadsLabel.classList.remove('dragging-layer');
+                document.body.classList.remove('dragging');
+
+                if (dragGhost) {
+                    document.body.removeChild(dragGhost);
+                    dragGhost = null;
+                }
+                if (cursorIndicator) {
+                    document.body.removeChild(cursorIndicator);
+                    cursorIndicator = null;
+                }
+                draggedLayerId = null;
+
+                // Remove highlight from regions
+                if (bakoolRegionLayer) {
+                    adm1Layer.resetStyle(bakoolRegionLayer);
+                }
+                if (lowerShebelleRegionLayer) {
+                    adm1Layer.resetStyle(lowerShebelleRegionLayer);
+                }
+            });
+
+            // Map dragover handler for Roads
+            mapContainer.addEventListener('dragover', function(e) {
+                if (draggedLayerId === 'roads') {
+                    e.preventDefault();
+
+                    const rect = mapContainer.getBoundingClientRect();
+                    const latlng = map.containerPointToLatLng([e.clientX - rect.left, e.clientY - rect.top]);
+
+                    let overBakool = false;
+                    let overLowerShebelle = false;
+
+                    // Check ONLY Bakool and Lower Shebelle with precise point-in-polygon
+                    if (bakoolRegionLayer && isPointInPolygon(latlng, bakoolRegionLayer)) {
+                        overBakool = true;
+                    }
+
+                    if (lowerShebelleRegionLayer && !overBakool && isPointInPolygon(latlng, lowerShebelleRegionLayer)) {
+                        overLowerShebelle = true;
+                    }
+
+                    if (overBakool || overLowerShebelle) {
+                        // Valid drop zone
+                        mapContainer.classList.add('drop-target');
+                        mapContainer.classList.remove('drop-invalid');
+
+                        if (dragGhost) {
+                            dragGhost.style.background = 'rgba(34, 197, 94, 0.9)'; // Green
+                            if (overBakool) {
+                                dragGhost.textContent = '✓ Drop to show Bakool roads (1,857)';
+                            } else {
+                                dragGhost.textContent = '✓ Drop to show Lower Shebelle roads (7,206)';
+                            }
+                        }
+
+                        // Highlight the region
+                        if (overBakool) {
+                            bakoolRegionLayer.setStyle({
+                                color: '#22c55e',
+                                weight: 4,
+                                opacity: 1,
+                                fillColor: '#22c55e',
+                                fillOpacity: 0.2,
+                                dashArray: '10, 5'
+                            });
+                            if (lowerShebelleRegionLayer) {
+                                adm1Layer.resetStyle(lowerShebelleRegionLayer);
+                            }
+                        } else if (overLowerShebelle) {
+                            lowerShebelleRegionLayer.setStyle({
+                                color: '#22c55e',
+                                weight: 4,
+                                opacity: 1,
+                                fillColor: '#22c55e',
+                                fillOpacity: 0.2,
+                                dashArray: '10, 5'
+                            });
+                            if (bakoolRegionLayer) {
+                                adm1Layer.resetStyle(bakoolRegionLayer);
+                            }
+                        }
+
+                        // Show flashing green cursor indicator
+                        if (cursorIndicator) {
+                            cursorIndicator.style.left = e.clientX + 'px';
+                            cursorIndicator.style.top = e.clientY + 'px';
+                            cursorIndicator.classList.add('active');
+                        }
+                    } else {
+                        // Outside valid regions - invalid drop zone
+                        mapContainer.classList.add('drop-invalid');
+                        mapContainer.classList.remove('drop-target');
+
+                        if (dragGhost) {
+                            dragGhost.style.background = 'rgba(239, 68, 68, 0.9)'; // Red
+                            dragGhost.textContent = '✗ Drop on Bakool or Lower Shebelle';
+                        }
+
+                        // Reset region styles
+                        if (bakoolRegionLayer) {
+                            adm1Layer.resetStyle(bakoolRegionLayer);
+                        }
+                        if (lowerShebelleRegionLayer) {
+                            adm1Layer.resetStyle(lowerShebelleRegionLayer);
+                        }
+
+                        if (cursorIndicator) {
+                            cursorIndicator.classList.remove('active');
+                        }
+                    }
+
+                    // Update cursor indicator position
+                    if (cursorIndicator && e.clientX !== 0 && e.clientY !== 0) {
+                        cursorIndicator.style.left = e.clientX + 'px';
+                        cursorIndicator.style.top = e.clientY + 'px';
+                    }
+                }
+            });
+
+            // Map drop handler for Roads
+            mapContainer.addEventListener('drop', function(e) {
+                if (draggedLayerId === 'roads') {
+                    e.preventDefault();
+
+                    // Check if Roads layer is already dropped
+                    if (roadsLabel.classList.contains('layer-dropped')) {
+                        // Show warning notification
+                        const rect = mapContainer.getBoundingClientRect();
+                        const latlng = map.containerPointToLatLng([e.clientX - rect.left, e.clientY - rect.top]);
+
+                        const warningPopup = L.popup({
+                            closeButton: false,
+                            autoClose: true,
+                            autoPan: false,
+                            className: 'drop-warning-popup'
+                        })
+                        .setLatLng(latlng)
+                        .setContent(`⚠️ Roads layer already active in ${activeRoadsRegion}`)
+                        .openOn(map);
+
+                        setTimeout(() => {
+                            map.closePopup(warningPopup);
+                        }, 2500);
+                        return; // Exit early
+                    }
+
+                    const rect = mapContainer.getBoundingClientRect();
+                    const latlng = map.containerPointToLatLng([e.clientX - rect.left, e.clientY - rect.top]);
+
+                    let droppedOnBakool = false;
+                    let droppedOnLowerShebelle = false;
+                    let targetRegion = null;
+
+                    // Use PRECISE point-in-polygon detection (same as dragover)
+                    if (bakoolRegionLayer && isPointInPolygon(latlng, bakoolRegionLayer)) {
+                        droppedOnBakool = true;
+                        targetRegion = 'Bakool';
+                    }
+
+                    // Check Lower Shebelle only if not over Bakool (mutually exclusive)
+                    if (lowerShebelleRegionLayer && !droppedOnBakool && isPointInPolygon(latlng, lowerShebelleRegionLayer)) {
+                        droppedOnLowerShebelle = true;
+                        targetRegion = 'Lower Shebelle'; // Match data spelling
+                    }
+
+                    // Only proceed if dropped on a valid region
+                    if (droppedOnBakool || droppedOnLowerShebelle) {
+                        // Reset region styles
+                        if (bakoolRegionLayer) {
+                            adm1Layer.resetStyle(bakoolRegionLayer);
+                        }
+                        if (lowerShebelleRegionLayer) {
+                            adm1Layer.resetStyle(lowerShebelleRegionLayer);
+                        }
+
+                        // Remove existing clipped roads layer if any
+                        if (clippedRoadsLayer && map.hasLayer(clippedRoadsLayer)) {
+                            map.removeLayer(clippedRoadsLayer);
+                        }
+
+                        // ========================================
+                        // AUTO-CLIP ROADS TO TARGET REGION
+                        // ========================================
+                        console.log('🛣️ Clipping roads to:', targetRegion);
+
+                        // Filter roads data for the target region
+                        const filteredFeatures = roadsData.features.filter(feature =>
+                            feature.properties.shapeName === targetRegion
+                        );
+
+                        console.log(`✓ Found ${filteredFeatures.length} roads in ${targetRegion}`);
+
+                        // Create new clipped layer
+                        const clippedData = {
+                            type: 'FeatureCollection',
+                            features: filteredFeatures
+                        };
+
+                        clippedRoadsLayer = L.geoJSON(clippedData, {
+                            style: function(feature) {
+                                return {
+                                    color: getRoadColor(feature.properties.TYPE),
+                                    weight: getRoadWidth(feature.properties.TYPE),
+                                    opacity: 0.7,
+                                    lineCap: 'round',
+                                    lineJoin: 'round'
+                                };
+                            },
+                            onEachFeature: function(feature, layer) {
+                                const props = feature.properties;
+                                layer.bindPopup(`
+                                    <div style="font-family: 'Segoe UI', sans-serif;">
+                                        <div style="font-weight: bold; color: #F48FB1; font-size: 1.1em; margin-bottom: 8px;">
+                                            🛣️ Road
+                                        </div>
+                                        <div style="margin: 6px 0;">
+                                            <span style="color: #94a3b8; font-size: 0.85em;">Type:</span><br>
+                                            <span class="metric-value">${props.TYPE}</span>
+                                        </div>
+                                        <div style="margin: 6px 0;">
+                                            <span style="color: #94a3b8; font-size: 0.85em;">Region:</span><br>
+                                            <span class="metric-value">${props.shapeName}</span>
+                                        </div>
+                                        <div class="source-link">
+                                            <strong>Data:</strong> Somalia All Roads 2021 (Clipped to ${targetRegion})
+                                        </div>
+                                    </div>
+                                `, { maxWidth: 300 });
+                            }
+                        });
+
+                        // Add clipped layer to map
+                        map.addLayer(clippedRoadsLayer);
+
+                        // Update active region tracker
+                        activeRoadsRegion = targetRegion;
+
+                        // Check the checkbox
+                        document.getElementById('roadsToggle').checked = true;
+
+                        // Add visual feedback
+                        roadsLabel.classList.add('layer-dropped');
+
+                        // Zoom to the region
+                        const targetLayer = droppedOnBakool ? bakoolRegionLayer : lowerShebelleRegionLayer;
+                        const targetBounds = targetLayer.getBounds();
+                        map.fitBounds(targetBounds, {
+                            padding: [50, 50],
+                            maxZoom: 10,
+                            animate: true,
+                            duration: 1.0
+                        });
+
+                        // Show success notification
+                        const regionDisplayName = droppedOnBakool ? 'Bakool' : 'Lower Shebelle';
+                        const notification = L.popup({
+                            closeButton: false,
+                            autoClose: true,
+                            autoPan: false,
+                            className: 'drop-success-popup'
+                        })
+                        .setLatLng(latlng)
+                        .setContent(`✓ Roads Layer Clipped to ${regionDisplayName} (${filteredFeatures.length} roads)`)
+                        .openOn(map);
+
+                        setTimeout(() => {
+                            map.closePopup(notification);
+                        }, 3000);
+                    } else {
+                        // Dropped on invalid region (e.g., Bay) - show warning
+                        if (bakoolRegionLayer) {
+                            adm1Layer.resetStyle(bakoolRegionLayer);
+                        }
+                        if (lowerShebelleRegionLayer) {
+                            adm1Layer.resetStyle(lowerShebelleRegionLayer);
+                        }
+
+                        // Show warning notification
+                        const warningPopup = L.popup({
+                            closeButton: false,
+                            autoClose: true,
+                            autoPan: false,
+                            className: 'drop-invalid-popup'
+                        })
+                        .setLatLng(latlng)
+                        .setContent('❌ Roads can only be dropped on Bakool or Lower Shebelle')
+                        .openOn(map);
+
+                        setTimeout(() => {
+                            map.closePopup(warningPopup);
+                        }, 2500);
+                    }
+
+                    // Remove cursor classes
+                    mapContainer.classList.remove('drop-target');
+                    mapContainer.classList.remove('drop-invalid');
+                }
+            });
+
+            // Enhanced Roads checkbox toggle - handle clipped layer
+            document.getElementById('roadsToggle').addEventListener('change', function(e) {
+                if (e.target.checked) {
+                    if (clippedRoadsLayer) {
+                        map.addLayer(clippedRoadsLayer);
+                    } else {
+                        // If no clipped layer exists, use full roads layer
+                        map.addLayer(roadsLayer);
+                    }
+                } else {
+                    if (clippedRoadsLayer) {
+                        map.removeLayer(clippedRoadsLayer);
+                    } else {
+                        map.removeLayer(roadsLayer);
+                    }
+                    // Remove visual feedback
+                    roadsLabel.classList.remove('layer-dropped');
+                    activeRoadsRegion = null;
+                }
+            });
+
+            // ========================================
+            // DRAG-AND-DROP: Roads OSM Layer
+            // ========================================
+            const roadsOSMLabel = document.getElementById('roadsOSMLabel');
+
+            roadsOSMLabel.addEventListener('dragstart', function(e) {
+                draggedLayerId = 'roadsOSM';
+
+                // Add dragging class to body for cursor control
+                document.body.classList.add('dragging');
+
+                // Create cursor indicator
+                cursorIndicator = document.createElement('div');
+                cursorIndicator.className = 'cursor-indicator';
+                document.body.appendChild(cursorIndicator);
+
+                // Create ghost element (preview while dragging)
+                dragGhost = document.createElement('div');
+                dragGhost.style.cssText = `
+                    position: fixed;
+                    background: rgba(244, 143, 177, 0.9);
+                    color: white;
+                    padding: 8px 12px;
+                    border-radius: 6px;
+                    font-size: 0.85em;
+                    pointer-events: none;
+                    z-index: 10000;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                `;
+                dragGhost.textContent = '🛣️ Roads OSM - Drop on any region';
+                document.body.appendChild(dragGhost);
+
+                // Add dragging class
+                roadsOSMLabel.classList.add('dragging-layer');
+
+                // Store data
+                e.dataTransfer.effectAllowed = 'copy';
+                e.dataTransfer.setData('text/plain', 'roadsOSM');
+
+                // Hide default drag image
+                const img = new Image();
+                img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+                e.dataTransfer.setDragImage(img, 0, 0);
+            });
+
+            // Update ghost position for Roads OSM
+            document.addEventListener('drag', function(e) {
+                if (dragGhost && draggedLayerId === 'roadsOSM' && e.clientX !== 0 && e.clientY !== 0) {
+                    dragGhost.style.left = (e.clientX + 10) + 'px';
+                    dragGhost.style.top = (e.clientY + 10) + 'px';
+                }
+            });
+
+            // Drag end - cleanup for Roads OSM
+            roadsOSMLabel.addEventListener('dragend', function(e) {
+                roadsOSMLabel.classList.remove('dragging-layer');
+                document.body.classList.remove('dragging');
+
+                if (dragGhost) {
+                    document.body.removeChild(dragGhost);
+                    dragGhost = null;
+                }
+                if (cursorIndicator) {
+                    document.body.removeChild(cursorIndicator);
+                    cursorIndicator = null;
+                }
+                draggedLayerId = null;
+
+                // Remove highlight from all regions
+                Object.values(allRegionLayers).forEach(regionLayer => {
+                    adm1Layer.resetStyle(regionLayer);
+                });
+            });
+
+            // Map dragover handler for Roads OSM
+            mapContainer.addEventListener('dragover', function(e) {
+                if (draggedLayerId === 'roadsOSM') {
+                    e.preventDefault();
+
+                    const rect = mapContainer.getBoundingClientRect();
+                    const latlng = map.containerPointToLatLng([e.clientX - rect.left, e.clientY - rect.top]);
+
+                    // Check which region we're hovering over
+                    let currentRegion = null;
+                    Object.values(allRegionLayers).forEach(regionLayer => {
+                        if (isPointInPolygon(latlng, regionLayer)) {
+                            currentRegion = regionLayer.feature.properties.name;
+                        }
+                    });
+
+                    if (currentRegion) {
+                        // Valid drop zone (any region in Somalia)
+                        mapContainer.classList.add('drop-target');
+                        mapContainer.classList.remove('drop-invalid');
+
+                        if (dragGhost) {
+                            dragGhost.style.background = 'rgba(34, 197, 94, 0.9)'; // Green (ready)
+                            dragGhost.textContent = `✓ Drop to load OSM Roads for ${currentRegion}`;
+                        }
+
+                        // Highlight the region in green
+                        Object.values(allRegionLayers).forEach(regionLayer => {
+                            if (regionLayer.feature.properties.name === currentRegion) {
+                                regionLayer.setStyle({
+                                    color: '#22c55e',
+                                    weight: 4,
+                                    opacity: 1,
+                                    fillColor: '#22c55e',
+                                    fillOpacity: 0.2,
+                                    dashArray: '10, 5'
+                                });
+                            } else {
+                                adm1Layer.resetStyle(regionLayer);
+                            }
+                        });
+
+                        // Show flashing green cursor indicator
+                        if (cursorIndicator) {
+                            cursorIndicator.style.left = e.clientX + 'px';
+                            cursorIndicator.style.top = e.clientY + 'px';
+                            cursorIndicator.style.borderColor = '#22c55e';
+                            cursorIndicator.classList.add('active');
+                        }
+                    } else {
+                        // Outside Somalia
+                        mapContainer.classList.add('drop-invalid');
+                        mapContainer.classList.remove('drop-target');
+
+                        if (dragGhost) {
+                            dragGhost.style.background = 'rgba(239, 68, 68, 0.9)'; // Red
+                            dragGhost.textContent = '✗ Drop on any region in Somalia';
+                        }
+
+                        // Reset all regions
+                        Object.values(allRegionLayers).forEach(regionLayer => {
+                            adm1Layer.resetStyle(regionLayer);
+                        });
+
+                        if (cursorIndicator) {
+                            cursorIndicator.classList.remove('active');
+                        }
+                    }
+                }
+            });
+
+            // Global variable to store active Roads OSM layer
+            let activeRoadsOSMLayer = null;
+            let activeRoadsOSMRegion = null;
+
+            // Map drop handler for Roads OSM
+            mapContainer.addEventListener('drop', function(e) {
+                if (draggedLayerId === 'roadsOSM') {
+                    e.preventDefault();
+
+                    const rect = mapContainer.getBoundingClientRect();
+                    const latlng = map.containerPointToLatLng([e.clientX - rect.left, e.clientY - rect.top]);
+
+                    // Check which region was dropped on
+                    let droppedRegion = null;
+                    let droppedRegionLayer = null;
+                    Object.values(allRegionLayers).forEach(regionLayer => {
+                        if (isPointInPolygon(latlng, regionLayer)) {
+                            droppedRegion = regionLayer.feature.properties.name;
+                            droppedRegionLayer = regionLayer;
+                        }
+                    });
+
+                    if (droppedRegion) {
+                        // Reset region styles
+                        Object.values(allRegionLayers).forEach(regionLayer => {
+                            adm1Layer.resetStyle(regionLayer);
+                        });
+
+                        // Remove any previously loaded Roads OSM layer
+                        if (activeRoadsOSMLayer) {
+                            map.removeLayer(activeRoadsOSMLayer);
+                            activeRoadsOSMLayer = null;
+                        }
+
+                        // Show loading notification
+                        const loadingPopup = L.popup({
+                            closeButton: false,
+                            autoClose: false,
+                            autoPan: false,
+                            className: 'drop-warning-popup'
+                        })
+                        .setLatLng(latlng)
+                        .setContent(`⏳ Loading OSM Roads for ${droppedRegion}...`)
+                        .openOn(map);
+
+                        // Convert region name to safe filename
+                        const safeRegionName = droppedRegion.replace(/ /g, '_').replace(/\//g, '_');
+                        const roadsFilePath = `roads_by_region/${safeRegionName}_roads.js`;
+
+                        // Dynamically load the roads file using fetch and eval
+                        const roadsVarName = safeRegionName.toLowerCase().replace(/ /g, '_') + 'Roads';
+                        console.log('🔍 Loading roads file:', roadsFilePath);
+                        console.log('🔍 Expected variable name:', roadsVarName);
+
+                        fetch(roadsFilePath + '?t=' + new Date().getTime())
+                            .then(response => {
+                                if (!response.ok) {
+                                    throw new Error(`Failed to load ${roadsFilePath}: ${response.status}`);
+                                }
+                                return response.text();
+                            })
+                            .then(scriptContent => {
+                                console.log('✓ Roads file downloaded, executing JavaScript...');
+
+                                // Execute the JavaScript code in global scope using indirect eval
+                                // (1, eval) creates an indirect eval which runs in global scope
+                                (1, eval)(scriptContent);
+
+                                // Now access the variable
+                                const roadsData = window[roadsVarName];
+
+                                if (roadsData && roadsData.features) {
+                                    console.log(`✓ Found ${roadsVarName}!`);
+                                    console.log(`✓ Data contains ${roadsData.features.length} road features`);
+
+                                    // Create Leaflet GeoJSON layer
+                                    activeRoadsOSMLayer = L.geoJSON(roadsData, {
+                                    style: function(feature) {
+                                        // Color roads by type (fclass)
+                                        const fclass = feature.properties.fclass || 'unknown';
+                                        let color = '#94a3b8'; // Default gray
+
+                                        if (fclass === 'primary') color = '#ef4444'; // Red
+                                        else if (fclass === 'secondary') color = '#f97316'; // Orange
+                                        else if (fclass === 'tertiary') color = '#fbbf24'; // Yellow
+                                        else if (fclass === 'trunk') color = '#dc2626'; // Dark red
+                                        else if (fclass === 'motorway') color = '#7c2d12'; // Brown
+                                        else if (fclass === 'residential') color = '#cbd5e1'; // Light gray
+                                        else if (fclass === 'track') color = '#78716c'; // Dark gray
+
+                                        return {
+                                            color: color,
+                                            weight: fclass === 'primary' || fclass === 'trunk' || fclass === 'motorway' ? 3 :
+                                                   fclass === 'secondary' || fclass === 'tertiary' ? 2 : 1,
+                                            opacity: 0.8
+                                        };
+                                    },
+                                    onEachFeature: function(feature, layer) {
+                                        const props = feature.properties;
+                                        const popupContent = `
+                                            <div style="font-size: 0.9em;">
+                                                <strong>🛣️ Road Classification:</strong> ${props.fclass || 'Unknown'}<br>
+                                                <strong>📏 Length:</strong> ${props.Length_m ? (props.Length_m / 1000).toFixed(2) + ' km' : 'N/A'}<br>
+                                                <strong>📅 Source Year:</strong> ${props.Source_Yea || 'N/A'}
+                                            </div>
+                                        `;
+                                        layer.bindPopup(popupContent);
+                                    }
+                                }).addTo(map);
+
+                                activeRoadsOSMRegion = droppedRegion;
+
+                                // Close loading popup
+                                map.closePopup(loadingPopup);
+
+                                // Show success notification
+                                const successPopup = L.popup({
+                                    closeButton: false,
+                                    autoClose: true,
+                                    autoPan: false,
+                                    className: 'drop-success-popup'
+                                })
+                                .setLatLng(latlng)
+                                .setContent(`✓ Loaded ${roadsData.metadata.total_roads.toLocaleString()} OSM Roads for ${droppedRegion}`)
+                                .openOn(map);
+
+                                setTimeout(() => {
+                                    map.closePopup(successPopup);
+                                }, 3000);
+
+                                // Zoom to region
+                                const regionBounds = droppedRegionLayer.getBounds();
+                                map.fitBounds(regionBounds, {
+                                    padding: [50, 50],
+                                    maxZoom: 10,
+                                    animate: true,
+                                    duration: 1.0
+                                });
+
+                                    // Mark Roads OSM label as dropped
+                                    roadsOSMLabel.classList.add('layer-dropped');
+
+                                    // Update checkbox
+                                    document.getElementById('roadsOSMToggle').checked = true;
+                                } else {
+                                    // Variable not found after eval
+                                    console.log(`❌ ${roadsVarName} not found in window after eval`);
+                                    map.closePopup(loadingPopup);
+                                    const errorPopup = L.popup({
+                                        closeButton: false,
+                                        autoClose: true,
+                                        autoPan: false,
+                                        className: 'drop-invalid-popup'
+                                    })
+                                    .setLatLng(latlng)
+                                    .setContent(`❌ Failed to load roads data for ${droppedRegion}`)
+                                    .openOn(map);
+
+                                    setTimeout(() => {
+                                        map.closePopup(errorPopup);
+                                    }, 2500);
+                                }
+                            })
+                            .catch(error => {
+                                console.error('❌ Error loading roads file:', error);
+                                map.closePopup(loadingPopup);
+                                const errorPopup = L.popup({
+                                    closeButton: false,
+                                    autoClose: true,
+                                    autoPan: false,
+                                    className: 'drop-invalid-popup'
+                                })
+                                .setLatLng(latlng)
+                                .setContent(`❌ Roads data not available for ${droppedRegion}`)
+                                .openOn(map);
+
+                                setTimeout(() => {
+                                    map.closePopup(errorPopup);
+                                }, 2500);
+                            });
+                    } else {
+                        // Dropped outside Somalia
+                        const invalidPopup = L.popup({
+                            closeButton: false,
+                            autoClose: true,
+                            autoPan: false,
+                            className: 'drop-invalid-popup'
+                        })
+                        .setLatLng(latlng)
+                        .setContent('❌ Please drop Roads OSM on a region in Somalia')
+                        .openOn(map);
+
+                        setTimeout(() => {
+                            map.closePopup(invalidPopup);
+                        }, 2500);
+                    }
+
+                    // Remove cursor classes
+                    mapContainer.classList.remove('drop-target');
+                    mapContainer.classList.remove('drop-invalid');
+                }
+            });
+
+            // Roads OSM checkbox toggle
+            document.getElementById('roadsOSMToggle').addEventListener('change', function(e) {
+                if (e.target.checked) {
+                    if (activeRoadsOSMLayer) {
+                        map.addLayer(activeRoadsOSMLayer);
+                        roadsOSMLabel.classList.add('layer-dropped');
+                    }
+                } else {
+                    if (activeRoadsOSMLayer) {
+                        map.removeLayer(activeRoadsOSMLayer);
+                        roadsOSMLabel.classList.remove('layer-dropped');
+                    }
+                }
+            });
+
             document.getElementById('adm1Toggle').addEventListener('change', function(e) {
                 e.target.checked ? map.addLayer(adm1Layer) : map.removeLayer(adm1Layer);
             });
@@ -1631,17 +3351,31 @@
             div.style.maxHeight = isMobile ? '50vh' : '70vh';
             div.style.overflowY = 'auto';
             div.style.position = isMobile ? 'relative' : 'absolute';
-            div.style.top = isMobile ? 'auto' : '10px';
+            div.style.top = isMobile ? 'auto' : '0px';
             div.style.right = isMobile ? 'auto' : '0px';
             div.style.transition = 'max-height 0.3s ease';
 
             let html = `
                 <div class="legend-header" style="color: #10b981; font-weight: bold; margin-bottom: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; white-space: nowrap; overflow: hidden;">
-                    <span style="overflow: hidden; text-overflow: ellipsis;">🌍 MPI by Region</span>
+                    <span style="overflow: hidden; text-overflow: ellipsis;">🎨 Symbology</span>
                     <span class="legend-toggle-icon" style="font-size: 1.2em; flex-shrink: 0;">▶</span>
                 </div>
-                <div class="legend-content">`;
-            
+                <div class="legend-content">
+                    <div style="margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid #334155;">
+                        <div style="color: #0ea5e9; font-weight: bold; margin-bottom: 6px; font-size: 0.9em;">📊 MPI Gradient</div>
+                        <div style="font-size: 0.75em; margin-bottom: 8px; color: #94a3b8;">
+                            <div style="display: flex; align-items: center; margin: 8px 0;">
+                                <div style="width: 200px; height: 20px; background: linear-gradient(to right, #047857, #22c55e, #84cc16, #eab308, #f59e0b, #f97316, #dc2626, #b91c1c, #991b1b, #7f1d1d); border-radius: 4px;"></div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; width: 200px;">
+                                <span style="color: #047857;">●</span>
+                                <span>Better (Low MPI)</span>
+                                <span>Worse (High MPI)</span>
+                                <span style="color: #7f1d1d;">●</span>
+                            </div>
+                        </div>
+                    </div>`;
+
             const sorted = [...regions].sort((a, b) => b.mpi - a.mpi);
             sorted.forEach(r => {
                 html += `<div class="legend-item">
@@ -1650,22 +3384,8 @@
                     <div class="legend-value">${r.mpi}</div>
                 </div>`;
             });
-            
+
             html += `
-                <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid #334155;">
-                    <div style="color: #0ea5e9; font-weight: bold; margin-bottom: 6px; font-size: 0.9em;">📊 MPI Gradient</div>
-                    <div style="font-size: 0.75em; margin-bottom: 8px; color: #94a3b8;">
-                        <div style="display: flex; align-items: center; margin: 8px 0;">
-                            <div style="width: 200px; height: 20px; background: linear-gradient(to right, #047857, #22c55e, #84cc16, #eab308, #f59e0b, #f97316, #dc2626, #b91c1c, #991b1b, #7f1d1d); border-radius: 4px;"></div>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; width: 200px;">
-                            <span style="color: #047857;">●</span>
-                            <span>Better (Low MPI)</span>
-                            <span>Worse (High MPI)</span>
-                            <span style="color: #7f1d1d;">●</span>
-                        </div>
-                    </div>
-                </div>
                 <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid #334155;">
                     <div style="color: #f59e0b; font-weight: bold; margin-bottom: 6px; font-size: 0.9em;">💡 Nightlight Intensity</div>
                     <div style="font-size: 0.75em; margin-bottom: 8px; color: #94a3b8;">
@@ -1860,14 +3580,13 @@
             }
         }
 
-        // Add measure button to TOP CENTER
-        const measureBtn = L.control({position: 'topcenter'});
+        // Add measure button to BOTTOM LEFT (next to zoom controls)
+        const measureBtn = L.control({position: 'bottomleft'});
         measureBtn.onAdd = function() {
             const div = L.DomUtil.create('div', 'measure-button-container');
             div.style.position = 'absolute';
-            div.style.left = '50%';
-            div.style.transform = 'translateX(-50%)';
-            div.style.top = '10px';
+            div.style.bottom = '12px';
+            div.style.left = '50px';
             div.style.zIndex = '1000';
             div.style.display = 'flex';
             div.style.gap = '10px';
@@ -1901,14 +3620,16 @@
             `;
             return div;
         };
-        
-        // Add to map container (not Leaflet control system)
-        const measureContainer = measureBtn.onAdd();
-        document.getElementById('map').appendChild(measureContainer);
-        
-        // Disable all Leaflet events on the button container
-        L.DomEvent.disableClickPropagation(measureContainer);
-        L.DomEvent.disableScrollPropagation(measureContainer);
+
+        // Add to map using Leaflet control system at bottomleft
+        measureBtn.addTo(map);
+
+        // Get the container and disable Leaflet events
+        const measureContainer = document.querySelector('.measure-button-container');
+        if (measureContainer) {
+            L.DomEvent.disableClickPropagation(measureContainer);
+            L.DomEvent.disableScrollPropagation(measureContainer);
+        }
 
         // Button event listeners
         setTimeout(() => {
