@@ -41,9 +41,11 @@
         }
         .source-link a { color: #0ea5e9; text-decoration: none; }
         .legend {
-            background: rgba(30, 41, 59, 0.95); padding: 12px;
+            background: rgba(30, 41, 59, 0.95); padding: 10px;
             border-radius: 8px; border: 2px solid #334155;
-            max-height: 70vh; overflow-y: auto; font-size: 0.85em;
+            max-height: 70vh;
+            overflow-y: auto;
+            transition: max-height 0.3s ease;
         }
 
         /* Custom scrollbar styling for legend */
@@ -134,6 +136,20 @@
             margin-bottom: 0 !important;
         }
 
+        /* Collapsible Layer Control */
+        .layer-control.collapsed {
+            max-height: 50px;
+            overflow: hidden;
+        }
+
+        .layer-control.collapsed .layer-content {
+            display: none;
+        }
+
+        .layer-control.collapsed .layer-header {
+            margin-bottom: 0 !important;
+        }
+
         /* Custom scrollbar styling for layer control */
         .layer-control::-webkit-scrollbar {
             width: 8px;
@@ -148,6 +164,198 @@
         }
         .layer-control::-webkit-scrollbar-thumb:hover {
             background: #0284c7;
+        }
+
+        /* Drag-and-drop styles */
+        @keyframes flashGreen {
+            0%, 100% {
+                opacity: 0;
+            }
+            50% {
+                opacity: 1;
+                color: #22c55e;
+            }
+        }
+
+        /* Only show flashing green on hover if layer is NOT dropped */
+        #bakool2022Label:not(.layer-dropped):hover .drag-handle,
+        #bakool2023Label:not(.layer-dropped):hover .drag-handle {
+            animation: flashGreen 1s infinite;
+            cursor: grab;
+        }
+
+        /* Flashing green grab cursor effect */
+        @keyframes grabHandGlow {
+            0%, 100% {
+                box-shadow: 0 0 0px rgba(34, 197, 94, 0);
+            }
+            50% {
+                box-shadow: 0 0 15px rgba(34, 197, 94, 0.8), 0 0 25px rgba(34, 197, 94, 0.6);
+            }
+        }
+
+        #bakool2022Label:not(.layer-dropped):hover,
+        #bakool2023Label:not(.layer-dropped):hover {
+            cursor: grab;
+            animation: grabHandGlow 1s infinite;
+            border-radius: 4px;
+        }
+
+        /* Solid green glow for dropped layers (NO flashing) */
+        .layer-dropped {
+            box-shadow: 0 0 15px rgba(34, 197, 94, 0.8), 0 0 25px rgba(34, 197, 94, 0.6) !important;
+            border-radius: 4px;
+        }
+
+        .layer-dropped .drag-handle {
+            opacity: 1 !important;
+            color: #22c55e !important;
+        }
+
+        #bakool2022Label:active,
+        #bakool2023Label:active {
+            cursor: grabbing;
+        }
+
+        /* iSEE Analytics drag-and-drop styles */
+        #iseeAnalyticsLabel:not(.layer-dropped):hover .drag-handle {
+            animation: flashGreen 1s infinite;
+            cursor: grab;
+        }
+
+        #iseeAnalyticsLabel:not(.layer-dropped):hover {
+            cursor: grab;
+            animation: grabHandGlow 1s infinite;
+            border-radius: 4px;
+        }
+
+        #iseeAnalyticsLabel:active {
+            cursor: grabbing;
+        }
+
+        /* Roads layer drag-and-drop styles */
+        #roadsLabel:not(.layer-dropped):hover .drag-handle {
+            animation: flashGreen 1s infinite;
+            cursor: grab;
+        }
+
+        #roadsLabel:not(.layer-dropped):hover {
+            cursor: grab;
+            animation: grabHandGlow 1s infinite;
+            border-radius: 4px;
+        }
+
+        #roadsLabel:active {
+            cursor: grabbing;
+        }
+
+        /* Roads OSM layer drag-and-drop styles */
+        #roadsOSMLabel:not(.layer-dropped):hover .drag-handle {
+            animation: flashGreen 1s infinite;
+            cursor: grab;
+        }
+
+        #roadsOSMLabel:not(.layer-dropped):hover {
+            cursor: grab;
+            animation: grabHandGlow 1s infinite;
+            border-radius: 4px;
+        }
+
+        #roadsOSMLabel:active {
+            cursor: grabbing;
+        }
+
+        /* Dragging state */
+        .dragging-layer {
+            opacity: 0.5;
+        }
+
+        /* Drag-and-drop cursors */
+        @keyframes cursorGlowGreen {
+            0%, 100% {
+                box-shadow: 0 0 0px rgba(34, 197, 94, 0);
+                border-color: rgba(34, 197, 94, 0);
+            }
+            50% {
+                box-shadow: 0 0 20px rgba(34, 197, 94, 0.8), 0 0 30px rgba(34, 197, 94, 0.6), 0 0 40px rgba(34, 197, 94, 0.4);
+                border-color: rgba(34, 197, 94, 1);
+            }
+        }
+
+        /* Custom cursor indicator */
+        .cursor-indicator {
+            position: fixed;
+            width: 40px;
+            height: 40px;
+            border: 3px solid transparent;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0;
+            transition: opacity 0.2s;
+            transform: translate(-50%, -50%);
+        }
+
+        .cursor-indicator.active {
+            opacity: 1;
+            animation: cursorGlowGreen 1s infinite;
+        }
+
+        .leaflet-container.drop-target,
+        .leaflet-container.drop-target * {
+            cursor: copy !important;
+        }
+
+        .leaflet-container.drop-invalid,
+        .leaflet-container.drop-invalid * {
+            cursor: not-allowed !important;
+        }
+
+        /* Override all other cursors during drag */
+        body.dragging * {
+            cursor: inherit !important;
+        }
+
+        /* Drop success notification */
+        .drop-success-popup .leaflet-popup-content-wrapper {
+            background: rgba(34, 197, 94, 0.95);
+            color: white;
+            font-weight: bold;
+            text-align: center;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .drop-success-popup .leaflet-popup-tip {
+            background: rgba(34, 197, 94, 0.95);
+        }
+
+        /* Drop warning notification */
+        .drop-warning-popup .leaflet-popup-content-wrapper {
+            background: rgba(251, 146, 60, 0.95);
+            color: white;
+            font-weight: bold;
+            text-align: center;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .drop-warning-popup .leaflet-popup-tip {
+            background: rgba(251, 146, 60, 0.95);
+        }
+
+        /* Drop invalid notification (red) */
+        .drop-invalid-popup .leaflet-popup-content-wrapper {
+            background: rgba(239, 68, 68, 0.95);
+            color: white;
+            font-weight: bold;
+            text-align: center;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .drop-invalid-popup .leaflet-popup-tip {
+            background: rgba(239, 68, 68, 0.95);
         }
 
         /* Custom scrollbar styling for AI insights control */
@@ -177,6 +385,9 @@
             background: rgba(30, 41, 59, 0.95); padding: 10px;
             border-radius: 8px; border: 2px solid #334155;
             width: 340px;
+            max-height: 70vh;
+            overflow-y: auto;
+            transition: max-height 0.3s ease;
         }
         .info-box.square {
             width: 340px;
@@ -472,18 +683,11 @@
                 cursor: pointer;
             }
 
-            /* Measurement buttons - position below controls */
+            /* Measurement buttons - keep at bottom left on mobile */
             .measure-button-container {
-                position: fixed !important;
-                top: auto !important;
-                bottom: 60px !important;
-                left: 50% !important;
-                transform: translateX(-50%) !important;
                 flex-direction: row !important;
                 gap: 5px !important;
-                padding: 5px;
                 width: auto !important;
-                z-index: 1000 !important;
             }
 
             .measure-button-container button {

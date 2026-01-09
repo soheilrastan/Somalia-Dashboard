@@ -1,52 +1,54 @@
 // ========================================
-// iSEE ANALYTICS ENGINE
+// iSEE ANALYTICS ENGINE v2.4 (FUNCTION RENAMED TO BREAK CACHE)
 // Integrated Socioeconomic and Environmental Analysis
 // ========================================
 
-function runISEEAnalytics(activeBakoolLayersParam, mapParam, layerRefs) {
-    console.log('🔍 iSEE Analytics: Starting comprehensive analysis...');
+function runISEEAnalytics(activeBakoolLayersParam, mapParam, layerRefs, targetRegion) {
+    console.log('🔍 iSEE Analytics v2.4: Starting comprehensive analysis...');
     console.log('🔍 Function called successfully!');
-    console.log('🔍 Parameters received:', { activeBakoolLayersParam, mapParam, layerRefs });
+    console.log('🔍 Parameters received:', { activeBakoolLayersParam, mapParam, layerRefs, targetRegion });
 
-    // STEP 1: Scan active layers in Bakool region
-    const activeLayers = scanActiveLayers(activeBakoolLayersParam, mapParam, layerRefs);
+    // STEP 1: Scan active layers in the target region
+    const activeLayers = scanActiveLayers(activeBakoolLayersParam, mapParam, layerRefs, targetRegion);
     console.log('📊 Active layers detected:', activeLayers);
 
     // STEP 2: Extract metadata and configure datasets
-    const datasetsConfig = configureDatasets(activeLayers);
+    const datasetsConfig = configureDatasets(activeLayers, targetRegion);
     console.log('⚙️ Datasets configured:', datasetsConfig);
 
     // STEP 3: Perform statistical analysis
-    const analysisResults = performStatisticalAnalysis(datasetsConfig);
+    const analysisResults = performStatisticalAnalysis(datasetsConfig, targetRegion, layerRefs);
     console.log('📈 Analysis complete:', analysisResults);
 
     // STEP 4: Generate and display insights window
-    displayInsightsWindow(analysisResults, datasetsConfig);
+    displayInsightsWindow(analysisResults, datasetsConfig, targetRegion);
 }
 
 // STEP 1: Scan active layers
-function scanActiveLayers(activeBakoolLayersParam, mapParam, layerRefs) {
+function scanActiveLayers(activeBakoolLayersParam, mapParam, layerRefs, targetRegion) {
     const layers = [];
 
-    // Check Bakool 2022 Nightlight
-    if (activeBakoolLayersParam['bakool2022']) {
+    // Check Bakool 2022 Nightlight (only if target region is Bakool)
+    if (targetRegion === 'Bakool' && activeBakoolLayersParam['bakool2022']) {
         layers.push({
             id: 'bakool2022',
             name: 'Bakool 2022 Nightlight',
             type: 'nightlight',
             layer: layerRefs.detailedNLBakool2022,
-            data: layerRefs.bakoolNightlightPolygons2022
+            data: layerRefs.bakoolNightlightPolygons2022,
+            region: 'Bakool'
         });
     }
 
-    // Check Bakool 2023 Nightlight
-    if (activeBakoolLayersParam['bakool2023']) {
+    // Check Bakool 2023 Nightlight (only if target region is Bakool)
+    if (targetRegion === 'Bakool' && activeBakoolLayersParam['bakool2023']) {
         layers.push({
             id: 'bakool2023',
             name: 'Bakool 2023 Nightlight',
             type: 'nightlight',
             layer: layerRefs.detailedNLBakool2023,
-            data: layerRefs.bakoolNightlightPolygons2023
+            data: layerRefs.bakoolNightlightPolygons2023,
+            region: 'Bakool'
         });
     }
 
@@ -57,7 +59,8 @@ function scanActiveLayers(activeBakoolLayersParam, mapParam, layerRefs) {
             name: 'Population Distribution',
             type: 'population',
             layer: layerRefs.populationLayer,
-            data: layerRefs.populationData
+            data: layerRefs.populationData,
+            region: targetRegion
         });
     }
 
@@ -68,21 +71,22 @@ function scanActiveLayers(activeBakoolLayersParam, mapParam, layerRefs) {
             name: 'Multidimensional Poverty Index',
             type: 'socioeconomic',
             layer: layerRefs.mpiLayer,
-            data: layerRefs.somaliaData
+            data: layerRefs.somaliaData,
+            region: targetRegion
         });
     }
 
-    // Check Roads layer (if active in Bakool region)
+    // Check Roads layer (if active in the target region)
     if (layerRefs.clippedRoadsLayer &&
         mapParam.hasLayer(layerRefs.clippedRoadsLayer) &&
-        layerRefs.activeRoadsRegion === 'Bakool') {
+        layerRefs.activeRoadsRegion === targetRegion) {
         layers.push({
             id: 'roads',
-            name: 'Road Infrastructure (Bakool)',
+            name: `Road Infrastructure (${targetRegion})`,
             type: 'infrastructure',
             layer: layerRefs.clippedRoadsLayer,
             data: layerRefs.roadsData,
-            region: 'Bakool'
+            region: targetRegion
         });
     }
 
@@ -90,7 +94,7 @@ function scanActiveLayers(activeBakoolLayersParam, mapParam, layerRefs) {
 }
 
 // STEP 2: Configure datasets - Extract metadata
-function configureDatasets(layers) {
+function configureDatasets(layers, targetRegion) {
     return layers.map(layer => {
         const config = {
             id: layer.id,
@@ -121,14 +125,16 @@ function configureDatasets(layers) {
         } else if (layer.type === 'socioeconomic') {
             config.metadata = {
                 dataSource: 'UNDP Global MPI',
+                sourceUrl: 'https://hdr.undp.org/data-center/documentation-and-downloads',
                 regions: 18,
                 indicator: 'Multidimensional Poverty Index',
                 unit: 'index (0-1)',
-                values: extractMPIStats(layer.data)
+                values: extractMPIStats(layer.data, targetRegion)
             };
         } else if (layer.type === 'infrastructure') {
             config.metadata = {
-                dataSource: 'Somalia All Roads 2021',
+                dataSource: 'Humanitarian Data Exchange - Somalia Roads (2021)',
+                sourceUrl: 'https://data.humdata.org/dataset/somalia-roads',
                 region: layer.region,
                 totalRoads: extractRoadsStats(layer.data, layer.region).count,
                 unit: 'road segments',
@@ -160,48 +166,137 @@ function extractPopulationStats(data) {
     return stats;
 }
 
-// Extract MPI statistics
-function extractMPIStats(data) {
-    const bakoolFeature = data.features.find(f =>
-        f.properties.name === 'Bakool' || f.properties.ADM1_EN === 'Bakool'
+// Extract MPI statistics for a specific region
+function extractMPIStats(data, targetRegion) {
+    if (!data || !data.features || !targetRegion) return null;
+
+    const regionFeature = data.features.find(f =>
+        f.properties && (f.properties.name === targetRegion || f.properties.ADM1_EN === targetRegion)
     );
 
-    if (bakoolFeature && bakoolFeature.properties.mpi != null) {
+    if (regionFeature && regionFeature.properties) {
         return {
-            mpi: bakoolFeature.properties.mpi,
-            intensity: bakoolFeature.properties.intensity,
-            headcount: bakoolFeature.properties.headcount
+            mpi: regionFeature.properties.MPI_value || regionFeature.properties.mpi,
+            intensity: regionFeature.properties.intensity,
+            headcount: regionFeature.properties.headcount,
+            regionName: targetRegion
         };
     }
     return null;
 }
 
+// Haversine formula to calculate distance between two coordinates in km
+function calculateDistanceV2(coord1, coord2) {
+    // GeoJSON format: [longitude, latitude]
+    if (!coord1 || !coord2 || coord1.length < 2 || coord2.length < 2) {
+        console.error('🛣️ Invalid coordinates:', coord1, coord2);
+        return 0;
+    }
+
+    const lon1 = coord1[0];
+    const lat1 = coord1[1];
+    const lon2 = coord2[0];
+    const lat2 = coord2[1];
+
+    console.log('🛣️ DEBUG coords:', { coord1, coord2, lon1, lat1, lon2, lat2 });
+
+    if (isNaN(lon1) || isNaN(lat1) || isNaN(lon2) || isNaN(lat2)) {
+        console.error('🛣️ NaN in coordinates:', { lon1, lat1, lon2, lat2 });
+        return 0;
+    }
+
+    const R = 6371; // Earth's radius in km
+    const lat1Rad = lat1 * Math.PI / 180;
+    const lat2Rad = lat2 * Math.PI / 180;
+    const deltaLat = (lat2 - lat1) * Math.PI / 180;
+    const deltaLon = (lon2 - lon1) * Math.PI / 180;
+
+    console.log('🛣️ DEBUG trig values:', { lat1Rad, lat2Rad, deltaLat, deltaLon });
+
+    const a = Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+              Math.cos(lat1Rad) * Math.cos(lat2Rad) *
+              Math.sin(deltaLon / 2) * Math.sin(deltaLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    console.log('🛣️ DEBUG haversine:', { a, c, sqrtA: Math.sqrt(a), sqrt1minusA: Math.sqrt(1 - a) });
+
+    const distance = R * c;
+
+    console.log('🛣️ DEBUG final distance:', distance);
+
+    if (isNaN(distance)) {
+        console.error('🛣️ NaN distance result:', { coord1, coord2, a, c });
+        return 0;
+    }
+
+    return distance; // Distance in km
+}
+
+// Calculate length of a LineString in km
+function calculateLineStringLength(coordinates) {
+    console.log('🛣️ calculateLineStringLength called with', coordinates.length, 'coordinates');
+    console.log('🛣️ First coordinate:', coordinates[0]);
+    console.log('🛣️ Second coordinate:', coordinates[1]);
+
+    let totalLength = 0;
+    for (let i = 0; i < coordinates.length - 1; i++) {
+        const dist = calculateDistanceV2(coordinates[i], coordinates[i + 1]);
+        console.log(`🛣️ Distance ${i}: ${dist} km`);
+        totalLength += dist;
+    }
+    console.log('🛣️ Total length for LineString:', totalLength);
+    return totalLength;
+}
+
 // Extract roads infrastructure statistics
 function extractRoadsStats(data, region) {
+    console.log('🛣️ extractRoadsStats called for region:', region);
+    console.log('🛣️ Roads data:', data);
+
     // Filter roads by region
     const regionRoads = data.features.filter(f =>
         f.properties.shapeName === region
     );
 
-    // Count roads by type
+    console.log(`🛣️ Found ${regionRoads.length} roads in ${region}`);
+
+    // Count roads and calculate length by type
     const roadTypes = {};
-    regionRoads.forEach(road => {
+    const roadLengths = {}; // Length in km by type
+    let totalLength = 0;
+
+    regionRoads.forEach((road, index) => {
         const type = road.properties.TYPE || 'Unknown';
         roadTypes[type] = (roadTypes[type] || 0) + 1;
-    });
 
-    // Calculate total length (approximation based on number of coordinates)
-    let totalCoordinates = 0;
-    regionRoads.forEach(road => {
+        // Calculate road length from geometry
         if (road.geometry && road.geometry.coordinates) {
-            totalCoordinates += road.geometry.coordinates.length;
+            let roadLength = 0;
+            if (road.geometry.type === 'LineString') {
+                roadLength = calculateLineStringLength(road.geometry.coordinates);
+                if (index < 3) { // Log first 3 roads for debugging
+                    console.log(`🛣️ Road ${index}: ${type}, ${road.geometry.coordinates.length} coords, length: ${roadLength.toFixed(2)} km`);
+                }
+            } else if (road.geometry.type === 'MultiLineString') {
+                // Handle MultiLineString geometries
+                road.geometry.coordinates.forEach(lineString => {
+                    roadLength += calculateLineStringLength(lineString);
+                });
+            }
+
+            roadLengths[type] = (roadLengths[type] || 0) + roadLength;
+            totalLength += roadLength;
         }
     });
+
+    console.log('🛣️ Total length calculated:', totalLength.toFixed(2), 'km');
+    console.log('🛣️ Length by type:', roadLengths);
 
     return {
         count: regionRoads.length,
         byType: roadTypes,
-        totalCoordinates: totalCoordinates,
+        lengthByType: roadLengths, // Length in km for each road type
+        totalLength: totalLength, // Total length in km
         region: region
     };
 }
@@ -231,14 +326,20 @@ function calculateStats(values) {
 }
 
 // STEP 3: Perform statistical analysis
-function performStatisticalAnalysis(datasets) {
+function performStatisticalAnalysis(datasets, targetRegion, layerRefs) {
     const results = {
-        summary: generateExecutiveSummary(datasets),
+        summary: generateExecutiveSummary(datasets, targetRegion),
         layerAnalysis: [],
         crossLayerInsights: [],
         temporalAnalysis: null,
-        recommendations: []
+        recommendations: [],
+        regionInfo: null
     };
+
+    // ALWAYS include regional analysis (MPI + region size)
+    if (layerRefs && layerRefs.regionLayer) {
+        results.regionInfo = performBasicRegionalAnalysis(targetRegion, layerRefs);
+    }
 
     // Analyze each layer
     datasets.forEach(dataset => {
@@ -258,15 +359,76 @@ function performStatisticalAnalysis(datasets) {
     }
 
     // Generate recommendations
-    results.recommendations = generateRecommendations(datasets, results);
+    results.recommendations = generateRecommendations(datasets, results, targetRegion);
 
     return results;
 }
 
+// Perform basic regional analysis (when no layers are active)
+function performBasicRegionalAnalysis(regionName, layerRefs) {
+    const regionInfo = {
+        name: regionName,
+        area: null,
+        percentOfSomalia: null,
+        mpiValue: null,
+        mpiRank: null,
+        analysis: []
+    };
+
+    // Calculate region area
+    if (layerRefs.regionLayer) {
+        const bounds = layerRefs.regionLayer.getBounds();
+        const latDiff = bounds.getNorth() - bounds.getSouth();
+        const lngDiff = bounds.getEast() - bounds.getWest();
+        // Rough area estimate in km² (at Somalia's latitude ~5°N)
+        regionInfo.area = Math.round(latDiff * 111 * lngDiff * 111 * Math.cos(5 * Math.PI / 180));
+    }
+
+    // Calculate percentage of Somalia (Somalia total area: ~637,657 km²)
+    if (regionInfo.area) {
+        regionInfo.percentOfSomalia = (regionInfo.area / 637657 * 100).toFixed(2);
+    }
+
+    // Extract MPI data if MPI layer is visible
+    if (layerRefs.allRegionLayers && layerRefs.somaliaData) {
+        const somaliaData = layerRefs.somaliaData;
+        if (somaliaData && somaliaData.features) {
+            const regionFeature = somaliaData.features.find(f =>
+                f.properties && f.properties.name === regionName
+            );
+
+            if (regionFeature && regionFeature.properties) {
+                regionInfo.mpiValue = regionFeature.properties.MPI_value;
+
+                // Calculate MPI rank
+                const allMPIValues = somaliaData.features
+                    .map(f => ({ name: f.properties.name, mpi: f.properties.MPI_value }))
+                    .filter(d => d.mpi != null)
+                    .sort((a, b) => a.mpi - b.mpi);
+
+                const rank = allMPIValues.findIndex(d => d.name === regionName) + 1;
+                regionInfo.mpiRank = rank;
+                regionInfo.totalRegions = allMPIValues.length;
+            }
+        }
+    }
+
+    // Generate analysis insights
+    regionInfo.analysis.push(`📍 <strong>${regionName} Region</strong> covers approximately <strong>${regionInfo.area?.toLocaleString() || 'N/A'} km²</strong>, which represents <strong>${regionInfo.percentOfSomalia}%</strong> of Somalia's total area.`);
+
+    if (regionInfo.mpiValue != null) {
+        const mpiCategory = regionInfo.mpiValue < 0.3 ? 'low poverty' :
+                           regionInfo.mpiValue < 0.5 ? 'moderate poverty' : 'high poverty';
+        regionInfo.analysis.push(`📊 The region has an <strong>MPI value of ${regionInfo.mpiValue.toFixed(3)}</strong>, indicating ${mpiCategory} levels. It ranks <strong>#${regionInfo.mpiRank} out of ${regionInfo.totalRegions}</strong> regions in Somalia (lower rank = less poverty).`);
+    }
+
+    return regionInfo;
+}
+
 // Generate executive summary
-function generateExecutiveSummary(datasets) {
+function generateExecutiveSummary(datasets, targetRegion) {
     const summary = {
-        region: 'Bakool, Somalia',
+        region: `${targetRegion || 'Unknown'}, Somalia`,
         analysisDate: new Date().toISOString().split('T')[0],
         datasetsAnalyzed: datasets.length,
         datasetTypes: [...new Set(datasets.map(d => d.type))],
@@ -333,23 +495,35 @@ function analyzeLayer(dataset) {
 
     if (dataset.type === 'infrastructure' && dataset.metadata.values) {
         const roads = dataset.metadata.values;
-        analysis.insights.push(`${roads.count} road segments identified in ${roads.region}`);
+        const totalLength = roads.totalLength ? roads.totalLength.toFixed(2) : 'N/A';
+        analysis.insights.push(`${roads.count} road segments identified in ${roads.region} with total length of ${totalLength} km`);
 
-        // Analyze road types
+        // Analyze road types with lengths
         const roadTypes = Object.entries(roads.byType).sort((a, b) => b[1] - a[1]);
         const topType = roadTypes[0];
-        analysis.insights.push(`Predominant road type: ${topType[0]} (${topType[1]} segments, ${(topType[1]/roads.count*100).toFixed(1)}%)`);
+        const topTypeLength = roads.lengthByType && roads.lengthByType[topType[0]]
+            ? roads.lengthByType[topType[0]].toFixed(2)
+            : 'N/A';
+        analysis.insights.push(`Predominant road type: ${topType[0]} (${topType[1]} segments, ${(topType[1]/roads.count*100).toFixed(1)}%, ${topTypeLength} km)`);
 
         // Infrastructure quality assessment
         if (roads.byType['Major road']) {
-            analysis.insights.push(`Presence of major roads indicates some connectivity infrastructure`);
+            const majorLength = roads.lengthByType && roads.lengthByType['Major road']
+                ? roads.lengthByType['Major road'].toFixed(2)
+                : 'N/A';
+            analysis.insights.push(`Presence of major roads (${majorLength} km) indicates some connectivity infrastructure`);
         } else {
             analysis.insights.push(`Limited to secondary roads and tracks - basic infrastructure only`);
         }
 
-        // Road density indicator
-        const roadDensity = roads.count < 100 ? 'Very Low' : roads.count < 500 ? 'Low' : roads.count < 1000 ? 'Moderate' : 'High';
-        analysis.insights.push(`Road network density: ${roadDensity} (${roads.count} total segments)`);
+        // Road density indicator (based on length)
+        let densityMetric = 'Very Low';
+        if (roads.totalLength) {
+            if (roads.totalLength >= 1000) densityMetric = 'High';
+            else if (roads.totalLength >= 500) densityMetric = 'Moderate';
+            else if (roads.totalLength >= 200) densityMetric = 'Low';
+        }
+        analysis.insights.push(`Road network density: ${densityMetric} (${totalLength} km total length)`);
     }
 
     return analysis;
@@ -476,7 +650,7 @@ function interpretTrend(percentChange) {
 }
 
 // Generate recommendations
-function generateRecommendations(datasets, results) {
+function generateRecommendations(datasets, results, targetRegion) {
     const recommendations = [];
 
     const hasNightlight = datasets.some(d => d.type === 'nightlight');
@@ -522,7 +696,7 @@ function generateRecommendations(datasets, results) {
 }
 
 // STEP 4: Display insights window
-function displayInsightsWindow(results, datasets) {
+function displayInsightsWindow(results, datasets, targetRegion) {
     // Create modal window
     const modal = document.createElement('div');
     modal.id = 'iseeAnalyticsModal';
@@ -552,7 +726,7 @@ function displayInsightsWindow(results, datasets) {
         border: 2px solid #334155;
     `;
 
-    modalContent.innerHTML = generateInsightsHTML(results, datasets);
+    modalContent.innerHTML = generateInsightsHTML(results, datasets, targetRegion);
 
     modal.appendChild(modalContent);
     document.body.appendChild(modal);
@@ -582,7 +756,7 @@ function displayInsightsWindow(results, datasets) {
 }
 
 // Generate HTML for insights window
-function generateInsightsHTML(results, datasets) {
+function generateInsightsHTML(results, datasets, targetRegion) {
     return `
         <div style="padding: 30px;">
             <!-- Header -->
@@ -592,7 +766,7 @@ function generateInsightsHTML(results, datasets) {
                         🔍 iSEE Analytics Report
                     </h2>
                     <p style="color: #94a3b8; margin: 5px 0 0 0; font-size: 0.9em;">
-                        Integrated Socioeconomic and Environmental Analysis
+                        Integrated Socioeconomic and Environmental Analysis - ${targetRegion || 'Unknown Region'}
                     </p>
                 </div>
                 <button class="close-modal" style="
@@ -610,6 +784,17 @@ function generateInsightsHTML(results, datasets) {
                 </button>
             </div>
 
+            <!-- Regional Overview (ALWAYS SHOWN) -->
+            ${results.regionInfo ? `
+            <div style="background: rgba(251, 191, 36, 0.1); border-left: 4px solid #fbbf24; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
+                <h3 style="color: #fbbf24; margin: 0 0 15px 0; font-size: 1.4em;">📍 Regional Overview: ${results.regionInfo.name}</h3>
+                <div style="color: #e8e8e8; line-height: 1.8;">
+                    ${results.regionInfo.analysis.map(insight => `<p style="margin: 12px 0;">${insight}</p>`).join('')}
+                </div>
+            </div>
+            ` : ''}
+
+            ${results.summary.datasetsAnalyzed > 0 ? `
             <!-- Executive Summary -->
             <div style="background: rgba(14, 165, 233, 0.1); border-left: 4px solid #0ea5e9; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
                 <h3 style="color: #0ea5e9; margin: 0 0 15px 0; font-size: 1.4em;">📋 Executive Summary</h3>
@@ -633,6 +818,15 @@ function generateInsightsHTML(results, datasets) {
                     ${results.layerAnalysis.map(analysis => generateLayerCard(analysis)).join('')}
                 </div>
             </div>
+            ` : `
+            <!-- No Active Layers Message -->
+            <div style="background: rgba(59, 130, 246, 0.1); border-left: 4px solid #3b82f6; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
+                <h3 style="color: #3b82f6; margin: 0 0 15px 0; font-size: 1.4em;">💡 Activate Data Layers</h3>
+                <p style="color: #e8e8e8; line-height: 1.8;">
+                    To access detailed analytics for ${targetRegion}, activate relevant data layers (Roads, Nightlight, Population) and drop iSEE Analytics again.
+                </p>
+            </div>
+            `}
 
             ${results.crossLayerInsights.length > 0 ? `
             <!-- Cross-Layer Insights -->
@@ -665,29 +859,97 @@ function generateInsightsHTML(results, datasets) {
                             </tr>
                         </thead>
                         <tbody>
-                            ${datasets.map((dataset, index) => `
-                                <tr style="background: ${index % 2 === 0 ? 'rgba(59, 130, 246, 0.05)' : 'transparent'}; border-bottom: 1px solid rgba(59, 130, 246, 0.1);">
+                            <!-- ALWAYS show Region Boundaries -->
+                            <tr style="background: rgba(59, 130, 246, 0.05); border-bottom: 1px solid rgba(59, 130, 246, 0.1);">
+                                <td style="padding: 12px; color: #e8e8e8;">Somalia Region Boundaries (ADM1)</td>
+                                <td style="padding: 12px; color: #94a3b8;">Administrative Boundaries</td>
+                                <td style="padding: 12px; color: #94a3b8;">Vector (Polygon)</td>
+                                <td style="padding: 12px; color: #94a3b8;">2024</td>
+                                <td style="padding: 12px;">
+                                    <a href="https://data.humdata.org/dataset/cod-ab-som"
+                                       target="_blank"
+                                       style="color: #3b82f6; text-decoration: none; font-weight: bold; display: inline-flex; align-items: center; gap: 5px;"
+                                       onmouseover="this.style.color='#60a5fa'"
+                                       onmouseout="this.style.color='#3b82f6'">
+                                        HDX <span style="font-size: 0.8em;">🔗</span>
+                                    </a>
+                                </td>
+                            </tr>
+                            <!-- ALWAYS show MPI data -->
+                            <tr style="background: transparent; border-bottom: 1px solid rgba(59, 130, 246, 0.1);">
+                                <td style="padding: 12px; color: #e8e8e8;">Multidimensional Poverty Index</td>
+                                <td style="padding: 12px; color: #94a3b8;">Poverty Index</td>
+                                <td style="padding: 12px; color: #94a3b8;">Regional (ADM1)</td>
+                                <td style="padding: 12px; color: #94a3b8;">2023</td>
+                                <td style="padding: 12px;">
+                                    <a href="https://hdr.undp.org/data-center/documentation-and-downloads"
+                                       target="_blank"
+                                       style="color: #3b82f6; text-decoration: none; font-weight: bold; display: inline-flex; align-items: center; gap: 5px;"
+                                       onmouseover="this.style.color='#60a5fa'"
+                                       onmouseout="this.style.color='#3b82f6'">
+                                        UNDP <span style="font-size: 0.8em;">🔗</span>
+                                    </a>
+                                </td>
+                            </tr>
+                            ${datasets.map((dataset, index) => {
+                                // Determine type, resolution, year, and source based on dataset
+                                let type, resolution, year, sourceLink, sourceName;
+
+                                if (dataset.type === 'nightlight') {
+                                    type = 'VIIRS Nighttime Lights';
+                                    resolution = '500m × 500m';
+                                    year = dataset.id.includes('2022') ? '2022' : '2023';
+                                    sourceLink = 'https://eogdata.mines.edu/products/vnl/';
+                                    sourceName = 'NOAA VIIRS';
+                                } else if (dataset.type === 'infrastructure') {
+                                    type = 'Road Network';
+                                    resolution = 'Vector (LineString)';
+                                    year = '2021';
+                                    sourceLink = dataset.metadata.sourceUrl || 'https://data.humdata.org/dataset/somalia-roads';
+                                    sourceName = 'HDX';
+                                } else if (dataset.type === 'socioeconomic') {
+                                    // Skip MPI since we already added it above
+                                    return '';
+                                } else if (dataset.type === 'population') {
+                                    type = 'Population Density';
+                                    resolution = '1km × 1km';
+                                    year = '2020';
+                                    sourceLink = 'https://www.worldpop.org/';
+                                    sourceName = 'WorldPop';
+                                } else {
+                                    type = 'Unknown';
+                                    resolution = 'N/A';
+                                    year = 'N/A';
+                                    sourceLink = '#';
+                                    sourceName = 'Unknown';
+                                }
+
+                                return `
+                                <tr style="background: ${(index + 2) % 2 === 0 ? 'rgba(59, 130, 246, 0.05)' : 'transparent'}; border-bottom: 1px solid rgba(59, 130, 246, 0.1);">
                                     <td style="padding: 12px; color: #e8e8e8;">${dataset.name}</td>
-                                    <td style="padding: 12px; color: #94a3b8;">VIIRS Nighttime Lights</td>
-                                    <td style="padding: 12px; color: #94a3b8;">500m × 500m</td>
-                                    <td style="padding: 12px; color: #94a3b8;">${dataset.id.includes('2022') ? '2022' : '2023'}</td>
+                                    <td style="padding: 12px; color: #94a3b8;">${type}</td>
+                                    <td style="padding: 12px; color: #94a3b8;">${resolution}</td>
+                                    <td style="padding: 12px; color: #94a3b8;">${year}</td>
                                     <td style="padding: 12px;">
-                                        <a href="https://eogdata.mines.edu/products/vnl/"
+                                        <a href="${sourceLink}"
                                            target="_blank"
                                            style="color: #3b82f6; text-decoration: none; font-weight: bold; display: inline-flex; align-items: center; gap: 5px;"
                                            onmouseover="this.style.color='#60a5fa'"
                                            onmouseout="this.style.color='#3b82f6'">
-                                            NOAA VIIRS <span style="font-size: 0.8em;">🔗</span>
+                                            ${sourceName} <span style="font-size: 0.8em;">🔗</span>
                                         </a>
                                     </td>
                                 </tr>
-                            `).join('')}
+                                `;
+                            }).join('')}
                         </tbody>
                     </table>
                 </div>
                 <div style="margin-top: 15px; padding: 12px; background: rgba(59, 130, 246, 0.05); border-radius: 6px; font-size: 0.85em; color: #94a3b8;">
-                    <strong>Note:</strong> All datasets are derived from NOAA's VIIRS (Visible Infrared Imaging Radiometer Suite) Day/Night Band nighttime lights product.
-                    Data processing and analysis performed by Geo-Insight Lab, ESCWA.
+                    <strong>Note:</strong> Region boundaries and MPI data are included in all analyses.
+                    Nightlight datasets derived from NOAA's VIIRS (Visible Infrared Imaging Radiometer Suite) Day/Night Band product.
+                    Administrative boundaries, road infrastructure, and MPI data from Humanitarian Data Exchange (HDX) and UNDP.
+                    All data processing and analysis performed by Geo-Insight Lab, ESCWA.
                 </div>
             </div>
 
@@ -782,13 +1044,26 @@ function generateLayerCard(analysis) {
             // Infrastructure statistics (roads)
             const roadTypes = Object.entries(stats.byType)
                 .sort((a, b) => b[1] - a[1])
-                .map(([type, count]) => `<div>${type}: ${count}</div>`)
+                .map(([type, count]) => {
+                    const length = stats.lengthByType && stats.lengthByType[type]
+                        ? stats.lengthByType[type].toFixed(2)
+                        : 'N/A';
+                    return `<div style="display: flex; justify-content: space-between; padding: 4px 0;">
+                        <span>${type}:</span>
+                        <span>${count} segments (${length} km)</span>
+                    </div>`;
+                })
                 .join('');
+
+            const totalLength = stats.totalLength
+                ? stats.totalLength.toFixed(2)
+                : 'N/A';
 
             statsHTML = `
                 <div style="background: rgba(14, 165, 233, 0.05); padding: 12px; border-radius: 6px; margin-top: 12px;">
                     <div style="font-size: 0.85em;">
                         <div style="margin-bottom: 8px;"><strong>Total Road Segments:</strong> ${stats.count.toLocaleString()}</div>
+                        <div style="margin-bottom: 8px;"><strong>Total Length:</strong> ${totalLength} km</div>
                         <div style="margin-bottom: 4px;"><strong>By Type:</strong></div>
                         <div style="margin-left: 12px; color: #cbd5e1;">
                             ${roadTypes}
