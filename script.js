@@ -1,3 +1,4 @@
+        // VERSION 2.6 - Roads OSM Analytics Fixed (2026-01-09)
         // Mobile detection and initial setup
         const isMobile = window.innerWidth <= 767;
         const isTablet = window.innerWidth > 767 && window.innerWidth <= 1024;
