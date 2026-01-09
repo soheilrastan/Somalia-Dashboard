@@ -1,4 +1,2 @@
-roads_by_region/*.geojson filter=lfs diff=lfs merge=lfs -text
-roads_by_region/*.js filter=lfs diff=lfs merge=lfs -text
 roads_by_region/*.js !text !filter !merge !diff
 roads_by_region/*.geojson !text !filter !merge !diff
