@@ -146,18 +146,28 @@ function configureDatasets(layers, targetRegion) {
                 values: extractMPIStats(layer.data, targetRegion)
             };
         } else if (layer.type === 'infrastructure') {
-            // Detect if this is OSM format (has fclass and Length_m properties)
+            // Detect if this is OSM format (multiple detection methods)
             console.log('🔍 Checking road data format:', {
                 hasFeatures: !!layer.data.features,
                 featureCount: layer.data.features?.length,
                 firstFeature: layer.data.features?.[0],
-                firstProperties: layer.data.features?.[0]?.properties
+                firstProperties: layer.data.features?.[0]?.properties,
+                metadata: layer.data.metadata
             });
 
-            const isOSMFormat = layer.data.features?.[0]?.properties?.fclass != null &&
-                               layer.data.features?.[0]?.properties?.Length_m != null;
+            // Check multiple indicators of OSM format
+            const hasFclassProperty = layer.data.features?.[0]?.properties?.fclass != null;
+            const hasLengthMProperty = layer.data.features?.[0]?.properties?.Length_m != null;
+            const hasOSMMetadata = layer.data.metadata?.data_source?.includes('OpenStreetMap');
 
-            console.log('🔍 Is OSM format?', isOSMFormat);
+            const isOSMFormat = (hasFclassProperty && hasLengthMProperty) || hasOSMMetadata;
+
+            console.log('🔍 OSM detection:', {
+                hasFclassProperty,
+                hasLengthMProperty,
+                hasOSMMetadata,
+                isOSMFormat
+            });
 
             if (isOSMFormat) {
                 // Use OSM roads extraction
