@@ -2822,34 +2822,11 @@
                                     // Update checkbox
                                     document.getElementById('roadsOSMToggle').checked = true;
 
-                                    // ========================================
-                                    // TRIGGER iSEE ANALYTICS FOR ROADS OSM
-                                    // ========================================
-                                    console.log('🔍 Triggering iSEE Analytics for Roads OSM...');
-
-                                    // Trigger iSEE Analytics after a short delay to let the map settle
-                                    setTimeout(() => {
-                                        if (typeof runISEEAnalytics === 'function') {
-                                            // Create layerRefs object with current roads data
-                                            const layerRefs = {
-                                                detailedNLBakool2022: detailedNLBakool2022,
-                                                detailedNLBakool2023: detailedNLBakool2023,
-                                                bakoolNightlightPolygons2022: bakoolNightlightPolygons2022,
-                                                bakoolNightlightPolygons2023: bakoolNightlightPolygons2023,
-                                                clippedRoadsLayer: activeRoadsOSMLayer,
-                                                activeRoadsRegion: droppedRegion,
-                                                roadsData: roadsData,
-                                                regionLayer: droppedRegionLayer,
-                                                allRegionLayers: allRegionLayers,
-                                                somaliaData: adm1Boundaries
-                                            };
-
-                                            console.log('🔍 Calling runISEEAnalytics with layerRefs:', layerRefs);
-                                            runISEEAnalytics(activeBakoolLayers, map, layerRefs, droppedRegion);
-                                        } else {
-                                            console.warn('⚠️ iSEE Analytics not available');
-                                        }
-                                    }, 1500);
+                                    // Update global variables for manual iSEE Analytics trigger
+                                    // (Roads data is now available for when user drags iSEE Analytics label)
+                                    clippedRoadsLayer = activeRoadsOSMLayer;
+                                    activeRoadsRegion = droppedRegion;
+                                    // Note: roadsData already set above
                                 } else {
                                     // Variable not found after eval
                                     console.log(`❌ ${roadsVarName} not found in window after eval`);
