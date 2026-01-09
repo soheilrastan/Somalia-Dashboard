@@ -1,5 +1,5 @@
-        // VERSION 2.7 - Manual Analytics Trigger Only (2026-01-09)
-        console.log('🚀 Dashboard v2.7: Manual iSEE Analytics trigger (no auto-run)');
+        // VERSION 2.8 - OSM Analytics Fixed (2026-01-09)
+        console.log('🚀 Dashboard v2.8: Roads OSM with iSEE Analytics working!');
 
         // Mobile detection and initial setup
         const isMobile = window.innerWidth <= 767;

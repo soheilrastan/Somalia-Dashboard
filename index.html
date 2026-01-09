@@ -6,11 +6,11 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <meta name="version" content="2.7">
+    <meta name="version" content="2.8">
     <title>Geo-MPI* Extensions, Somalia - Geo-Insight Lab, ESCWA</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=2.8" />
 </head>
 <body>
     <div class="container">
@@ -18,19 +18,19 @@
             <h1>🗺️ Geo-MPI* Extensions, Somalia</h1>
             <div style="font-size: 0.65em; color: #64748b; margin-top: -5px; margin-bottom: 8px;">*Multidimensional Poverty Index</div>
             <div class="subtitle" style="font-size: 1.2em; color: #0ea5e9; font-weight: 600; margin-bottom: 5px;">Mapping the Left Behind</div>
-            <div class="subtitle">By Geo-Insight Lab, ESCWA, 2025 <span style="font-size: 0.7em; opacity: 0.5;">(v2.7-OSM)</span></div>
+            <div class="subtitle">By Geo-Insight Lab, ESCWA, 2025 <span style="font-size: 0.7em; opacity: 0.5;">(v2.8)</span></div>
         </div>
         <div id="map"></div>
     </div>
     <script>
-        // Add timestamp AND version to force cache refresh
-        const timestamp = new Date().getTime();
-        const version = '2.7';
-        document.write('<script src="data.js?v=' + version + '&t=' + timestamp + '"><\/script>');
-        document.write('<script src="bakool_nightlight_polygons_2022.js?v=' + version + '&t=' + timestamp + '"><\/script>');
-        document.write('<script src="bakool_nightlight_polygons_2023.js?v=' + version + '&t=' + timestamp + '"><\/script>');
-        document.write('<script src="isee_analytics.js?v=' + version + '&t=' + timestamp + '"><\/script>');
-        document.write('<script src="script.js?v=' + version + '&t=' + timestamp + '"><\/script>');
+        // Build timestamp to force cache refresh on every deploy
+        const buildTime = 1767971500000;
+        const version = '2.8';
+        document.write('<script src="data.js?v=' + version + '&b=' + buildTime + '"><\/script>');
+        document.write('<script src="bakool_nightlight_polygons_2022.js?v=' + version + '&b=' + buildTime + '"><\/script>');
+        document.write('<script src="bakool_nightlight_polygons_2023.js?v=' + version + '&b=' + buildTime + '"><\/script>');
+        document.write('<script src="isee_analytics.js?v=' + version + '&b=' + buildTime + '"><\/script>');
+        document.write('<script src="script.js?v=' + version + '&b=' + buildTime + '"><\/script>');
     </script>
 </body>
 </html>
