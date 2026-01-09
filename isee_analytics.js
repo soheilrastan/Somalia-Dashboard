@@ -1,12 +1,15 @@
 // ========================================
-// iSEE ANALYTICS ENGINE v2.4 (FUNCTION RENAMED TO BREAK CACHE)
+// iSEE ANALYTICS ENGINE v2.5 (ROADS OSM ANALYTICS ENABLED)
 // Integrated Socioeconomic and Environmental Analysis
 // ========================================
 
 function runISEEAnalytics(activeBakoolLayersParam, mapParam, layerRefs, targetRegion) {
-    console.log('🔍 iSEE Analytics v2.4: Starting comprehensive analysis...');
+    console.log('🔍 iSEE Analytics v2.5: Starting comprehensive analysis...');
     console.log('🔍 Function called successfully!');
     console.log('🔍 Parameters received:', { activeBakoolLayersParam, mapParam, layerRefs, targetRegion });
+    console.log('🔍 LayerRefs.clippedRoadsLayer:', layerRefs.clippedRoadsLayer);
+    console.log('🔍 LayerRefs.roadsData:', layerRefs.roadsData);
+    console.log('🔍 LayerRefs.activeRoadsRegion:', layerRefs.activeRoadsRegion);
 
     // STEP 1: Scan active layers in the target region
     const activeLayers = scanActiveLayers(activeBakoolLayersParam, mapParam, layerRefs, targetRegion);
@@ -77,9 +80,18 @@ function scanActiveLayers(activeBakoolLayersParam, mapParam, layerRefs, targetRe
     }
 
     // Check Roads layer (if active in the target region)
+    console.log('🛣️ Checking Roads layer:', {
+        hasClippedRoadsLayer: !!layerRefs.clippedRoadsLayer,
+        isOnMap: layerRefs.clippedRoadsLayer ? mapParam.hasLayer(layerRefs.clippedRoadsLayer) : false,
+        activeRoadsRegion: layerRefs.activeRoadsRegion,
+        targetRegion: targetRegion,
+        regionsMatch: layerRefs.activeRoadsRegion === targetRegion
+    });
+
     if (layerRefs.clippedRoadsLayer &&
         mapParam.hasLayer(layerRefs.clippedRoadsLayer) &&
         layerRefs.activeRoadsRegion === targetRegion) {
+        console.log('✅ Roads layer detected! Adding to analysis...');
         layers.push({
             id: 'roads',
             name: `Road Infrastructure (${targetRegion})`,
@@ -88,6 +100,8 @@ function scanActiveLayers(activeBakoolLayersParam, mapParam, layerRefs, targetRe
             data: layerRefs.roadsData,
             region: targetRegion
         });
+    } else {
+        console.log('❌ Roads layer NOT added to analysis');
     }
 
     return layers;
