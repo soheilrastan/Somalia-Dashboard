@@ -3600,7 +3600,7 @@
             const div = L.DomUtil.create('div', 'measure-button-container');
             div.style.position = 'absolute';
             div.style.bottom = '12px';
-            div.style.left = '50px';
+            div.style.left = '90px';
             div.style.zIndex = '1000';
             div.style.display = 'flex';
             div.style.gap = '10px';
