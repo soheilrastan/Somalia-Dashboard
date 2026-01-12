@@ -77,7 +77,12 @@
             gap: 10px;
         }
 
-        /* Ensure consistent spacing between right-side controls */
+        /* Ensure consistent spacing for all controls */
+        .leaflet-top.leaflet-left .leaflet-control {
+            margin-top: 10px !important;
+            margin-left: 10px !important;
+        }
+
         .leaflet-top.leaflet-right .leaflet-control {
             margin-top: 10px !important;
             margin-right: 10px !important;
