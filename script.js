@@ -3771,24 +3771,25 @@
         // CLEAR CACHE & RELOAD BUTTON
         // ========================================
 
-        const clearCacheBtn = L.control({position: 'topright'});
+        const clearCacheBtn = L.control({position: 'bottomright'});
         clearCacheBtn.onAdd = function() {
             const div = L.DomUtil.create('div', 'clear-cache-container');
+            div.style.marginBottom = '5px';
             div.innerHTML = `
                 <button id="clearCacheBtn" style="
                     background: rgba(168, 85, 247, 0.95);
                     color: white;
                     border: 2px solid #a855f7;
-                    padding: 10px 15px;
+                    padding: 8px 12px;
                     border-radius: 8px;
                     cursor: pointer;
                     font-weight: bold;
-                    font-size: 0.85em;
+                    font-size: 0.8em;
                     box-shadow: 0 4px 6px rgba(0,0,0,0.3);
                     transition: all 0.3s;
                     white-space: nowrap;
                 " title="Clear browser cache and reload the page">
-                    🔄 Clear Cache & Reload
+                    🔄 Clear Cache
                 </button>
             `;
 
