@@ -641,7 +641,7 @@ function analyzeLayer(dataset) {
 
     if (dataset.type === 'infrastructure' && dataset.metadata.values) {
         const roads = dataset.metadata.values;
-        const totalLength = roads.totalLength ? roads.totalLength.toFixed(2) : 'N/A';
+        const totalLength = roads.totalLength ? Math.round(roads.totalLength) : 0;
         const isOSM = dataset.metadata.format === 'OSM';
 
         // ========================================
@@ -649,19 +649,19 @@ function analyzeLayer(dataset) {
         // ========================================
         if (isOSM) {
             // Basic statistics
-            analysis.insights.push(`🛣️ <strong>${roads.count.toLocaleString()} OpenStreetMap road segments</strong> analyzed in <strong>${roads.region}</strong> region with total network length of <strong>${totalLength} km</strong>`);
+            analysis.insights.push(`🛣️ <strong>${roads.count.toLocaleString()} OpenStreetMap road segments</strong> analyzed in <strong>${roads.region}</strong> region with total network length of <strong>${totalLength.toLocaleString()} km</strong>`);
 
             // Road classification analysis
             const roadsByClass = Object.entries(roads.byClass || {}).sort((a, b) => b[1] - a[1]);
             if (roadsByClass.length > 0) {
                 const topClass = roadsByClass[0];
-                const topClassLength = roads.lengthByClass[topClass[0]].toFixed(2);
-                const topClassPercent = (topClass[1] / roads.count * 100).toFixed(1);
-                analysis.insights.push(`📊 Predominant road classification: <strong>${topClass[0]}</strong> (${topClass[1].toLocaleString()} segments, ${topClassPercent}%, ${topClassLength} km)`);
+                const topClassLength = Math.round(roads.lengthByClass[topClass[0]]);
+                const topClassPercent = Math.round(topClass[1] / roads.count * 100);
+                analysis.insights.push(`📊 Predominant road classification: <strong>${topClass[0]}</strong> (${topClass[1].toLocaleString()} segments, ${topClassPercent}%, ${topClassLength.toLocaleString()} km)`);
             }
 
             // Infrastructure quality score
-            analysis.insights.push(`⭐ Infrastructure Quality Score: <strong>${roads.qualityScore}/100</strong> - ${
+            analysis.insights.push(`⭐ Infrastructure Quality Score: <strong>${Math.round(roads.qualityScore)}/100</strong> - ${
                 parseFloat(roads.qualityScore) >= 70 ? 'Excellent road network with diverse classifications' :
                 parseFloat(roads.qualityScore) >= 50 ? 'Moderate infrastructure quality' :
                 parseFloat(roads.qualityScore) >= 30 ? 'Basic road network, mostly rural tracks' :
@@ -674,21 +674,21 @@ function analyzeLayer(dataset) {
                 const highwayLength = (roads.lengthByClass['motorway'] || 0) +
                                      (roads.lengthByClass['trunk'] || 0) +
                                      (roads.lengthByClass['primary'] || 0);
-                analysis.insights.push(`🛤️ <strong>Major highway infrastructure present</strong>: ${highwayLength.toFixed(2)} km of motorway/trunk/primary roads indicates good regional connectivity`);
+                analysis.insights.push(`🛤️ <strong>Major highway infrastructure present</strong>: ${Math.round(highwayLength).toLocaleString()} km of motorway/trunk/primary roads indicates good regional connectivity`);
             }
 
             const hasSecondaryTertiary = roads.byClass['secondary'] || roads.byClass['tertiary'];
             if (hasSecondaryTertiary) {
                 const secondaryLength = (roads.lengthByClass['secondary'] || 0) + (roads.lengthByClass['tertiary'] || 0);
-                analysis.insights.push(`🛣️ Secondary/Tertiary roads: ${secondaryLength.toFixed(2)} km providing district-level connectivity`);
+                analysis.insights.push(`🛣️ Secondary/Tertiary roads: ${Math.round(secondaryLength).toLocaleString()} km providing district-level connectivity`);
             }
 
             // Track analysis (rural roads)
             const trackTypes = Object.keys(roads.byClass).filter(k => k.includes('track'));
             if (trackTypes.length > 0) {
                 const trackLength = trackTypes.reduce((sum, type) => sum + (roads.lengthByClass[type] || 0), 0);
-                const trackPercent = (trackLength / roads.totalLength * 100).toFixed(1);
-                analysis.insights.push(`🚜 Rural tracks comprise ${trackPercent}% of road network (${trackLength.toFixed(2)} km) - indicates predominately rural/agricultural access roads`);
+                const trackPercent = Math.round(trackLength / roads.totalLength * 100);
+                analysis.insights.push(`🚜 Rural tracks comprise ${trackPercent}% of road network (${Math.round(trackLength).toLocaleString()} km) - indicates predominately rural/agricultural access roads`);
             }
 
             // Road density calculation (assuming average Somalia region size)
@@ -703,9 +703,9 @@ function analyzeLayer(dataset) {
 
             // Average road segment length analysis
             if (roads.lengthStats) {
-                const avgLength = (roads.lengthStats.mean * 1000).toFixed(0); // Convert to meters
-                const medianLength = (roads.lengthStats.median * 1000).toFixed(0);
-                analysis.insights.push(`📐 Average road segment: ${avgLength}m (median: ${medianLength}m) - ${
+                const avgLength = Math.round(roads.lengthStats.mean * 1000); // Convert to meters
+                const medianLength = Math.round(roads.lengthStats.median * 1000);
+                analysis.insights.push(`📐 Average road segment: ${avgLength.toLocaleString()}m (median: ${medianLength.toLocaleString()}m) - ${
                     roads.lengthStats.mean > 1 ? 'longer segments indicate inter-settlement highways' :
                     roads.lengthStats.mean > 0.5 ? 'moderate segments typical of mixed urban-rural roads' :
                     'short segments indicate dense local/residential networks'
@@ -713,7 +713,7 @@ function analyzeLayer(dataset) {
             }
 
             // AI-Powered Development Insights
-            analysis.insights.push(`🤖 <strong>AI Development Insight</strong>: Based on ${roads.count.toLocaleString()} road segments with quality score ${roads.qualityScore}/100, ${roads.region} shows ${
+            analysis.insights.push(`🤖 <strong>AI Development Insight</strong>: Based on ${roads.count.toLocaleString()} road segments with quality score ${Math.round(roads.qualityScore)}/100, ${roads.region} shows ${
                 parseFloat(roads.qualityScore) >= 60 ? 'strong transportation infrastructure supporting economic activity and market access' :
                 parseFloat(roads.qualityScore) >= 40 ? 'moderate infrastructure with potential for improvement in higher-grade roads' :
                 'basic rural infrastructure requiring significant investment for economic development'
