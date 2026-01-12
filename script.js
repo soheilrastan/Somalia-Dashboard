@@ -878,6 +878,24 @@
                         <div style="margin-left: 12px; font-size: 0.85em; color: #94a3b8; margin-top: 5px;">
                             OpenStreetMap Road Network, 2023
                         </div>
+
+                        <!-- OSM Update Button -->
+                        <button id="updateOSMButton" style="
+                            margin-left: 12px;
+                            margin-top: 10px;
+                            background: rgba(34, 197, 94, 0.2);
+                            border: 2px solid #22c55e;
+                            color: #22c55e;
+                            padding: 6px 12px;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-size: 0.8em;
+                            font-weight: bold;
+                            transition: all 0.3s;
+                            width: calc(100% - 12px);
+                        " onmouseover="this.style.background='rgba(34, 197, 94, 0.3)'" onmouseout="this.style.background='rgba(34, 197, 94, 0.2)'">
+                            🔄 Update Roads from HDX API
+                        </button>
                     </div>
 
                     <!-- Population hierarchical structure -->
@@ -3844,6 +3862,115 @@
                     btn.addEventListener('mouseleave', function() {
                         this.style.background = 'rgba(168, 85, 247, 0.95)';
                         this.style.transform = 'scale(1)';
+                    });
+                }
+            }, 500);
+
+            // ========================================
+            // OSM Update Button Handler
+            // ========================================
+            setTimeout(function() {
+                const updateBtn = document.getElementById('updateOSMButton');
+                if (updateBtn) {
+                    updateBtn.addEventListener('click', function() {
+                        // Create modal overlay
+                        const modal = document.createElement('div');
+                        modal.style.cssText = `
+                            position: fixed;
+                            top: 0;
+                            left: 0;
+                            width: 100%;
+                            height: 100%;
+                            background: rgba(0, 0, 0, 0.8);
+                            z-index: 20000;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                        `;
+
+                        const modalContent = document.createElement('div');
+                        modalContent.style.cssText = `
+                            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+                            border-radius: 16px;
+                            padding: 30px;
+                            max-width: 600px;
+                            width: 90%;
+                            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+                            border: 2px solid #22c55e;
+                            color: white;
+                        `;
+
+                        modalContent.innerHTML = `
+                            <div style="text-align: center;">
+                                <div style="font-size: 3em; margin-bottom: 15px;">🔄</div>
+                                <h2 style="margin: 0 0 20px 0; color: #22c55e;">Update OSM Roads from HDX</h2>
+
+                                <div style="text-align: left; background: rgba(34, 197, 94, 0.1); padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                                    <p style="margin: 0 0 15px 0; font-size: 0.95em;">To update the roads data with the latest OpenStreetMap information:</p>
+
+                                    <ol style="margin: 0 0 15px 0; padding-left: 20px; line-height: 1.8;">
+                                        <li>Open a terminal/command prompt in your project directory</li>
+                                        <li>Run: <code style="background: rgba(0,0,0,0.4); padding: 4px 8px; border-radius: 4px; color: #22c55e; font-weight: bold;">python update_osm_roads.py</code></li>
+                                        <li>Wait for the process to complete (~2-5 minutes)</li>
+                                        <li>Commit and push the updated files to GitHub</li>
+                                        <li>Refresh your dashboard to see the updates</li>
+                                    </ol>
+
+                                    <div style="background: rgba(14, 165, 233, 0.15); padding: 12px; border-radius: 6px; border-left: 3px solid #0ea5e9; margin-top: 15px;">
+                                        <strong style="color: #0ea5e9;">ℹ️ What this does:</strong>
+                                        <ul style="margin: 8px 0 0 0; padding-left: 20px; font-size: 0.9em; line-height: 1.6;">
+                                            <li>Downloads latest roads from HDX API</li>
+                                            <li>Splits by 18 Somalia regions automatically</li>
+                                            <li>Optimizes file sizes (coordinate precision)</li>
+                                            <li>Updates all regional GeoJSON and JS files</li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <div style="margin-top: 20px;">
+                                    <button id="closeUpdateModal" style="
+                                        background: rgba(34, 197, 94, 0.9);
+                                        color: white;
+                                        border: 2px solid #22c55e;
+                                        padding: 12px 30px;
+                                        border-radius: 8px;
+                                        cursor: pointer;
+                                        font-weight: bold;
+                                        font-size: 1em;
+                                        transition: all 0.3s;
+                                    " onmouseover="this.style.background='rgba(34, 197, 94, 1)'; this.style.transform='scale(1.05)';"
+                                       onmouseout="this.style.background='rgba(34, 197, 94, 0.9)'; this.style.transform='scale(1)';">
+                                        Got it!
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+
+                        modal.appendChild(modalContent);
+                        document.body.appendChild(modal);
+
+                        // Close button handler
+                        document.getElementById('closeUpdateModal').addEventListener('click', function() {
+                            document.body.removeChild(modal);
+                        });
+
+                        // Click outside to close
+                        modal.addEventListener('click', function(e) {
+                            if (e.target === modal) {
+                                document.body.removeChild(modal);
+                            }
+                        });
+
+                        // ESC key to close
+                        const escHandler = function(e) {
+                            if (e.key === 'Escape') {
+                                if (document.body.contains(modal)) {
+                                    document.body.removeChild(modal);
+                                }
+                                document.removeEventListener('keydown', escHandler);
+                            }
+                        };
+                        document.addEventListener('keydown', escHandler);
                     });
                 }
             }, 500);
