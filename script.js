@@ -1122,7 +1122,7 @@
             div.style.overflowY = 'auto';
             div.style.position = isMobile ? 'relative' : 'absolute';
             div.style.top = isMobile ? 'auto' : '0px';
-            div.style.right = isMobile ? 'auto' : '290px';
+            div.style.right = isMobile ? 'auto' : '355px';
             div.style.transition = 'max-height 0.3s ease';
 
             div.innerHTML = `
