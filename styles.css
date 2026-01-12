@@ -77,6 +77,16 @@
             gap: 10px;
         }
 
+        /* Ensure consistent spacing between right-side controls */
+        .leaflet-top.leaflet-right .leaflet-control {
+            margin-top: 10px !important;
+            margin-right: 10px !important;
+        }
+
+        .leaflet-top.leaflet-right .leaflet-control:first-child {
+            margin-top: 10px !important;
+        }
+
         .layer-control {
             background: rgba(30, 41, 59, 0.95); padding: 10px;
             border-radius: 8px; border: 2px solid #334155;
