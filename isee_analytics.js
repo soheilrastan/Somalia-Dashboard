@@ -1397,33 +1397,87 @@ function generateLayerCard(analysis) {
                 `;
             }
         } else if (stats.count != null && stats.byType != null) {
-            // Infrastructure statistics (roads)
-            const roadTypes = Object.entries(stats.byType)
-                .sort((a, b) => b[1] - a[1])
-                .map(([type, count]) => {
-                    const length = stats.lengthByType && stats.lengthByType[type]
-                        ? stats.lengthByType[type].toFixed(2)
-                        : 'N/A';
-                    return `<div style="display: flex; justify-content: space-between; padding: 4px 0;">
-                        <span>${type}:</span>
-                        <span>${count} segments (${length} km)</span>
-                    </div>`;
-                })
-                .join('');
+            // Infrastructure statistics (roads) - Table format with bar charts
+            const roadTypesArray = Object.entries(stats.byType)
+                .sort((a, b) => {
+                    const lengthA = stats.lengthByType && stats.lengthByType[a[0]] ? stats.lengthByType[a[0]] : 0;
+                    const lengthB = stats.lengthByType && stats.lengthByType[b[0]] ? stats.lengthByType[b[0]] : 0;
+                    return lengthB - lengthA;
+                });
 
-            const totalLength = stats.totalLength
-                ? stats.totalLength.toFixed(2)
-                : 'N/A';
+            const totalLength = stats.totalLength ? Math.round(stats.totalLength) : 0;
+            const maxLength = Math.max(...roadTypesArray.map(([type, _]) =>
+                stats.lengthByType && stats.lengthByType[type] ? stats.lengthByType[type] : 0
+            ));
+
+            const roadTypeColors = {
+                'primary': '#ef4444',
+                'secondary': '#f97316',
+                'tertiary': '#fbbf24',
+                'residential': '#22c55e',
+                'unclassified': '#64748b',
+                'track': '#a855f7',
+                'path': '#ec4899',
+                'service': '#06b6d4',
+                'trunk': '#dc2626',
+                'motorway': '#7c2d12'
+            };
+
+            const roadTypesTable = roadTypesArray.map(([type, count]) => {
+                const length = stats.lengthByType && stats.lengthByType[type]
+                    ? Math.round(stats.lengthByType[type])
+                    : 0;
+                const percentage = totalLength > 0 ? (length / totalLength * 100) : 0;
+                const barWidth = maxLength > 0 ? (length / maxLength * 100) : 0;
+                const color = roadTypeColors[type.toLowerCase()] || '#64748b';
+
+                return `
+                    <tr style="border-bottom: 1px solid rgba(51, 65, 85, 0.5);">
+                        <td style="padding: 10px 12px; color: #e8e8e8; font-weight: 500;">${type}</td>
+                        <td style="padding: 10px 12px; text-align: right; color: #cbd5e1;">${count.toLocaleString()}</td>
+                        <td style="padding: 10px 12px; text-align: right; font-weight: bold; color: ${color};">${length.toLocaleString()} km</td>
+                        <td style="padding: 10px 12px; width: 200px;">
+                            <div style="background: rgba(51, 65, 85, 0.5); border-radius: 4px; height: 20px; position: relative; overflow: hidden;">
+                                <div style="background: ${color}; height: 100%; width: ${barWidth}%; border-radius: 4px; transition: width 0.3s;"></div>
+                                <span style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 0.75em; color: white; font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">
+                                    ${percentage.toFixed(0)}%
+                                </span>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
 
             statsHTML = `
-                <div style="background: rgba(14, 165, 233, 0.05); padding: 12px; border-radius: 6px; margin-top: 12px;">
-                    <div style="font-size: 0.85em;">
-                        <div style="margin-bottom: 8px;"><strong>Total Road Segments:</strong> ${stats.count.toLocaleString()}</div>
-                        <div style="margin-bottom: 8px;"><strong>Total Length:</strong> ${totalLength} km</div>
-                        <div style="margin-bottom: 4px;"><strong>By Type:</strong></div>
-                        <div style="margin-left: 12px; color: #cbd5e1;">
-                            ${roadTypes}
+                <div style="background: rgba(14, 165, 233, 0.05); padding: 15px; border-radius: 8px; margin-top: 15px;">
+                    <div style="margin-bottom: 15px; display: flex; justify-content: space-around; gap: 20px;">
+                        <div style="background: rgba(239, 68, 68, 0.1); border-left: 3px solid #ef4444; padding: 12px 20px; border-radius: 6px; flex: 1; text-align: center;">
+                            <div style="color: #94a3b8; font-size: 0.75em; margin-bottom: 4px;">TOTAL SEGMENTS</div>
+                            <div style="color: #ef4444; font-size: 1.5em; font-weight: bold;">${stats.count.toLocaleString()}</div>
                         </div>
+                        <div style="background: rgba(34, 197, 94, 0.1); border-left: 3px solid #22c55e; padding: 12px 20px; border-radius: 6px; flex: 1; text-align: center;">
+                            <div style="color: #94a3b8; font-size: 0.75em; margin-bottom: 4px;">TOTAL LENGTH</div>
+                            <div style="color: #22c55e; font-size: 1.5em; font-weight: bold;">${totalLength.toLocaleString()} km</div>
+                        </div>
+                        <div style="background: rgba(168, 85, 247, 0.1); border-left: 3px solid #a855f7; padding: 12px 20px; border-radius: 6px; flex: 1; text-align: center;">
+                            <div style="color: #94a3b8; font-size: 0.75em; margin-bottom: 4px;">ROAD TYPES</div>
+                            <div style="color: #a855f7; font-size: 1.5em; font-weight: bold;">${roadTypesArray.length}</div>
+                        </div>
+                    </div>
+                    <div style="overflow-x: auto; margin-top: 10px;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
+                            <thead>
+                                <tr style="background: rgba(14, 165, 233, 0.2); border-bottom: 2px solid #0ea5e9;">
+                                    <th style="padding: 12px; text-align: left; color: #0ea5e9; font-weight: bold;">Road Type</th>
+                                    <th style="padding: 12px; text-align: right; color: #0ea5e9; font-weight: bold;">Segments</th>
+                                    <th style="padding: 12px; text-align: right; color: #0ea5e9; font-weight: bold;">Length</th>
+                                    <th style="padding: 12px; text-align: left; color: #0ea5e9; font-weight: bold;">Distribution</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${roadTypesTable}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             `;
