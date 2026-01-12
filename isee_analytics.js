@@ -1260,9 +1260,9 @@ function generateInsightsHTML(results, datasets, targetRegion, isPopup = false) 
                                 } else if (dataset.type === 'infrastructure') {
                                     type = 'Road Network';
                                     resolution = 'Vector (LineString)';
-                                    year = '2021';
+                                    year = '2023';
                                     sourceLink = dataset.metadata.sourceUrl || 'https://data.humdata.org/dataset/somalia-roads';
-                                    sourceName = 'HDX';
+                                    sourceName = 'OpenStreetMap';
                                 } else if (dataset.type === 'socioeconomic') {
                                     // Skip MPI since we already added it above
                                     return '';
@@ -1304,7 +1304,7 @@ function generateInsightsHTML(results, datasets, targetRegion, isPopup = false) 
                 <div style="margin-top: 15px; padding: 12px; background: rgba(59, 130, 246, 0.05); border-radius: 6px; font-size: 0.85em; color: #94a3b8;">
                     <strong>Note:</strong> Region boundaries and MPI data are included in all analyses.
                     Nightlight datasets derived from NOAA's VIIRS (Visible Infrared Imaging Radiometer Suite) Day/Night Band product.
-                    Administrative boundaries, road infrastructure, and MPI data from Humanitarian Data Exchange (HDX) and UNDP.
+                    Administrative boundaries from Humanitarian Data Exchange (HDX), road infrastructure from OpenStreetMap (OSM), and MPI data from UNDP.
                     All data processing and analysis performed by Geo-Insight Lab, ESCWA.
                 </div>
             </div>
