@@ -74,7 +74,7 @@
         .legend-value { color: #94a3b8; margin-left: 8px; font-weight: bold; }
         .controls-wrapper {
             display: flex;
-            gap: 25px;
+            gap: 35px;
         }
 
         /* Ensure consistent spacing for all controls - exact same spacing */
