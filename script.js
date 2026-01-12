@@ -3872,8 +3872,15 @@
             setTimeout(function() {
                 const updateBtn = document.getElementById('updateOSMButton');
                 if (updateBtn) {
-                    updateBtn.addEventListener('click', function() {
-                        // Create modal overlay
+                    updateBtn.addEventListener('click', async function() {
+                        // Disable button during update
+                        updateBtn.disabled = true;
+                        updateBtn.style.opacity = '0.6';
+                        updateBtn.style.cursor = 'not-allowed';
+                        const originalHTML = updateBtn.innerHTML;
+                        updateBtn.innerHTML = '⏳ Checking server...';
+
+                        // Create progress modal
                         const modal = document.createElement('div');
                         modal.style.cssText = `
                             position: fixed;
@@ -3902,45 +3909,46 @@
 
                         modalContent.innerHTML = `
                             <div style="text-align: center;">
-                                <div style="font-size: 3em; margin-bottom: 15px;">🔄</div>
-                                <h2 style="margin: 0 0 20px 0; color: #22c55e;">Update OSM Roads from HDX</h2>
+                                <div id="updateIcon" style="font-size: 3em; margin-bottom: 15px;">🔄</div>
+                                <h2 style="margin: 0 0 20px 0; color: #22c55e;">OSM Roads Auto-Update</h2>
 
-                                <div style="text-align: left; background: rgba(34, 197, 94, 0.1); padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                                    <p style="margin: 0 0 15px 0; font-size: 0.95em;">To update the roads data with the latest OpenStreetMap information:</p>
+                                <div id="updateProgress" style="text-align: left; background: rgba(34, 197, 94, 0.1); padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                                    <div id="statusMessage" style="font-size: 0.95em; margin-bottom: 15px;">
+                                        Initializing update...
+                                    </div>
 
-                                    <ol style="margin: 0 0 15px 0; padding-left: 20px; line-height: 1.8;">
-                                        <li>Open a terminal/command prompt in your project directory</li>
-                                        <li>Run: <code style="background: rgba(0,0,0,0.4); padding: 4px 8px; border-radius: 4px; color: #22c55e; font-weight: bold;">python update_osm_roads.py</code></li>
-                                        <li>Wait for the process to complete (~2-5 minutes)</li>
-                                        <li>Commit and push the updated files to GitHub</li>
-                                        <li>Refresh your dashboard to see the updates</li>
-                                    </ol>
+                                    <div style="background: rgba(0,0,0,0.3); border-radius: 8px; height: 30px; overflow: hidden; margin-bottom: 15px;">
+                                        <div id="progressBar" style="background: linear-gradient(90deg, #22c55e, #10b981); height: 100%; width: 0%; transition: width 0.3s; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.85em;">
+                                            <span id="progressText">0%</span>
+                                        </div>
+                                    </div>
 
-                                    <div style="background: rgba(14, 165, 233, 0.15); padding: 12px; border-radius: 6px; border-left: 3px solid #0ea5e9; margin-top: 15px;">
-                                        <strong style="color: #0ea5e9;">ℹ️ What this does:</strong>
+                                    <div id="detailsBox" style="background: rgba(14, 165, 233, 0.15); padding: 12px; border-radius: 6px; border-left: 3px solid #0ea5e9;">
+                                        <strong style="color: #0ea5e9;">📋 Process Steps:</strong>
                                         <ul style="margin: 8px 0 0 0; padding-left: 20px; font-size: 0.9em; line-height: 1.6;">
-                                            <li>Downloads latest roads from HDX API</li>
-                                            <li>Splits by 18 Somalia regions automatically</li>
-                                            <li>Optimizes file sizes (coordinate precision)</li>
-                                            <li>Updates all regional GeoJSON and JS files</li>
+                                            <li id="step1">Downloading from HDX API...</li>
+                                            <li id="step2" style="opacity: 0.5;">Extracting GeoJSON data</li>
+                                            <li id="step3" style="opacity: 0.5;">Splitting by 18 regions</li>
+                                            <li id="step4" style="opacity: 0.5;">Optimizing file sizes</li>
+                                            <li id="step5" style="opacity: 0.5;">Saving updated files</li>
                                         </ul>
                                     </div>
                                 </div>
 
-                                <div style="margin-top: 20px;">
-                                    <button id="closeUpdateModal" style="
-                                        background: rgba(34, 197, 94, 0.9);
+                                <div id="actionButtons" style="margin-top: 20px;">
+                                    <button id="cancelUpdateBtn" style="
+                                        background: rgba(239, 68, 68, 0.9);
                                         color: white;
-                                        border: 2px solid #22c55e;
+                                        border: 2px solid #ef4444;
                                         padding: 12px 30px;
                                         border-radius: 8px;
                                         cursor: pointer;
                                         font-weight: bold;
                                         font-size: 1em;
                                         transition: all 0.3s;
-                                    " onmouseover="this.style.background='rgba(34, 197, 94, 1)'; this.style.transform='scale(1.05)';"
-                                       onmouseout="this.style.background='rgba(34, 197, 94, 0.9)'; this.style.transform='scale(1)';">
-                                        Got it!
+                                    " onmouseover="this.style.background='rgba(239, 68, 68, 1)'; this.style.transform='scale(1.05)';"
+                                       onmouseout="this.style.background='rgba(239, 68, 68, 0.9)'; this.style.transform='scale(1)';">
+                                        Cancel
                                     </button>
                                 </div>
                             </div>
@@ -3949,23 +3957,198 @@
                         modal.appendChild(modalContent);
                         document.body.appendChild(modal);
 
-                        // Close button handler
-                        document.getElementById('closeUpdateModal').addEventListener('click', function() {
-                            document.body.removeChild(modal);
-                        });
+                        // Check if update server is running
+                        try {
+                            const healthCheck = await fetch('http://localhost:5000/api/health');
 
-                        // Click outside to close
-                        modal.addEventListener('click', function(e) {
-                            if (e.target === modal) {
-                                document.body.removeChild(modal);
+                            if (!healthCheck.ok) {
+                                throw new Error('Server not responding');
                             }
-                        });
+
+                            // Server is running, trigger update
+                            document.getElementById('statusMessage').innerHTML = '✓ Server connected. Starting update...';
+                            updateBtn.innerHTML = '⏳ Updating...';
+
+                            const response = await fetch('http://localhost:5000/api/update-roads', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' }
+                            });
+
+                            const result = await response.json();
+
+                            if (result.success) {
+                                // Poll for status updates
+                                const statusInterval = setInterval(async () => {
+                                    try {
+                                        const statusResponse = await fetch('http://localhost:5000/api/update-status');
+                                        const status = await statusResponse.json();
+
+                                        // Update progress bar
+                                        const progressBar = document.getElementById('progressBar');
+                                        const progressText = document.getElementById('progressText');
+                                        if (progressBar && progressText) {
+                                            progressBar.style.width = status.progress + '%';
+                                            progressText.textContent = status.progress + '%';
+                                        }
+
+                                        // Update status message
+                                        const statusMsg = document.getElementById('statusMessage');
+                                        if (statusMsg) {
+                                            statusMsg.textContent = status.message;
+                                        }
+
+                                        // Update step indicators
+                                        if (status.progress >= 20) document.getElementById('step1').style.opacity = '1';
+                                        if (status.progress >= 40) document.getElementById('step2').style.opacity = '1';
+                                        if (status.progress >= 60) document.getElementById('step3').style.opacity = '1';
+                                        if (status.progress >= 80) document.getElementById('step4').style.opacity = '1';
+                                        if (status.progress >= 100) document.getElementById('step5').style.opacity = '1';
+
+                                        // Check if completed
+                                        if (!status.running && status.progress === 100) {
+                                            clearInterval(statusInterval);
+
+                                            // Show success
+                                            document.getElementById('updateIcon').textContent = '✅';
+                                            document.getElementById('statusMessage').innerHTML = '<strong style="color: #22c55e;">✓ Update completed successfully!</strong>';
+                                            document.getElementById('actionButtons').innerHTML = `
+                                                <button id="closeSuccessBtn" style="
+                                                    background: rgba(34, 197, 94, 0.9);
+                                                    color: white;
+                                                    border: 2px solid #22c55e;
+                                                    padding: 12px 30px;
+                                                    border-radius: 8px;
+                                                    cursor: pointer;
+                                                    font-weight: bold;
+                                                    font-size: 1em;
+                                                    transition: all 0.3s;
+                                                " onmouseover="this.style.background='rgba(34, 197, 94, 1)'; this.style.transform='scale(1.05)';"
+                                                   onmouseout="this.style.background='rgba(34, 197, 94, 0.9)'; this.style.transform='scale(1)';">
+                                                    Done
+                                                </button>
+                                            `;
+
+                                            document.getElementById('closeSuccessBtn').addEventListener('click', function() {
+                                                document.body.removeChild(modal);
+                                                updateBtn.disabled = false;
+                                                updateBtn.style.opacity = '1';
+                                                updateBtn.style.cursor = 'pointer';
+                                                updateBtn.innerHTML = originalHTML;
+                                            });
+                                        } else if (!status.running && status.error) {
+                                            clearInterval(statusInterval);
+
+                                            // Show error
+                                            document.getElementById('updateIcon').textContent = '❌';
+                                            document.getElementById('statusMessage').innerHTML = `<strong style="color: #ef4444;">Error: ${status.error}</strong>`;
+                                            document.getElementById('actionButtons').innerHTML = `
+                                                <button id="closeErrorBtn" style="
+                                                    background: rgba(239, 68, 68, 0.9);
+                                                    color: white;
+                                                    border: 2px solid #ef4444;
+                                                    padding: 12px 30px;
+                                                    border-radius: 8px;
+                                                    cursor: pointer;
+                                                    font-weight: bold;
+                                                    font-size: 1em;
+                                                    transition: all 0.3s;
+                                                " onmouseover="this.style.background='rgba(239, 68, 68, 1)'; this.style.transform='scale(1.05)';"
+                                                   onmouseout="this.style.background='rgba(239, 68, 68, 0.9)'; this.style.transform='scale(1)';">
+                                                    Close
+                                                </button>
+                                            `;
+
+                                            document.getElementById('closeErrorBtn').addEventListener('click', function() {
+                                                document.body.removeChild(modal);
+                                                updateBtn.disabled = false;
+                                                updateBtn.style.opacity = '1';
+                                                updateBtn.style.cursor = 'pointer';
+                                                updateBtn.innerHTML = originalHTML;
+                                            });
+                                        }
+                                    } catch (err) {
+                                        console.error('Status check error:', err);
+                                    }
+                                }, 1000); // Check every second
+
+                                // Cancel button
+                                document.getElementById('cancelUpdateBtn').addEventListener('click', function() {
+                                    clearInterval(statusInterval);
+                                    document.body.removeChild(modal);
+                                    updateBtn.disabled = false;
+                                    updateBtn.style.opacity = '1';
+                                    updateBtn.style.cursor = 'pointer';
+                                    updateBtn.innerHTML = originalHTML;
+                                });
+
+                            } else {
+                                throw new Error(result.message || 'Failed to start update');
+                            }
+
+                        } catch (error) {
+                            // Server not running - show setup instructions
+                            modalContent.innerHTML = `
+                                <div style="text-align: center;">
+                                    <div style="font-size: 3em; margin-bottom: 15px;">⚙️</div>
+                                    <h2 style="margin: 0 0 20px 0; color: #f59e0b;">Update Server Required</h2>
+
+                                    <div style="text-align: left; background: rgba(245, 158, 11, 0.1); padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                                        <p style="margin: 0 0 15px 0; font-size: 0.95em;">To enable automatic background updates, please start the update server:</p>
+
+                                        <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+                                            <strong style="color: #0ea5e9;">Step 1: Install dependencies</strong>
+                                            <code style="display: block; background: rgba(0,0,0,0.4); padding: 8px; border-radius: 4px; color: #22c55e; font-weight: bold; margin-top: 8px;">pip install flask flask-cors</code>
+                                        </div>
+
+                                        <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+                                            <strong style="color: #0ea5e9;">Step 2: Start the server</strong>
+                                            <code style="display: block; background: rgba(0,0,0,0.4); padding: 8px; border-radius: 4px; color: #22c55e; font-weight: bold; margin-top: 8px;">python update_server.py</code>
+                                        </div>
+
+                                        <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 6px;">
+                                            <strong style="color: #0ea5e9;">Step 3: Click the update button again</strong>
+                                            <p style="margin: 8px 0 0 0; font-size: 0.9em; opacity: 0.8;">The dashboard will automatically connect and update in the background</p>
+                                        </div>
+                                    </div>
+
+                                    <div style="margin-top: 20px;">
+                                        <button id="closeSetupModal" style="
+                                            background: rgba(245, 158, 11, 0.9);
+                                            color: white;
+                                            border: 2px solid #f59e0b;
+                                            padding: 12px 30px;
+                                            border-radius: 8px;
+                                            cursor: pointer;
+                                            font-weight: bold;
+                                            font-size: 1em;
+                                            transition: all 0.3s;
+                                        " onmouseover="this.style.background='rgba(245, 158, 11, 1)'; this.style.transform='scale(1.05)';"
+                                           onmouseout="this.style.background='rgba(245, 158, 11, 0.9)'; this.style.transform='scale(1)';">
+                                            Got it!
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+
+                            document.getElementById('closeSetupModal').addEventListener('click', function() {
+                                document.body.removeChild(modal);
+                            });
+
+                            updateBtn.disabled = false;
+                            updateBtn.style.opacity = '1';
+                            updateBtn.style.cursor = 'pointer';
+                            updateBtn.innerHTML = originalHTML;
+                        }
 
                         // ESC key to close
                         const escHandler = function(e) {
                             if (e.key === 'Escape') {
                                 if (document.body.contains(modal)) {
                                     document.body.removeChild(modal);
+                                    updateBtn.disabled = false;
+                                    updateBtn.style.opacity = '1';
+                                    updateBtn.style.cursor = 'pointer';
+                                    updateBtn.innerHTML = originalHTML;
                                 }
                                 document.removeEventListener('keydown', escHandler);
                             }
