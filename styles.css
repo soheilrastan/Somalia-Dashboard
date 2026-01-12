@@ -77,25 +77,23 @@
             gap: 10px;
         }
 
-        /* Ensure consistent spacing for all controls */
+        /* Ensure consistent spacing for all controls - exact same spacing */
         .leaflet-top.leaflet-left .leaflet-control {
             margin-top: 10px !important;
             margin-left: 10px !important;
         }
 
         .leaflet-top.leaflet-right .leaflet-control {
-            margin-top: 10px !important;
             margin-right: 10px !important;
-            margin-bottom: 0 !important;
         }
 
         .leaflet-top.leaflet-right .leaflet-control:first-child {
             margin-top: 10px !important;
         }
 
-        /* Increase gap between right-side containers to match left-side gap */
-        .leaflet-top.leaflet-right .leaflet-control:not(:first-child) {
-            margin-top: 20px !important;
+        /* Match the gap between containers - same as left side */
+        .leaflet-top.leaflet-right .leaflet-control + .leaflet-control {
+            margin-top: 10px !important;
         }
 
         .layer-control {
