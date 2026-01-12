@@ -876,7 +876,7 @@
                             </span>
                         </label>
                         <div style="margin-left: 12px; font-size: 0.85em; color: #94a3b8; margin-top: 5px;">
-                            OpenStreetMap Road Network (Coming Soon)
+                            OpenStreetMap Road Network, 2023
                         </div>
                     </div>
 
