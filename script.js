@@ -832,7 +832,7 @@
                         </label>
                     </div>
 
-                    <label><input type="checkbox" id="mpiToggle" checked> MPI - Regions (18)</label>
+                    <label><input type="checkbox" id="mpiToggle" checked> Multidimensional Poverty Index, 2024</label>
                     <label><input type="checkbox" id="nightlightToggle"> 💡 Nightlight Points</label>
                     <div style="margin-left: 20px; border-left: 2px solid #fbbf24; padding-left: 10px;">
                         <label style="font-size: 0.9em;"><input type="checkbox" id="nightlightOverviewToggle"> Overview (1,571)</label>
