@@ -3766,3 +3766,85 @@
             L.DomEvent.stopPropagation(e);
             deactivateMeasure();
         });
+
+        // ========================================
+        // CLEAR CACHE & RELOAD BUTTON
+        // ========================================
+
+        const clearCacheBtn = L.control({position: 'bottomright'});
+        clearCacheBtn.onAdd = function() {
+            const div = L.DomUtil.create('div', 'clear-cache-container');
+            div.innerHTML = `
+                <button id="clearCacheBtn" style="
+                    background: rgba(168, 85, 247, 0.95);
+                    color: white;
+                    border: 2px solid #a855f7;
+                    padding: 10px 15px;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-weight: bold;
+                    font-size: 0.85em;
+                    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+                    transition: all 0.3s;
+                    white-space: nowrap;
+                    margin-bottom: 10px;
+                " title="Clear browser cache and reload the page">
+                    🔄 Clear Cache & Reload
+                </button>
+            `;
+
+            // Prevent map interactions when clicking button
+            L.DomEvent.disableClickPropagation(div);
+            L.DomEvent.disableScrollPropagation(div);
+
+            return div;
+        };
+
+        clearCacheBtn.addTo(map);
+
+        // Add event listener for the button
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+                const btn = document.getElementById('clearCacheBtn');
+                if (btn) {
+                    btn.addEventListener('click', function() {
+                        // Change button text to show it's working
+                        this.innerHTML = '⏳ Clearing...';
+                        this.disabled = true;
+
+                        // Clear various cache types
+                        if ('caches' in window) {
+                            caches.keys().then(function(names) {
+                                for (let name of names) {
+                                    caches.delete(name);
+                                }
+                            });
+                        }
+
+                        // Clear localStorage and sessionStorage
+                        try {
+                            localStorage.clear();
+                            sessionStorage.clear();
+                        } catch(e) {
+                            console.log('Storage clear failed:', e);
+                        }
+
+                        // Force reload from server (bypass cache)
+                        setTimeout(function() {
+                            window.location.reload(true);
+                        }, 500);
+                    });
+
+                    // Hover effect
+                    btn.addEventListener('mouseenter', function() {
+                        this.style.background = 'rgba(168, 85, 247, 1)';
+                        this.style.transform = 'scale(1.05)';
+                    });
+
+                    btn.addEventListener('mouseleave', function() {
+                        this.style.background = 'rgba(168, 85, 247, 0.95)';
+                        this.style.transform = 'scale(1)';
+                    });
+                }
+            }, 500);
+        });
