@@ -140,8 +140,8 @@ def split_roads_by_region(roads_path, boundaries):
     total_roads = len(roads_data['features'])
     print(f"  Total roads: {total_roads:,}")
 
-    # Create output directory
-    output_dir = Path('roads_by_region')
+    # Create output directory for latest roads (separate from 2023 data)
+    output_dir = Path('roads_by_region_latest')
     output_dir.mkdir(exist_ok=True)
 
     # Process each region

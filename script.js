@@ -866,17 +866,31 @@
                         </span>
                     </label>
 
-                    <!-- Roads OSM category -->
+                    <!-- Roads OSM 2023 category -->
                     <div style="margin-top: 8px; margin-bottom: 8px; padding: 10px; background: rgba(244, 143, 177, 0.1); border-left: 3px solid #F48FB1; border-radius: 4px;">
                         <label style="font-weight: bold; color: #F48FB1; display: block; margin-bottom: 5px;">
                             <input type="checkbox" id="roadsOSMToggle">
                             <span id="roadsOSMLabel" draggable="true" style="cursor: grab; user-select: none; display: inline-flex; align-items: center; gap: 4px;">
                                 <span class="drag-handle" style="opacity: 0; transition: opacity 0.2s;">⋮⋮</span>
-                                <span>🛣️ Roads OSM</span>
+                                <span>🛣️ Roads OSM 2023</span>
                             </span>
                         </label>
                         <div style="margin-left: 12px; font-size: 0.85em; color: #94a3b8; margin-top: 5px;">
                             OpenStreetMap Road Network, 2023
+                        </div>
+                    </div>
+
+                    <!-- Roads OSM Latest (Auto-Update) category -->
+                    <div style="margin-top: 8px; margin-bottom: 8px; padding: 10px; background: rgba(34, 197, 94, 0.1); border-left: 3px solid #22c55e; border-radius: 4px;">
+                        <label style="font-weight: bold; color: #22c55e; display: block; margin-bottom: 5px;">
+                            <input type="checkbox" id="roadsOSMLatestToggle">
+                            <span id="roadsOSMLatestLabel" draggable="true" style="cursor: grab; user-select: none; display: inline-flex; align-items: center; gap: 4px;">
+                                <span class="drag-handle" style="opacity: 0; transition: opacity 0.2s;">⋮⋮</span>
+                                <span>🔄 Roads OSM Latest (Auto-Update)</span>
+                            </span>
+                        </label>
+                        <div style="margin-left: 12px; font-size: 0.85em; color: #94a3b8; margin-top: 5px;">
+                            Latest OpenStreetMap data via HDX API
                         </div>
 
                         <!-- OSM Update Button -->
@@ -2911,7 +2925,7 @@
                 }
             });
 
-            // Roads OSM checkbox toggle
+            // Roads OSM 2023 checkbox toggle
             document.getElementById('roadsOSMToggle').addEventListener('change', function(e) {
                 if (e.target.checked) {
                     if (activeRoadsOSMLayer) {
@@ -2924,6 +2938,191 @@
                         roadsOSMLabel.classList.remove('layer-dropped');
                     }
                 }
+            });
+
+            // ========================================
+            // Roads OSM Latest (Auto-Update) Layer
+            // ========================================
+
+            let activeRoadsOSMLatestLayer = null;
+            let activeRoadsOSMLatestRegion = null;
+            const roadsOSMLatestLabel = document.querySelector('#roadsOSMLatestLabel');
+
+            // Map drop handler for Roads OSM Latest
+            mapContainer.addEventListener('drop', function(e) {
+                if (draggedLayerId === 'roadsOSMLatest') {
+                    e.preventDefault();
+
+                    const rect = mapContainer.getBoundingClientRect();
+                    const latlng = map.containerPointToLatLng([e.clientX - rect.left, e.clientY - rect.top]);
+
+                    // Check which region was dropped on
+                    let droppedRegion = null;
+                    let droppedRegionLayer = null;
+                    Object.values(allRegionLayers).forEach(regionLayer => {
+                        if (isPointInPolygon(latlng, regionLayer)) {
+                            droppedRegion = regionLayer.feature.properties.name;
+                            droppedRegionLayer = regionLayer;
+                        }
+                    });
+
+                    if (droppedRegion) {
+                        // Reset region styles
+                        Object.values(allRegionLayers).forEach(regionLayer => {
+                            adm1Layer.resetStyle(regionLayer);
+                        });
+
+                        // Remove any previously loaded Roads OSM Latest layer
+                        if (activeRoadsOSMLatestLayer) {
+                            map.removeLayer(activeRoadsOSMLatestLayer);
+                            activeRoadsOSMLatestLayer = null;
+                        }
+
+                        // Show loading notification
+                        const loadingPopup = L.popup({
+                            closeButton: false,
+                            autoClose: false,
+                            autoPan: false,
+                            className: 'drop-warning-popup'
+                        })
+                        .setLatLng(latlng)
+                        .setContent(`⏳ Loading Latest OSM Roads for ${droppedRegion}...`)
+                        .openOn(map);
+
+                        // Convert region name to safe filename
+                        const safeRegionName = droppedRegion.replace(/ /g, '_').replace(/\//g, '_');
+                        const roadsFilePath = `roads_by_region_latest/${safeRegionName}_roads.js`;
+
+                        // Dynamically load the roads file using fetch and eval
+                        const roadsVarName = safeRegionName.toLowerCase().replace(/ /g, '_') + 'Roads';
+
+                        fetch(roadsFilePath + '?t=' + new Date().getTime())
+                            .then(response => {
+                                if (!response.ok) {
+                                    throw new Error(`No updated roads available for ${droppedRegion}. Please click "Update Roads from HDX API" first.`);
+                                }
+                                return response.text();
+                            })
+                            .then(scriptContent => {
+                                // Execute the JavaScript code in global scope
+                                (1, eval)(scriptContent);
+
+                                // Access the variable
+                                const loadedRoadsData = window[roadsVarName];
+
+                                if (loadedRoadsData && loadedRoadsData.features) {
+                                    // Create Leaflet GeoJSON layer
+                                    activeRoadsOSMLatestLayer = L.geoJSON(loadedRoadsData, {
+                                        style: function(feature) {
+                                            // Color roads by type (fclass)
+                                            const fclass = feature.properties.fclass || 'unknown';
+                                            let color = '#94a3b8'; // Default gray
+
+                                            if (fclass === 'primary') color = '#ef4444'; // Red
+                                            else if (fclass === 'secondary') color = '#f97316'; // Orange
+                                            else if (fclass === 'tertiary') color = '#fbbf24'; // Yellow
+                                            else if (fclass === 'trunk') color = '#dc2626'; // Dark red
+                                            else if (fclass === 'motorway') color = '#7c2d12'; // Brown
+                                            else if (fclass === 'residential') color = '#cbd5e1'; // Light gray
+                                            else if (fclass === 'track') color = '#78716c'; // Dark gray
+
+                                            return {
+                                                color: color,
+                                                weight: fclass === 'primary' || fclass === 'trunk' || fclass === 'motorway' ? 3 :
+                                                       fclass === 'secondary' || fclass === 'tertiary' ? 2 : 1,
+                                                opacity: 0.8
+                                            };
+                                        },
+                                        onEachFeature: function(feature, layer) {
+                                            if (feature.properties) {
+                                                const fclass = feature.properties.fclass || 'Unknown';
+                                                const name = feature.properties.name || 'Unnamed road';
+                                                layer.bindPopup(`
+                                                    <strong>${name}</strong><br>
+                                                    Type: ${fclass}<br>
+                                                    <em>Latest OSM Data</em>
+                                                `);
+                                            }
+                                        }
+                                    }).addTo(map);
+
+                                    // Store active region
+                                    activeRoadsOSMLatestRegion = droppedRegion;
+
+                                    // Update checkbox state
+                                    document.getElementById('roadsOSMLatestToggle').checked = true;
+
+                                    // Mark as dropped
+                                    roadsOSMLatestLabel.classList.add('layer-dropped');
+                                    roadsOSMLatestLabel.title = `Loaded for ${droppedRegion}`;
+
+                                    // Update label
+                                    const labelSpan = roadsOSMLatestLabel.querySelector('span:last-child');
+                                    if (labelSpan) {
+                                        labelSpan.textContent = `🔄 Roads OSM Latest - ${droppedRegion}`;
+                                    }
+
+                                    // Close loading popup and show success
+                                    map.closePopup(loadingPopup);
+                                    L.popup({
+                                        closeButton: false,
+                                        autoClose: true,
+                                        className: 'drop-success-popup'
+                                    })
+                                    .setLatLng(latlng)
+                                    .setContent(`✓ Latest OSM Roads loaded for ${droppedRegion}<br><small>${loadedRoadsData.features.length} road segments</small>`)
+                                    .openOn(map);
+
+                                    setTimeout(() => map.closePopup(), 3000);
+                                } else {
+                                    throw new Error('Invalid roads data format');
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error loading latest roads:', error);
+                                map.closePopup(loadingPopup);
+                                L.popup({
+                                    closeButton: true,
+                                    autoClose: false,
+                                    className: 'drop-error-popup'
+                                })
+                                .setLatLng(latlng)
+                                .setContent(`❌ ${error.message}`)
+                                .openOn(map);
+                            });
+                    }
+
+                    // Remove cursor classes
+                    mapContainer.classList.remove('drop-target');
+                    mapContainer.classList.remove('drop-invalid');
+                }
+            });
+
+            // Roads OSM Latest checkbox toggle
+            document.getElementById('roadsOSMLatestToggle').addEventListener('change', function(e) {
+                if (e.target.checked) {
+                    if (activeRoadsOSMLatestLayer) {
+                        map.addLayer(activeRoadsOSMLatestLayer);
+                        roadsOSMLatestLabel.classList.add('layer-dropped');
+                    }
+                } else {
+                    if (activeRoadsOSMLatestLayer) {
+                        map.removeLayer(activeRoadsOSMLatestLayer);
+                        roadsOSMLatestLabel.classList.remove('layer-dropped');
+                    }
+                }
+            });
+
+            // Enable drag for Roads OSM Latest label
+            roadsOSMLatestLabel.addEventListener('dragstart', function(e) {
+                draggedLayerId = 'roadsOSMLatest';
+                e.dataTransfer.effectAllowed = 'copy';
+                roadsOSMLatestLabel.style.opacity = '0.5';
+            });
+
+            roadsOSMLatestLabel.addEventListener('dragend', function(e) {
+                roadsOSMLatestLabel.style.opacity = '1';
+                draggedLayerId = null;
             });
 
             document.getElementById('adm1Toggle').addEventListener('change', function(e) {
