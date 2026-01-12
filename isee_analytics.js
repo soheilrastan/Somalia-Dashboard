@@ -929,68 +929,58 @@ function generateRecommendations(datasets, results, targetRegion) {
 
 // STEP 4: Display insights window
 function displayInsightsWindow(results, datasets, targetRegion) {
-    // Create modal window
-    const modal = document.createElement('div');
-    modal.id = 'iseeAnalyticsModal';
-    modal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.7);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 10000;
-        backdrop-filter: blur(5px);
-    `;
-
-    const modalContent = document.createElement('div');
-    modalContent.style.cssText = `
-        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-        border-radius: 16px;
-        width: 90%;
-        max-width: 1200px;
-        max-height: 90vh;
-        overflow-y: auto;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-        border: 2px solid #334155;
-    `;
-
-    modalContent.innerHTML = generateInsightsHTML(results, datasets, targetRegion);
-
-    modal.appendChild(modalContent);
-    document.body.appendChild(modal);
-
-    // Close modal on click outside or close button
-    modal.addEventListener('click', function(e) {
-        if (e.target === modal || e.target.classList.contains('close-modal')) {
-            document.body.removeChild(modal);
+    // Generate the full HTML content for the popup window
+    const htmlContent = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iSEE Analytics Report - ${targetRegion || 'Unknown Region'}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e8e8e8;
+            padding: 20px;
         }
-    });
-
-    // Add custom scrollbar styling
-    const style = document.createElement('style');
-    style.textContent = `
-        #iseeAnalyticsModal *::-webkit-scrollbar {
+        ::-webkit-scrollbar {
             width: 10px;
         }
-        #iseeAnalyticsModal *::-webkit-scrollbar-track {
+        ::-webkit-scrollbar-track {
             background: rgba(51, 65, 85, 0.3);
         }
-        #iseeAnalyticsModal *::-webkit-scrollbar-thumb {
+        ::-webkit-scrollbar-thumb {
             background: #0ea5e9;
             border-radius: 5px;
         }
+    </style>
+</head>
+<body>
+    ${generateInsightsHTML(results, datasets, targetRegion, true)}
+</body>
+</html>
     `;
-    document.head.appendChild(style);
+
+    // Open a new popup window
+    const popupWindow = window.open('', 'iSEE_Analytics_Report',
+        'width=1000,height=800,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,location=no,status=no');
+
+    if (popupWindow) {
+        popupWindow.document.open();
+        popupWindow.document.write(htmlContent);
+        popupWindow.document.close();
+        popupWindow.focus();
+    } else {
+        alert('⚠️ Popup blocked! Please allow popups for this site to view the iSEE Analytics Report.');
+    }
 }
 
 // Generate HTML for insights window
-function generateInsightsHTML(results, datasets, targetRegion) {
+function generateInsightsHTML(results, datasets, targetRegion, isPopup = false) {
     return `
-        <div style="padding: 30px;">
+        <div style="padding: 30px; background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-radius: ${isPopup ? '0' : '16px'}; ${isPopup ? '' : 'border: 2px solid #334155;'}">
             <!-- Header -->
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid #334155; padding-bottom: 20px;">
                 <div>
@@ -1001,6 +991,7 @@ function generateInsightsHTML(results, datasets, targetRegion) {
                         Integrated Socioeconomic and Environmental Analysis - ${targetRegion || 'Unknown Region'}
                     </p>
                 </div>
+                ${!isPopup ? `
                 <button class="close-modal" style="
                     background: rgba(239, 68, 68, 0.2);
                     border: 2px solid #ef4444;
@@ -1014,6 +1005,7 @@ function generateInsightsHTML(results, datasets, targetRegion) {
                 " onmouseover="this.style.background='rgba(239, 68, 68, 0.3)'" onmouseout="this.style.background='rgba(239, 68, 68, 0.2)'">
                     ✕ Close
                 </button>
+                ` : ''}
             </div>
 
             <!-- Regional Overview (ALWAYS SHOWN) -->
