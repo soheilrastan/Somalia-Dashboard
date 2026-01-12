@@ -95,8 +95,8 @@ if __name__ == '__main__':
     print("=" * 70)
     print("  Somalia Dashboard - OSM Roads Update Server")
     print("=" * 70)
-    print("\n✓ Server starting on http://localhost:5000")
-    print("✓ Dashboard can now trigger automatic updates")
+    print("\n[OK] Server starting on http://localhost:5000")
+    print("[OK] Dashboard can now trigger automatic updates")
     print("\nKeep this terminal open while using the dashboard.")
     print("Press Ctrl+C to stop the server.\n")
     print("=" * 70)
@@ -105,7 +105,7 @@ if __name__ == '__main__':
     try:
         import flask_cors
     except ImportError:
-        print("\n⚠️  WARNING: flask-cors not installed")
+        print("\n[WARNING] flask-cors not installed")
         print("Install with: pip install flask flask-cors")
         print()
 
