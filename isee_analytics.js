@@ -929,52 +929,184 @@ function generateRecommendations(datasets, results, targetRegion) {
 
 // STEP 4: Display insights window
 function displayInsightsWindow(results, datasets, targetRegion) {
-    // Generate the full HTML content for the popup window
-    const htmlContent = `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>iSEE Analytics Report - ${targetRegion || 'Unknown Region'}</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            color: #e8e8e8;
-            padding: 20px;
+    // Create draggable, resizable modal window overlay
+    const modal = document.createElement('div');
+    modal.id = 'iseeAnalyticsModal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 10%;
+        left: 10%;
+        width: 80%;
+        max-width: 1000px;
+        height: 80vh;
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        border-radius: 16px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+        border: 2px solid #334155;
+        z-index: 10000;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    `;
+
+    // Create header with drag handle and buttons
+    const header = document.createElement('div');
+    header.id = 'modalHeader';
+    header.style.cssText = `
+        background: rgba(15, 23, 42, 0.95);
+        padding: 15px 20px;
+        border-bottom: 2px solid #334155;
+        cursor: move;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        user-select: none;
+    `;
+    header.innerHTML = `
+        <div>
+            <h3 style="color: #0ea5e9; margin: 0; font-size: 1.2em;">🔍 iSEE Analytics Report - ${targetRegion || 'Unknown Region'}</h3>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button id="enlargeBtn" style="
+                background: rgba(34, 197, 94, 0.2);
+                border: 2px solid #22c55e;
+                color: #22c55e;
+                padding: 8px 16px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-weight: bold;
+                transition: all 0.3s;
+            ">⛶ Enlarge</button>
+            <button id="closeModalBtn" style="
+                background: rgba(239, 68, 68, 0.2);
+                border: 2px solid #ef4444;
+                color: #ef4444;
+                padding: 8px 16px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-weight: bold;
+                transition: all 0.3s;
+            ">✕ Close</button>
+        </div>
+    `;
+
+    // Create content area
+    const contentArea = document.createElement('div');
+    contentArea.style.cssText = `
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+    `;
+    contentArea.innerHTML = generateInsightsHTML(results, datasets, targetRegion, true);
+
+    modal.appendChild(header);
+    modal.appendChild(contentArea);
+    document.body.appendChild(modal);
+
+    // Make draggable
+    let isDragging = false;
+    let currentX;
+    let currentY;
+    let initialX;
+    let initialY;
+
+    header.addEventListener('mousedown', function(e) {
+        if (e.target.tagName !== 'BUTTON') {
+            isDragging = true;
+            initialX = e.clientX - modal.offsetLeft;
+            initialY = e.clientY - modal.offsetTop;
         }
-        ::-webkit-scrollbar {
+    });
+
+    document.addEventListener('mousemove', function(e) {
+        if (isDragging) {
+            e.preventDefault();
+            currentX = e.clientX - initialX;
+            currentY = e.clientY - initialY;
+            modal.style.left = currentX + 'px';
+            modal.style.top = currentY + 'px';
+        }
+    });
+
+    document.addEventListener('mouseup', function() {
+        isDragging = false;
+    });
+
+    // Close button
+    document.getElementById('closeModalBtn').addEventListener('click', function() {
+        document.body.removeChild(modal);
+    });
+
+    // Enlarge button
+    let isEnlarged = false;
+    document.getElementById('enlargeBtn').addEventListener('click', function() {
+        if (!isEnlarged) {
+            modal.style.width = '95%';
+            modal.style.height = '95vh';
+            modal.style.maxWidth = 'none';
+            modal.style.left = '2.5%';
+            modal.style.top = '2.5%';
+            this.innerHTML = '⛶ Restore';
+            isEnlarged = true;
+        } else {
+            modal.style.width = '80%';
+            modal.style.height = '80vh';
+            modal.style.maxWidth = '1000px';
+            modal.style.left = '10%';
+            modal.style.top = '10%';
+            this.innerHTML = '⛶ Enlarge';
+            isEnlarged = false;
+        }
+    });
+
+    // Add resize handle
+    const resizeHandle = document.createElement('div');
+    resizeHandle.style.cssText = `
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 20px;
+        height: 20px;
+        cursor: nwse-resize;
+        background: linear-gradient(135deg, transparent 50%, #0ea5e9 50%);
+    `;
+    modal.appendChild(resizeHandle);
+
+    // Make resizable
+    let isResizing = false;
+    resizeHandle.addEventListener('mousedown', function(e) {
+        isResizing = true;
+        e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', function(e) {
+        if (isResizing) {
+            const newWidth = e.clientX - modal.offsetLeft;
+            const newHeight = e.clientY - modal.offsetTop;
+            if (newWidth > 400) modal.style.width = newWidth + 'px';
+            if (newHeight > 300) modal.style.height = newHeight + 'px';
+        }
+    });
+
+    document.addEventListener('mouseup', function() {
+        isResizing = false;
+    });
+
+    // Add custom scrollbar styling
+    const style = document.createElement('style');
+    style.textContent = `
+        #iseeAnalyticsModal *::-webkit-scrollbar {
             width: 10px;
         }
-        ::-webkit-scrollbar-track {
+        #iseeAnalyticsModal *::-webkit-scrollbar-track {
             background: rgba(51, 65, 85, 0.3);
         }
-        ::-webkit-scrollbar-thumb {
+        #iseeAnalyticsModal *::-webkit-scrollbar-thumb {
             background: #0ea5e9;
             border-radius: 5px;
         }
-    </style>
-</head>
-<body>
-    ${generateInsightsHTML(results, datasets, targetRegion, true)}
-</body>
-</html>
     `;
-
-    // Open a new popup window
-    const popupWindow = window.open('', 'iSEE_Analytics_Report',
-        'width=1000,height=800,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,location=no,status=no');
-
-    if (popupWindow) {
-        popupWindow.document.open();
-        popupWindow.document.write(htmlContent);
-        popupWindow.document.close();
-        popupWindow.focus();
-    } else {
-        alert('⚠️ Popup blocked! Please allow popups for this site to view the iSEE Analytics Report.');
-    }
+    document.head.appendChild(style);
 }
 
 // Generate HTML for insights window
