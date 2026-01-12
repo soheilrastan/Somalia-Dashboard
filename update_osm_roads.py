@@ -47,16 +47,16 @@ def download_latest_roads():
                 break
 
         if not geojson_resource:
-            print("❌ GeoJSON lines file not found in dataset!")
+            print("[ERROR] GeoJSON lines file not found in dataset!")
             return None
 
         download_url = geojson_resource['url']
         file_name = geojson_resource['name']
         last_modified = geojson_resource.get('last_modified', 'Unknown')
 
-        print(f"✓ Found: {file_name}")
-        print(f"✓ Last modified: {last_modified}")
-        print(f"✓ Size: {geojson_resource.get('size', 'Unknown')}")
+        print(f"[OK] Found: {file_name}")
+        print(f"[OK] Last modified: {last_modified}")
+        print(f"[OK] Size: {geojson_resource.get('size', 'Unknown')}")
 
         # Download the file
         print(f"\n[2/6] Downloading {file_name}...")
@@ -77,7 +77,7 @@ def download_latest_roads():
                         percent = (downloaded / total_size) * 100
                         print(f"\r  Progress: {percent:.1f}% ({downloaded / 1024 / 1024:.1f} MB)", end='')
 
-        print("\n✓ Download complete!")
+        print("\n[OK] Download complete!")
 
         # Extract the zip file
         print("\n[3/6] Extracting GeoJSON...")
@@ -90,11 +90,11 @@ def download_latest_roads():
         # Find the extracted GeoJSON file
         geojson_files = list(extract_dir.glob('*.geojson'))
         if not geojson_files:
-            print("❌ No GeoJSON file found in extracted archive!")
+            print("[ERROR] No GeoJSON file found in extracted archive!")
             return None
 
         geojson_path = geojson_files[0]
-        print(f"✓ Extracted: {geojson_path.name}")
+        print(f"[OK] Extracted: {geojson_path.name}")
 
         # Cleanup zip file
         zip_path.unlink()
@@ -102,7 +102,7 @@ def download_latest_roads():
         return geojson_path
 
     except Exception as e:
-        print(f"❌ Error downloading roads data: {e}")
+        print(f"[ERROR] Error downloading roads data: {e}")
         return None
 
 def load_region_boundaries():
@@ -116,7 +116,7 @@ def load_region_boundaries():
     # Find the adm1Boundaries object
     start = content.find('const adm1Boundaries = ')
     if start == -1:
-        print("❌ Could not find adm1Boundaries in data.js!")
+        print("[ERROR] Could not find adm1Boundaries in data.js!")
         return None
 
     start = content.find('{', start)
@@ -125,7 +125,7 @@ def load_region_boundaries():
     boundaries_json = content[start:end]
     boundaries = json.loads(boundaries_json)
 
-    print(f"✓ Loaded {len(boundaries['features'])} region boundaries")
+    print(f"[OK] Loaded {len(boundaries['features'])} region boundaries")
     return boundaries
 
 def split_roads_by_region(roads_path, boundaries):
@@ -174,7 +174,7 @@ def split_roads_by_region(roads_path, boundaries):
         roads = region_roads[region]
 
         if len(roads) == 0:
-            print(f"    ⚠️  {region}: No roads found")
+            print(f"    [WARNING]  {region}: No roads found")
             continue
 
         # Create GeoJSON
@@ -212,10 +212,10 @@ def split_roads_by_region(roads_path, boundaries):
 
         js_size = js_file.stat().st_size / 1024 / 1024
 
-        print(f"    ✓ {region}: {len(roads):,} roads, {geojson_size:.1f} MB (GeoJSON), {js_size:.1f} MB (JS)")
+        print(f"    [OK] {region}: {len(roads):,} roads, {geojson_size:.1f} MB (GeoJSON), {js_size:.1f} MB (JS)")
         saved_count += 1
 
-    print(f"\n  ✓ Saved {saved_count} regional road files")
+    print(f"\n  [OK] Saved {saved_count} regional road files")
 
     return saved_count
 
@@ -226,12 +226,12 @@ def cleanup_temp_files():
     temp_dir = Path('temp_osm_extract')
     if temp_dir.exists():
         shutil.rmtree(temp_dir)
-        print("  ✓ Removed temporary extraction directory")
+        print("  [OK] Removed temporary extraction directory")
 
     temp_zip = Path('temp_osm_roads.zip')
     if temp_zip.exists():
         temp_zip.unlink()
-        print("  ✓ Removed temporary zip file")
+        print("  [OK] Removed temporary zip file")
 
 def main():
     start_time = time.time()
@@ -258,10 +258,10 @@ def main():
     print("\n" + "=" * 70)
     print("  UPDATE COMPLETE!")
     print("=" * 70)
-    print(f"\n✓ Updated {saved_count} regional road files")
-    print(f"✓ Time elapsed: {elapsed:.1f} seconds")
-    print(f"\n📁 Files saved to: roads_by_region/")
-    print(f"\n💡 Next steps:")
+    print(f"\n[OK] Updated {saved_count} regional road files")
+    print(f"[OK] Time elapsed: {elapsed:.1f} seconds")
+    print(f"\n[FILES] Files saved to: roads_by_region/")
+    print(f"\n[INFO] Next steps:")
     print(f"   1. Run 'python optimize_roads_js.py' to further optimize files")
     print(f"   2. Commit and push changes to GitHub")
     print(f"   3. Refresh your dashboard to see updated roads")
