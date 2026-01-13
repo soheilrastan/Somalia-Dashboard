@@ -154,6 +154,21 @@ def health():
     """Health check endpoint"""
     return jsonify({'status': 'ok'})
 
+@app.route('/api/reset', methods=['POST'])
+def reset_update():
+    """Reset/cancel any stuck update"""
+    global update_status
+
+    update_status['running'] = False
+    update_status['progress'] = 0
+    update_status['message'] = 'Ready'
+    update_status['error'] = None
+
+    return jsonify({
+        'success': True,
+        'message': 'Update status reset successfully'
+    })
+
 if __name__ == '__main__':
     print("=" * 70)
     print("  Somalia Dashboard - OSM Roads Update Server")

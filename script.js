@@ -4366,9 +4366,20 @@
                                     }
                                 }, 1000); // Check every second
 
-                                // Cancel button
-                                document.getElementById('cancelUpdateBtn').addEventListener('click', function() {
+                                // Cancel button - also resets server
+                                document.getElementById('cancelUpdateBtn').addEventListener('click', async function() {
                                     clearInterval(statusInterval);
+
+                                    // Call reset API to clear stuck update
+                                    try {
+                                        await fetch('http://localhost:5000/api/reset', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' }
+                                        });
+                                    } catch (err) {
+                                        console.error('Reset error:', err);
+                                    }
+
                                     document.body.removeChild(modal);
                                     updateBtn.disabled = false;
                                     updateBtn.style.opacity = '1';
