@@ -4286,10 +4286,24 @@
                                             progressText.textContent = status.progress + '%';
                                         }
 
-                                        // Update status message
+                                        // Update status message with detailed info
                                         const statusMsg = document.getElementById('statusMessage');
                                         if (statusMsg) {
-                                            statusMsg.textContent = status.message;
+                                            let detailedMessage = status.message;
+
+                                            // Add file info during download phase (25-45%)
+                                            if (status.progress >= 25 && status.progress < 50) {
+                                                detailedMessage += '<br><br><div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px; margin-top: 10px;">';
+                                                detailedMessage += '<strong>📦 File:</strong> hotosm_som_roads_lines_geojson.zip<br>';
+                                                detailedMessage += '<strong>💾 Size:</strong> ~83 MB<br>';
+                                                detailedMessage += '<strong>📍 Saving to:</strong> roads_by_region_latest/<br>';
+                                                const downloadPercent = ((status.progress - 25) / 20) * 100;
+                                                const estimatedTime = Math.ceil((100 - downloadPercent) * 0.1); // rough estimate
+                                                detailedMessage += '<strong>⏱️ Est. time:</strong> ~' + estimatedTime + ' minutes';
+                                                detailedMessage += '</div>';
+                                            }
+
+                                            statusMsg.innerHTML = detailedMessage;
                                         }
 
                                         // Update step indicators
