@@ -3113,16 +3113,112 @@
                 }
             });
 
-            // Enable drag for Roads OSM Latest label
+            // Enable drag for Roads OSM Latest label with full visual feedback
             roadsOSMLatestLabel.addEventListener('dragstart', function(e) {
                 draggedLayerId = 'roadsOSMLatest';
+
+                // Add dragging class to body for cursor control
+                document.body.classList.add('dragging');
+
+                // Create cursor indicator
+                cursorIndicator = document.createElement('div');
+                cursorIndicator.className = 'cursor-indicator';
+                document.body.appendChild(cursorIndicator);
+
+                // Create ghost element (preview while dragging)
+                dragGhost = document.createElement('div');
+                dragGhost.style.cssText = `
+                    position: fixed;
+                    background: rgba(34, 197, 94, 0.9);
+                    color: white;
+                    padding: 8px 12px;
+                    border-radius: 6px;
+                    font-size: 0.85em;
+                    pointer-events: none;
+                    z-index: 10000;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                `;
+                dragGhost.textContent = '🔄 Roads OSM Latest - Drop on any region';
+                document.body.appendChild(dragGhost);
+
+                // Add dragging class
+                roadsOSMLatestLabel.classList.add('dragging-layer');
+
+                // Store data
                 e.dataTransfer.effectAllowed = 'copy';
-                roadsOSMLatestLabel.style.opacity = '0.5';
+                e.dataTransfer.setData('text/plain', 'roadsOSMLatest');
+
+                // Hide default drag image
+                const img = new Image();
+                img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+                e.dataTransfer.setDragImage(img, 0, 0);
             });
 
+            // Update ghost position for Roads OSM Latest
+            document.addEventListener('drag', function(e) {
+                if (dragGhost && draggedLayerId === 'roadsOSMLatest' && e.clientX !== 0 && e.clientY !== 0) {
+                    dragGhost.style.left = (e.clientX + 10) + 'px';
+                    dragGhost.style.top = (e.clientY + 10) + 'px';
+                }
+            });
+
+            // Drag end - cleanup for Roads OSM Latest
             roadsOSMLatestLabel.addEventListener('dragend', function(e) {
-                roadsOSMLatestLabel.style.opacity = '1';
+                roadsOSMLatestLabel.classList.remove('dragging-layer');
+                document.body.classList.remove('dragging');
+
+                if (dragGhost) {
+                    document.body.removeChild(dragGhost);
+                    dragGhost = null;
+                }
+                if (cursorIndicator) {
+                    document.body.removeChild(cursorIndicator);
+                    cursorIndicator = null;
+                }
                 draggedLayerId = null;
+
+                // Remove highlight from all regions
+                Object.values(allRegionLayers).forEach(regionLayer => {
+                    adm1Layer.resetStyle(regionLayer);
+                });
+            });
+
+            // Map dragover handler for Roads OSM Latest
+            mapContainer.addEventListener('dragover', function(e) {
+                if (draggedLayerId === 'roadsOSMLatest') {
+                    e.preventDefault();
+
+                    const rect = mapContainer.getBoundingClientRect();
+                    const latlng = map.containerPointToLatLng([e.clientX - rect.left, e.clientY - rect.top]);
+
+                    // Check which region is being hovered over
+                    let hoveredRegion = null;
+                    Object.values(allRegionLayers).forEach(regionLayer => {
+                        if (isPointInPolygon(latlng, regionLayer)) {
+                            hoveredRegion = regionLayer;
+                        }
+                    });
+
+                    // Reset all region styles first
+                    Object.values(allRegionLayers).forEach(regionLayer => {
+                        adm1Layer.resetStyle(regionLayer);
+                    });
+
+                    // Highlight the hovered region
+                    if (hoveredRegion) {
+                        hoveredRegion.setStyle({
+                            fillColor: '#22c55e',
+                            fillOpacity: 0.4,
+                            weight: 3,
+                            color: '#22c55e'
+                        });
+                        mapContainer.classList.add('drop-target');
+                        mapContainer.classList.remove('drop-invalid');
+                    } else {
+                        mapContainer.classList.remove('drop-target');
+                        mapContainer.classList.add('drop-invalid');
+                    }
+                }
             });
 
             document.getElementById('adm1Toggle').addEventListener('change', function(e) {
