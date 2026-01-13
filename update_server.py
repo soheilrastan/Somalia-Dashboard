@@ -35,14 +35,14 @@ def run_update_script():
         # Run the update script
         script_path = os.path.join(os.path.dirname(__file__), 'update_osm_roads.py')
 
-        # Execute the script with real-time output streaming
+        # Execute the script with real-time output streaming (unbuffered)
         process = subprocess.Popen(
-            [sys.executable, script_path],
+            [sys.executable, '-u', script_path],  # -u flag for unbuffered output
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
             cwd=os.path.dirname(__file__),
-            bufsize=1,
+            bufsize=0,  # Unbuffered
             universal_newlines=True
         )
 
