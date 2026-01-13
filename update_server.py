@@ -93,24 +93,49 @@ def run_update_script():
                     pass
             elif 'Saving regional files' in line:
                 update_status['progress'] = 85
-                update_status['message'] = 'Saving optimized regional files...'
+                update_status['message'] = 'Saving optimized regional files (18 regions)...'
             elif '[OK]' in line and 'roads,' in line:
-                # Each region saved, increment slightly
-                if update_status['progress'] < 95:
-                    update_status['progress'] = min(95, update_status['progress'] + 1)
+                # Each region saved, increment progress
+                # 18 regions total, map 85% -> 94% (1 region = ~0.5%)
+                if update_status['progress'] >= 85 and update_status['progress'] < 94:
+                    update_status['progress'] = min(94, update_status['progress'] + 1)
+                    # Extract region name for detailed message
+                    try:
+                        region_name = line.split('[OK]')[1].split(':')[0].strip()
+                        update_status['message'] = f'Saved {region_name} region files...'
+                    except:
+                        pass
             elif '[6/6]' in line or 'Cleaning up' in line:
                 update_status['progress'] = 95
                 update_status['message'] = 'Cleaning up temporary files...'
             elif 'UPDATE COMPLETE' in line:
                 update_status['progress'] = 100
-                update_status['message'] = 'Update completed successfully!'
+                update_status['message'] = 'Files ready! All 36 regional files saved to roads_by_region_latest/'
 
         # Wait for process to complete
         process.wait()
 
         if process.returncode == 0:
-            update_status['progress'] = 100
-            update_status['message'] = 'Update completed successfully!'
+            # Verify files were actually created before showing 100%
+            from pathlib import Path
+            output_dir = Path('roads_by_region_latest')
+
+            if output_dir.exists():
+                # Count created files
+                geojson_files = list(output_dir.glob('*.geojson'))
+                js_files = list(output_dir.glob('*.js'))
+                total_files = len(geojson_files) + len(js_files)
+
+                if total_files >= 36:  # 18 regions × 2 formats
+                    update_status['progress'] = 100
+                    update_status['message'] = f'Update complete! {total_files} files ready in roads_by_region_latest/'
+                else:
+                    update_status['progress'] = 99
+                    update_status['message'] = f'Partial completion: {total_files}/36 files created'
+            else:
+                update_status['progress'] = 99
+                update_status['message'] = 'Warning: Output directory not found'
+
             update_status['running'] = False
         else:
             stderr_output = process.stderr.read()

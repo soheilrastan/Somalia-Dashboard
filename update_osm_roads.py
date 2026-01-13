@@ -27,10 +27,10 @@ REGIONS = [
 
 def download_latest_roads():
     """Download the latest GeoJSON roads file from HDX"""
-    print("=" * 70)
-    print("  Somalia Roads OSM Auto-Updater")
-    print("=" * 70)
-    print("\n[1/6] Fetching latest dataset info from HDX...")
+    print("=" * 70, flush=True)
+    print("  Somalia Roads OSM Auto-Updater", flush=True)
+    print("=" * 70, flush=True)
+    print("\n[1/6] Fetching latest dataset info from HDX...", flush=True)
 
     try:
         response = requests.get(HDX_DATASET_URL)
@@ -47,19 +47,19 @@ def download_latest_roads():
                 break
 
         if not geojson_resource:
-            print("[ERROR] GeoJSON lines file not found in dataset!")
+            print("[ERROR] GeoJSON lines file not found in dataset!", flush=True)
             return None
 
         download_url = geojson_resource['url']
         file_name = geojson_resource['name']
         last_modified = geojson_resource.get('last_modified', 'Unknown')
 
-        print(f"[OK] Found: {file_name}")
-        print(f"[OK] Last modified: {last_modified}")
-        print(f"[OK] Size: {geojson_resource.get('size', 'Unknown')}")
+        print(f"[OK] Found: {file_name}", flush=True)
+        print(f"[OK] Last modified: {last_modified}", flush=True)
+        print(f"[OK] Size: {geojson_resource.get('size', 'Unknown')}", flush=True)
 
         # Download the file
-        print(f"\n[2/6] Downloading {file_name}...")
+        print(f"\n[2/6] Downloading {file_name}...", flush=True)
         zip_path = Path('temp_osm_roads.zip')
 
         response = requests.get(download_url, stream=True)
@@ -75,12 +75,12 @@ def download_latest_roads():
                     downloaded += len(chunk)
                     if total_size > 0:
                         percent = (downloaded / total_size) * 100
-                        print(f"\r  Progress: {percent:.1f}% ({downloaded / 1024 / 1024:.1f} MB)", end='')
+                        print(f"\r  Progress: {percent:.1f}% ({downloaded / 1024 / 1024:.1f} MB)", end='', flush=True)
 
-        print("\n[OK] Download complete!")
+        print("\n[OK] Download complete!", flush=True)
 
         # Extract the zip file
-        print("\n[3/6] Extracting GeoJSON...")
+        print("\n[3/6] Extracting GeoJSON...", flush=True)
         extract_dir = Path('temp_osm_extract')
         extract_dir.mkdir(exist_ok=True)
 
@@ -90,11 +90,11 @@ def download_latest_roads():
         # Find the extracted GeoJSON file
         geojson_files = list(extract_dir.glob('*.geojson'))
         if not geojson_files:
-            print("[ERROR] No GeoJSON file found in extracted archive!")
+            print("[ERROR] No GeoJSON file found in extracted archive!", flush=True)
             return None
 
         geojson_path = geojson_files[0]
-        print(f"[OK] Extracted: {geojson_path.name}")
+        print(f"[OK] Extracted: {geojson_path.name}", flush=True)
 
         # Cleanup zip file
         zip_path.unlink()
@@ -102,12 +102,12 @@ def download_latest_roads():
         return geojson_path
 
     except Exception as e:
-        print(f"[ERROR] Error downloading roads data: {e}")
+        print(f"[ERROR] Error downloading roads data: {e}", flush=True)
         return None
 
 def load_region_boundaries():
     """Load Somalia ADM1 boundaries from data.js"""
-    print("\n[4/6] Loading region boundaries...")
+    print("\n[4/6] Loading region boundaries...", flush=True)
 
     # Read data.js and extract ADM1 boundaries
     with open('data.js', 'r', encoding='utf-8') as f:
@@ -116,7 +116,7 @@ def load_region_boundaries():
     # Find the adm1Boundaries object
     start = content.find('const adm1Boundaries = ')
     if start == -1:
-        print("[ERROR] Could not find adm1Boundaries in data.js!")
+        print("[ERROR] Could not find adm1Boundaries in data.js!", flush=True)
         return None
 
     start = content.find('{', start)
@@ -125,20 +125,20 @@ def load_region_boundaries():
     boundaries_json = content[start:end]
     boundaries = json.loads(boundaries_json)
 
-    print(f"[OK] Loaded {len(boundaries['features'])} region boundaries")
+    print(f"[OK] Loaded {len(boundaries['features'])} region boundaries", flush=True)
     return boundaries
 
 def split_roads_by_region(roads_path, boundaries):
     """Split roads GeoJSON into separate regional files"""
-    print("\n[5/6] Splitting roads by region...")
+    print("\n[5/6] Splitting roads by region...", flush=True)
 
     # Load roads data
-    print("  Loading roads data...")
+    print("  Loading roads data...", flush=True)
     with open(roads_path, 'r', encoding='utf-8') as f:
         roads_data = json.load(f)
 
     total_roads = len(roads_data['features'])
-    print(f"  Total roads: {total_roads:,}")
+    print(f"  Total roads: {total_roads:,}", flush=True)
 
     # Create output directory for latest roads (separate from 2023 data)
     output_dir = Path('roads_by_region_latest')
@@ -147,10 +147,10 @@ def split_roads_by_region(roads_path, boundaries):
     # Process each region
     region_roads = {region: [] for region in REGIONS}
 
-    print("  Assigning roads to regions...")
+    print("  Assigning roads to regions...", flush=True)
     for i, road in enumerate(roads_data['features']):
         if (i + 1) % 1000 == 0:
-            print(f"\r    Processed: {i+1:,}/{total_roads:,}", end='')
+            print(f"\r    Processed: {i+1:,}/{total_roads:,}", end='', flush=True)
 
         road_geom = shape(road['geometry'])
 
@@ -164,17 +164,17 @@ def split_roads_by_region(roads_path, boundaries):
                     region_roads[region_name].append(road)
                     break
 
-    print(f"\r    Processed: {total_roads:,}/{total_roads:,}")
+    print(f"\r    Processed: {total_roads:,}/{total_roads:,}", flush=True)
 
     # Save regional files
-    print("\n  Saving regional files...")
+    print("\n  Saving regional files...", flush=True)
     saved_count = 0
 
     for region in REGIONS:
         roads = region_roads[region]
 
         if len(roads) == 0:
-            print(f"    [WARNING]  {region}: No roads found")
+            print(f"    [WARNING]  {region}: No roads found", flush=True)
             continue
 
         # Create GeoJSON
@@ -212,26 +212,26 @@ def split_roads_by_region(roads_path, boundaries):
 
         js_size = js_file.stat().st_size / 1024 / 1024
 
-        print(f"    [OK] {region}: {len(roads):,} roads, {geojson_size:.1f} MB (GeoJSON), {js_size:.1f} MB (JS)")
+        print(f"    [OK] {region}: {len(roads):,} roads, {geojson_size:.1f} MB (GeoJSON), {js_size:.1f} MB (JS)", flush=True)
         saved_count += 1
 
-    print(f"\n  [OK] Saved {saved_count} regional road files")
+    print(f"\n  [OK] Saved {saved_count} regional road files", flush=True)
 
     return saved_count
 
 def cleanup_temp_files():
     """Remove temporary files"""
-    print("\n[6/6] Cleaning up temporary files...")
+    print("\n[6/6] Cleaning up temporary files...", flush=True)
 
     temp_dir = Path('temp_osm_extract')
     if temp_dir.exists():
         shutil.rmtree(temp_dir)
-        print("  [OK] Removed temporary extraction directory")
+        print("  [OK] Removed temporary extraction directory", flush=True)
 
     temp_zip = Path('temp_osm_roads.zip')
     if temp_zip.exists():
         temp_zip.unlink()
-        print("  [OK] Removed temporary zip file")
+        print("  [OK] Removed temporary zip file", flush=True)
 
 def main():
     start_time = time.time()
@@ -255,16 +255,16 @@ def main():
 
     elapsed = time.time() - start_time
 
-    print("\n" + "=" * 70)
-    print("  UPDATE COMPLETE!")
-    print("=" * 70)
-    print(f"\n[OK] Updated {saved_count} regional road files")
-    print(f"[OK] Time elapsed: {elapsed:.1f} seconds")
-    print(f"\n[FILES] Files saved to: roads_by_region/")
-    print(f"\n[INFO] Next steps:")
-    print(f"   1. Run 'python optimize_roads_js.py' to further optimize files")
-    print(f"   2. Commit and push changes to GitHub")
-    print(f"   3. Refresh your dashboard to see updated roads")
+    print("\n" + "=" * 70, flush=True)
+    print("  UPDATE COMPLETE!", flush=True)
+    print("=" * 70, flush=True)
+    print(f"\n[OK] Updated {saved_count} regional road files", flush=True)
+    print(f"[OK] Time elapsed: {elapsed:.1f} seconds", flush=True)
+    print(f"\n[FILES] Files saved to: roads_by_region_latest/", flush=True)
+    print(f"\n[INFO] Next steps:", flush=True)
+    print(f"   1. Drag and drop 'Roads OSM Latest' layer onto the map", flush=True)
+    print(f"   2. Or toggle the checkbox to enable the layer", flush=True)
+    print(f"   3. Files are ready in roads_by_region_latest/ directory", flush=True)
 
 if __name__ == '__main__':
     main()
