@@ -23,7 +23,7 @@ update_status = {
 }
 
 def run_update_script():
-    """Run the update_osm_roads.py script in background"""
+    """Run the update_osm_roads.py script in background with live progress"""
     global update_status
 
     try:
@@ -35,23 +35,86 @@ def run_update_script():
         # Run the update script
         script_path = os.path.join(os.path.dirname(__file__), 'update_osm_roads.py')
 
-        update_status['progress'] = 10
-        update_status['message'] = 'Downloading latest roads from HDX...'
-
-        # Execute the script
-        result = subprocess.run(
+        # Execute the script with real-time output streaming
+        process = subprocess.Popen(
             [sys.executable, script_path],
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             text=True,
-            cwd=os.path.dirname(__file__)
+            cwd=os.path.dirname(__file__),
+            bufsize=1,
+            universal_newlines=True
         )
 
-        if result.returncode == 0:
+        # Read output line by line and update progress
+        for line in process.stdout:
+            line = line.strip()
+
+            # Parse progress from different steps
+            if '[1/6]' in line or 'Fetching latest dataset' in line:
+                update_status['progress'] = 15
+                update_status['message'] = 'Fetching latest dataset from HDX...'
+            elif '[2/6]' in line or 'Downloading' in line:
+                update_status['progress'] = 25
+                update_status['message'] = 'Downloading roads file...'
+            elif 'Progress:' in line:
+                # Parse download progress
+                try:
+                    percent = line.split('Progress:')[1].split('%')[0].strip()
+                    download_percent = float(percent)
+                    # Map download progress (0-100) to overall progress (25-45)
+                    update_status['progress'] = int(25 + (download_percent * 0.20))
+                except:
+                    pass
+            elif '[3/6]' in line or 'Extracting' in line:
+                update_status['progress'] = 50
+                update_status['message'] = 'Extracting GeoJSON data...'
+            elif '[4/6]' in line or 'Loading region boundaries' in line:
+                update_status['progress'] = 60
+                update_status['message'] = 'Loading region boundaries...'
+            elif '[5/6]' in line or 'Splitting roads by region' in line:
+                update_status['progress'] = 65
+                update_status['message'] = 'Splitting roads by 18 regions...'
+            elif 'Assigning roads to regions' in line:
+                update_status['progress'] = 70
+                update_status['message'] = 'Processing road assignments...'
+            elif 'Processed:' in line:
+                # Parse processing progress
+                try:
+                    parts = line.split('/')
+                    if len(parts) >= 2:
+                        current = int(parts[0].split(':')[-1].strip().replace(',', ''))
+                        total = int(parts[1].strip().replace(',', ''))
+                        if total > 0:
+                            process_percent = (current / total) * 100
+                            # Map processing (0-100) to overall progress (70-85)
+                            update_status['progress'] = int(70 + (process_percent * 0.15))
+                except:
+                    pass
+            elif 'Saving regional files' in line:
+                update_status['progress'] = 85
+                update_status['message'] = 'Saving optimized regional files...'
+            elif '[OK]' in line and 'roads,' in line:
+                # Each region saved, increment slightly
+                if update_status['progress'] < 95:
+                    update_status['progress'] = min(95, update_status['progress'] + 1)
+            elif '[6/6]' in line or 'Cleaning up' in line:
+                update_status['progress'] = 95
+                update_status['message'] = 'Cleaning up temporary files...'
+            elif 'UPDATE COMPLETE' in line:
+                update_status['progress'] = 100
+                update_status['message'] = 'Update completed successfully!'
+
+        # Wait for process to complete
+        process.wait()
+
+        if process.returncode == 0:
             update_status['progress'] = 100
             update_status['message'] = 'Update completed successfully!'
             update_status['running'] = False
         else:
-            update_status['error'] = result.stderr
+            stderr_output = process.stderr.read()
+            update_status['error'] = stderr_output
             update_status['message'] = 'Update failed'
             update_status['running'] = False
 
