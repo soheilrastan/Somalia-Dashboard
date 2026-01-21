@@ -2790,32 +2790,41 @@
                                     // Create Leaflet GeoJSON layer
                                     activeRoadsOSMLayer = L.geoJSON(loadedRoadsData, {
                                     style: function(feature) {
-                                        // Color roads by type (fclass)
-                                        const fclass = feature.properties.fclass || 'unknown';
+                                        // Color roads by type (highway property from OSM)
+                                        const highway = feature.properties.highway || 'unknown';
                                         let color = '#94a3b8'; // Default gray
 
-                                        if (fclass === 'primary') color = '#ef4444'; // Red
-                                        else if (fclass === 'secondary') color = '#f97316'; // Orange
-                                        else if (fclass === 'tertiary') color = '#fbbf24'; // Yellow
-                                        else if (fclass === 'trunk') color = '#dc2626'; // Dark red
-                                        else if (fclass === 'motorway') color = '#7c2d12'; // Brown
-                                        else if (fclass === 'residential') color = '#cbd5e1'; // Light gray
-                                        else if (fclass === 'track') color = '#78716c'; // Dark gray
+                                        if (highway === 'primary') color = '#ef4444'; // Red
+                                        else if (highway === 'secondary') color = '#f97316'; // Orange
+                                        else if (highway === 'tertiary') color = '#fbbf24'; // Yellow
+                                        else if (highway === 'trunk') color = '#dc2626'; // Dark red
+                                        else if (highway === 'motorway') color = '#7c2d12'; // Brown
+                                        else if (highway === 'residential') color = '#cbd5e1'; // Light gray
+                                        else if (highway === 'track') color = '#78716c'; // Dark gray
+                                        else if (highway === 'footway' || highway === 'path') color = '#a8a29e'; // Light brown
 
-                                        return {
+                                        const style = {
                                             color: color,
-                                            weight: fclass === 'primary' || fclass === 'trunk' || fclass === 'motorway' ? 3 :
-                                                   fclass === 'secondary' || fclass === 'tertiary' ? 2 : 1,
+                                            weight: highway === 'primary' || highway === 'trunk' || highway === 'motorway' ? 3 :
+                                                   highway === 'secondary' || highway === 'tertiary' ? 2 : 1,
                                             opacity: 0.8
                                         };
+
+                                        // Add dotted line for tracks
+                                        if (highway === 'track') {
+                                            style.dashArray = '5, 10';
+                                        }
+
+                                        return style;
                                     },
                                     onEachFeature: function(feature, layer) {
                                         const props = feature.properties;
                                         const popupContent = `
                                             <div style="font-size: 0.9em;">
-                                                <strong>🛣️ Road Classification:</strong> ${props.fclass || 'Unknown'}<br>
-                                                <strong>📏 Length:</strong> ${props.Length_m ? (props.Length_m / 1000).toFixed(2) + ' km' : 'N/A'}<br>
-                                                <strong>📅 Source Year:</strong> ${props.Source_Yea || 'N/A'}
+                                                <strong>🛣️ Road Type:</strong> ${props.highway || 'Unknown'}<br>
+                                                <strong>📛 Name:</strong> ${props.name || 'Unnamed'}<br>
+                                                <strong>🛤️ Surface:</strong> ${props.surface || 'Unknown'}<br>
+                                                <strong>📍 OSM ID:</strong> ${props.osm_id || 'N/A'}
                                             </div>
                                         `;
                                         layer.bindPopup(popupContent);
@@ -3014,33 +3023,43 @@
                                     // Create Leaflet GeoJSON layer
                                     activeRoadsOSMLatestLayer = L.geoJSON(loadedRoadsData, {
                                         style: function(feature) {
-                                            // Color roads by type (fclass)
-                                            const fclass = feature.properties.fclass || 'unknown';
+                                            // Color roads by type (highway property from OSM)
+                                            const highway = feature.properties.highway || 'unknown';
                                             let color = '#94a3b8'; // Default gray
 
-                                            if (fclass === 'primary') color = '#ef4444'; // Red
-                                            else if (fclass === 'secondary') color = '#f97316'; // Orange
-                                            else if (fclass === 'tertiary') color = '#fbbf24'; // Yellow
-                                            else if (fclass === 'trunk') color = '#dc2626'; // Dark red
-                                            else if (fclass === 'motorway') color = '#7c2d12'; // Brown
-                                            else if (fclass === 'residential') color = '#cbd5e1'; // Light gray
-                                            else if (fclass === 'track') color = '#78716c'; // Dark gray
+                                            if (highway === 'primary') color = '#ef4444'; // Red
+                                            else if (highway === 'secondary') color = '#f97316'; // Orange
+                                            else if (highway === 'tertiary') color = '#fbbf24'; // Yellow
+                                            else if (highway === 'trunk') color = '#dc2626'; // Dark red
+                                            else if (highway === 'motorway') color = '#7c2d12'; // Brown
+                                            else if (highway === 'residential') color = '#cbd5e1'; // Light gray
+                                            else if (highway === 'track') color = '#78716c'; // Dark gray
+                                            else if (highway === 'footway' || highway === 'path') color = '#a8a29e'; // Light brown
 
-                                            return {
+                                            const style = {
                                                 color: color,
-                                                weight: fclass === 'primary' || fclass === 'trunk' || fclass === 'motorway' ? 3 :
-                                                       fclass === 'secondary' || fclass === 'tertiary' ? 2 : 1,
+                                                weight: highway === 'primary' || highway === 'trunk' || highway === 'motorway' ? 3 :
+                                                       highway === 'secondary' || highway === 'tertiary' ? 2 : 1,
                                                 opacity: 0.8
                                             };
+
+                                            // Add dotted line for tracks
+                                            if (highway === 'track') {
+                                                style.dashArray = '5, 10';
+                                            }
+
+                                            return style;
                                         },
                                         onEachFeature: function(feature, layer) {
                                             if (feature.properties) {
-                                                const fclass = feature.properties.fclass || 'Unknown';
+                                                const highway = feature.properties.highway || 'Unknown';
                                                 const name = feature.properties.name || 'Unnamed road';
+                                                const surface = feature.properties.surface || 'Unknown';
                                                 layer.bindPopup(`
                                                     <strong>${name}</strong><br>
-                                                    Type: ${fclass}<br>
-                                                    <em>Latest OSM Data</em>
+                                                    <strong>Type:</strong> ${highway}<br>
+                                                    <strong>Surface:</strong> ${surface}<br>
+                                                    <em>Latest OSM Data via HDX</em>
                                                 `);
                                             }
                                         }
@@ -3742,6 +3761,26 @@
                     <div style="font-size: 0.65em; color: #64748b; margin-top: 8px; line-height: 1.4;">
                         Bakool: 1,857 roads (85% tracks)<br>
                         Lower Shebelle: 7,206 roads (4x more)
+                    </div>
+                </div>
+                <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid #334155;">
+                    <div style="color: #22c55e; font-weight: bold; margin-bottom: 6px; font-size: 0.9em;">🛣️ Roads OSM Latest (All Regions)</div>
+                    <div style="font-size: 0.75em; margin-bottom: 8px; color: #94a3b8;">
+                        OpenStreetMap Highway Classification
+                    </div>
+                    <div style="font-size: 0.7em; line-height: 1.8; margin-top: 8px;">
+                        <div><span style="color: #7c2d12; font-weight: bold; font-size: 1.2em;">━━━</span> Motorway</div>
+                        <div><span style="color: #dc2626; font-weight: bold; font-size: 1.2em;">━━━</span> Trunk</div>
+                        <div><span style="color: #ef4444; font-weight: bold; font-size: 1.1em;">━━━</span> Primary</div>
+                        <div><span style="color: #f97316; font-weight: bold; font-size: 1em;">━━━</span> Secondary</div>
+                        <div><span style="color: #fbbf24; font-weight: bold; font-size: 1em;">━━━</span> Tertiary</div>
+                        <div><span style="color: #cbd5e1; font-weight: bold;">━━━</span> Residential</div>
+                        <div><span style="color: #78716c; font-weight: bold;">╌╌╌</span> Track</div>
+                        <div><span style="color: #94a3b8; font-weight: bold;">━━━</span> Other</div>
+                    </div>
+                    <div style="font-size: 0.65em; color: #64748b; margin-top: 8px; line-height: 1.4;">
+                        Latest data via HDX API<br>
+                        Drag & Drop per region
                     </div>
                 </div>
                 <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid #334155;">
