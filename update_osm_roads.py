@@ -99,7 +99,8 @@ def download_latest_roads():
         # Cleanup zip file
         zip_path.unlink()
 
-        return geojson_path
+        # Return both path and metadata
+        return {'path': geojson_path, 'last_modified': last_modified}
 
     except Exception as e:
         print(f"[ERROR] Error downloading roads data: {e}", flush=True)
@@ -233,13 +234,35 @@ def cleanup_temp_files():
         temp_zip.unlink()
         print("  [OK] Removed temporary zip file", flush=True)
 
+def write_version_file(last_modified):
+    """Write version metadata to .version.json"""
+    from datetime import datetime
+
+    version_data = {
+        'last_modified': last_modified,
+        'updated_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    }
+
+    version_file = Path('roads_by_region_latest/.version.json')
+    version_file.parent.mkdir(exist_ok=True)
+
+    with open(version_file, 'w') as f:
+        json.dump(version_data, f, indent=2)
+
+    print(f"[OK] Version file written: {version_file}", flush=True)
+    print(f"    HDX version: {last_modified}", flush=True)
+    print(f"    Downloaded at: {version_data['updated_at']}", flush=True)
+
 def main():
     start_time = time.time()
 
-    # Download latest roads
-    roads_path = download_latest_roads()
-    if not roads_path:
+    # Download latest roads (returns dict with path and metadata)
+    download_result = download_latest_roads()
+    if not download_result:
         return
+
+    roads_path = download_result['path']
+    last_modified = download_result['last_modified']
 
     # Load region boundaries
     boundaries = load_region_boundaries()
@@ -249,6 +272,10 @@ def main():
 
     # Split roads by region
     saved_count = split_roads_by_region(roads_path, boundaries)
+
+    # Write version metadata
+    print("\n[6/6] Writing version metadata...", flush=True)
+    write_version_file(last_modified)
 
     # Cleanup
     cleanup_temp_files()

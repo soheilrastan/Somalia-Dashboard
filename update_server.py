@@ -194,6 +194,23 @@ def reset_update():
         'message': 'Update status reset successfully'
     })
 
+@app.route('/api/check-version', methods=['GET'])
+def check_version():
+    """Check OSM roads version (HDX vs local)"""
+    try:
+        # Import and run the version check subroutine
+        from check_osm_version import check_osm_roads_version
+
+        result = check_osm_roads_version()
+        return jsonify(result)
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'message': f'Version check failed: {str(e)}'
+        }), 500
+
 if __name__ == '__main__':
     print("=" * 70)
     print("  Somalia Dashboard - OSM Roads Update Server")
