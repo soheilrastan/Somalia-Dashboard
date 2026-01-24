@@ -25,6 +25,18 @@
         </div>
         <div id="map"></div>
     </div>
+
+    <!-- Shared Modules - Must load BEFORE data and main script -->
+    <script>
+        // Cache-busting for modules
+        const moduleTime = Date.now();
+        document.write('<script src="ddr.js?v=3.0&t=' + moduleTime + '"><\/script>');
+        document.write('<script src="layer-registry.js?v=3.0&t=' + moduleTime + '"><\/script>');
+        document.write('<script src="road-symbology.js?v=3.0&t=' + moduleTime + '"><\/script>');
+        document.write('<script src="geo-api.js?v=3.0&t=' + moduleTime + '"><\/script>');
+    </script>
+
+    <!-- Data and Main Script -->
     <script>
         // Build timestamp to force cache refresh on every deploy
         const buildTime = Date.now();

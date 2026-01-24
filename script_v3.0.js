@@ -532,6 +532,144 @@
             }
         });
 
+        // ========================================
+        // DDR MODULE INITIALIZATION
+        // Shared Drag-Drop-Rightclick for all layers
+        // ========================================
+        if (typeof DDR !== 'undefined') {
+            DDR.init(map, adm1Layer);
+            console.log('[DDR] Module initialized with map and ADM1 layer');
+        } else {
+            console.warn('[DDR] DDR module not loaded');
+        }
+
+        // ========================================
+        // LAYER REGISTRY INITIALIZATION
+        // Auto-registers downloaded layers to UI
+        // ========================================
+        if (typeof LayerRegistry !== 'undefined') {
+            LayerRegistry.init(map, adm1Layer, allRegionLayers);
+            console.log('[LayerRegistry] Module initialized');
+        } else {
+            console.warn('[LayerRegistry] LayerRegistry module not loaded');
+        }
+
+        // ========================================
+        // GeoAPI MODULE INITIALIZATION
+        // Road data install/uninstall management
+        // ========================================
+        if (typeof GeoAPI !== 'undefined') {
+            GeoAPI.init(map, {
+                panelContainers: {
+                    '2024': 'roads2024Container',
+                    'latest': 'roadsLatestContainer'
+                }
+            });
+            console.log('[GeoAPI] Module initialized');
+        } else {
+            console.warn('[GeoAPI] GeoAPI module not loaded');
+        }
+
+        // ========================================
+        // SHARED CONTEXT MENU (Right-Click)
+        // For all road layers
+        // ========================================
+        let layerContextMenu = null;
+
+        function createLayerContextMenu() {
+            if (layerContextMenu) return;
+
+            layerContextMenu = document.createElement('div');
+            layerContextMenu.id = 'layerContextMenu';
+            layerContextMenu.style.cssText = `
+                position: fixed;
+                background: #1f2937;
+                border: 1px solid #374151;
+                border-radius: 8px;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+                min-width: 180px;
+                z-index: 10001;
+                display: none;
+                overflow: hidden;
+                font-size: 0.9em;
+            `;
+            document.body.appendChild(layerContextMenu);
+
+            // Close on click elsewhere
+            document.addEventListener('click', function(e) {
+                if (layerContextMenu && !layerContextMenu.contains(e.target)) {
+                    layerContextMenu.style.display = 'none';
+                }
+            });
+        }
+
+        function showLayerContextMenu(layerId, layerName, color, x, y, options) {
+            createLayerContextMenu();
+
+            const { isActive, onToggle, onZoom, onRemove, onInfo } = options;
+
+            layerContextMenu.innerHTML = `
+                <div style="padding: 10px 14px; border-bottom: 1px solid #374151; font-weight: 600; color: ${color};">
+                    ${layerName}
+                </div>
+                <div class="ctx-menu-item" data-action="toggle" style="padding: 10px 14px; cursor: pointer; color: #e5e7eb; display: flex; align-items: center; gap: 8px;">
+                    <span>${isActive ? '👁️‍🗨️' : '👁️'}</span>
+                    <span>${isActive ? 'Hide Layer' : 'Show Layer'}</span>
+                </div>
+                ${isActive ? `
+                <div class="ctx-menu-item" data-action="zoom" style="padding: 10px 14px; cursor: pointer; color: #e5e7eb; display: flex; align-items: center; gap: 8px;">
+                    <span>🔍</span>
+                    <span>Zoom to Layer</span>
+                </div>
+                ` : ''}
+                <div class="ctx-menu-item" data-action="info" style="padding: 10px 14px; cursor: pointer; color: #e5e7eb; display: flex; align-items: center; gap: 8px;">
+                    <span>ℹ️</span>
+                    <span>Layer Info</span>
+                </div>
+                ${isActive ? `
+                <div style="border-top: 1px solid #374151;"></div>
+                <div class="ctx-menu-item" data-action="remove" style="padding: 10px 14px; cursor: pointer; color: #ef4444; display: flex; align-items: center; gap: 8px;">
+                    <span>❌</span>
+                    <span>Remove from Map</span>
+                </div>
+                ` : ''}
+            `;
+
+            layerContextMenu.style.left = x + 'px';
+            layerContextMenu.style.top = y + 'px';
+            layerContextMenu.style.display = 'block';
+
+            // Adjust if off-screen
+            const rect = layerContextMenu.getBoundingClientRect();
+            if (rect.right > window.innerWidth) {
+                layerContextMenu.style.left = (x - rect.width) + 'px';
+            }
+            if (rect.bottom > window.innerHeight) {
+                layerContextMenu.style.top = (y - rect.height) + 'px';
+            }
+
+            // Add hover effects and click handlers
+            layerContextMenu.querySelectorAll('.ctx-menu-item').forEach(item => {
+                item.addEventListener('mouseenter', function() {
+                    this.style.background = '#374151';
+                });
+                item.addEventListener('mouseleave', function() {
+                    this.style.background = 'transparent';
+                });
+                item.addEventListener('click', function() {
+                    const action = this.dataset.action;
+                    layerContextMenu.style.display = 'none';
+
+                    switch(action) {
+                        case 'toggle': onToggle && onToggle(); break;
+                        case 'zoom': onZoom && onZoom(); break;
+                        case 'info': onInfo && onInfo(); break;
+                        case 'remove': onRemove && onRemove(); break;
+                    }
+                });
+            });
+        }
+
         // Update map click to deselect both region and district
         map.on('click', function() {
             if (selectedRegion) {
@@ -857,59 +995,107 @@
                             <label style="font-size: 0.85em; color: #94a3b8; display: block; margin-top: 3px;"><input type="checkbox" disabled> Lower Shebelle <span style="color: #fbbf24; font-style: italic;">(Coming Soon)</span></label>
                         </div>
                     </div>
-                    <label style="font-size: 0.85em;">
-                        <input type="checkbox" id="roadsToggle">
-                        <span style="color: #F48FB1;">■</span>
-                        <span id="roadsLabel" draggable="true" style="cursor: grab; user-select: none; display: inline-flex; align-items: center; gap: 4px;">
-                            <span class="drag-handle" style="opacity: 0; transition: opacity 0.2s;">⋮⋮</span>
-                            <span>Roads (9,063 - 2 regions)</span>
-                        </span>
-                    </label>
-
-                    <!-- Roads OSM 2023 category -->
-                    <div style="margin-top: 8px; margin-bottom: 8px; padding: 10px; background: rgba(244, 143, 177, 0.1); border-left: 3px solid #F48FB1; border-radius: 4px;">
-                        <label style="font-weight: bold; color: #F48FB1; display: block; margin-bottom: 5px;">
-                            <input type="checkbox" id="roadsOSMToggle">
-                            <span id="roadsOSMLabel" draggable="true" style="cursor: grab; user-select: none; display: inline-flex; align-items: center; gap: 4px;">
-                                <span class="drag-handle" style="opacity: 0; transition: opacity 0.2s;">⋮⋮</span>
-                                <span>🛣️ Roads OSM 2023</span>
-                            </span>
+                    <!-- ============================================ -->
+                    <!-- ROADS INFRASTRUCTURE - Hierarchical Structure -->
+                    <!-- ============================================ -->
+                    <div style="margin-top: 12px; border-left: 3px solid #3b82f6; padding-left: 10px;">
+                        <label style="font-weight: bold; color: #3b82f6; font-size: 1em; display: block; margin-bottom: 8px;">
+                            🛣️ Roads Infrastructure (OSM/HDX)
                         </label>
-                        <div style="margin-left: 12px; font-size: 0.85em; color: #94a3b8; margin-top: 5px;">
-                            OpenStreetMap Road Network, 2023
-                        </div>
-                    </div>
 
-                    <!-- Roads OSM Latest (Auto-Update) category -->
-                    <div style="margin-top: 8px; margin-bottom: 8px; padding: 10px; background: rgba(34, 197, 94, 0.1); border-left: 3px solid #22c55e; border-radius: 4px;">
-                        <label style="font-weight: bold; color: #22c55e; display: block; margin-bottom: 5px;">
-                            <input type="checkbox" id="roadsOSMLatestToggle">
-                            <span id="roadsOSMLatestLabel" draggable="true" style="cursor: grab; user-select: none; display: inline-flex; align-items: center; gap: 4px;">
-                                <span class="drag-handle" style="opacity: 0; transition: opacity 0.2s;">⋮⋮</span>
-                                <span>🔄 Roads OSM Latest (Auto-Update)</span>
-                            </span>
-                        </label>
-                        <div style="margin-left: 12px; font-size: 0.85em; color: #94a3b8; margin-top: 5px;">
-                            Latest OpenStreetMap data via HDX API
+                        <!-- L0: Coming Soon -->
+                        <div style="margin-left: 8px; margin-bottom: 8px; padding: 8px; background: rgba(107, 114, 128, 0.08); border-radius: 4px;">
+                            <div style="font-size: 0.9em; color: #6b7280; font-style: italic;">
+                                L0: Full Country Roads (coming soon)
+                            </div>
                         </div>
 
-                        <!-- OSM Update Button -->
-                        <button id="updateOSMButton" style="
-                            margin-left: 12px;
-                            margin-top: 10px;
-                            background: rgba(34, 197, 94, 0.2);
-                            border: 2px solid #22c55e;
-                            color: #22c55e;
-                            padding: 6px 12px;
-                            border-radius: 6px;
-                            cursor: pointer;
-                            font-size: 0.8em;
-                            font-weight: bold;
-                            transition: all 0.3s;
-                            width: calc(100% - 12px);
-                        " onmouseover="this.style.background='rgba(34, 197, 94, 0.3)'" onmouseout="this.style.background='rgba(34, 197, 94, 0.2)'">
-                            🔄 Update Roads from HDX API
-                        </button>
+                        <!-- L1: Roads by Version -->
+                        <div style="margin-left: 8px; border-left: 2px solid #94a3b8; padding-left: 10px;">
+                            <div style="font-size: 0.85em; color: #94a3b8; margin-bottom: 6px; font-weight: 600;">
+                                L1: Roads by Version (Drag to Region)
+                            </div>
+
+                            <!-- 2023 Version -->
+                            <div style="margin-bottom: 6px; padding: 6px; background: rgba(244, 143, 177, 0.1); border-left: 3px solid #F48FB1; border-radius: 4px;">
+                                <label style="font-size: 0.85em; color: #F48FB1; display: flex; align-items: center; gap: 6px;">
+                                    <input type="checkbox" id="roadsOSMToggle">
+                                    <span id="roadsOSMLabel" class="ddr-layer-label" data-layer="roads2023" data-folder="roads_by_region" draggable="true" style="cursor: grab; user-select: none; display: inline-flex; align-items: center; gap: 4px;">
+                                        <span style="opacity: 0.5;">⋮⋮</span>
+                                        <span>🗓️ Roads 2023</span>
+                                    </span>
+                                </label>
+                                <div style="margin-left: 22px; font-size: 0.7em; color: #6b7280;">Original OSM export (18 regions)</div>
+                            </div>
+
+                            <!-- 2024 Version (July) -->
+                            <div id="roads2024Container" data-version="2024" style="margin-bottom: 6px; padding: 6px; background: rgba(251, 191, 36, 0.1); border-left: 3px solid #fbbf24; border-radius: 4px;">
+                                <label style="font-size: 0.85em; color: #fbbf24; display: flex; align-items: center; gap: 6px;">
+                                    <input type="checkbox" id="roads2024Toggle">
+                                    <span id="roads2024Label" class="ddr-layer-label" data-layer="roads2024" data-folder="roads_by_region_2024_07_23" draggable="true" style="cursor: grab; user-select: none; display: inline-flex; align-items: center; gap: 4px;">
+                                        <span style="opacity: 0.5;">⋮⋮</span>
+                                        <span>🗓️ Roads 2024 (July)</span>
+                                    </span>
+                                </label>
+                                <div style="margin-left: 22px; font-size: 0.7em; color: #6b7280;">HDX Geopackage - 2024-07-23</div>
+                            </div>
+
+                            <!-- Latest Version (Auto-Update) -->
+                            <div id="roadsLatestContainer" data-version="latest" style="margin-bottom: 6px; padding: 6px; background: rgba(34, 197, 94, 0.1); border-left: 3px solid #22c55e; border-radius: 4px;">
+                                <label style="font-size: 0.85em; color: #22c55e; display: flex; align-items: center; gap: 6px;">
+                                    <input type="checkbox" id="roadsOSMLatestToggle">
+                                    <span id="roadsOSMLatestLabel" class="ddr-layer-label" data-layer="roadsLatest" data-folder="roads_by_region_latest" draggable="true" style="cursor: grab; user-select: none; display: inline-flex; align-items: center; gap: 4px;">
+                                        <span style="opacity: 0.5;">⋮⋮</span>
+                                        <span>🔄 Roads Latest</span>
+                                    </span>
+                                </label>
+                                <div style="margin-left: 22px; font-size: 0.7em; color: #6b7280;">Auto-updated via HDX API</div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div style="margin-top: 10px; margin-left: 8px; display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button id="updateOSMButton" style="
+                                flex: 1;
+                                min-width: 120px;
+                                background: rgba(34, 197, 94, 0.2);
+                                border: 1px solid #22c55e;
+                                color: #22c55e;
+                                padding: 6px 10px;
+                                border-radius: 4px;
+                                cursor: pointer;
+                                font-size: 0.75em;
+                                font-weight: bold;
+                            ">🔄 Update Latest</button>
+                            <button id="checkRoadsVersionsBtn" style="
+                                flex: 1;
+                                min-width: 120px;
+                                background: rgba(59, 130, 246, 0.2);
+                                border: 1px solid #3b82f6;
+                                color: #3b82f6;
+                                padding: 6px 10px;
+                                border-radius: 4px;
+                                cursor: pointer;
+                                font-size: 0.75em;
+                                font-weight: bold;
+                            ">📦 Geo-API</button>
+                        </div>
+
+                        <!-- Install Progress Display -->
+                        <div id="roadsInstallProgress" style="display: none; margin-top: 8px; margin-left: 8px; padding: 8px; background: rgba(59, 130, 246, 0.1); border-radius: 4px; font-size: 0.75em;">
+                            <div style="color: #3b82f6; font-weight: bold; margin-bottom: 4px;">
+                                <span id="installStatusText">Installing...</span>
+                            </div>
+                            <div style="background: #1f2937; border-radius: 4px; height: 8px; overflow: hidden;">
+                                <div id="installProgressBar" style="background: #3b82f6; height: 100%; width: 0%; transition: width 0.3s;"></div>
+                            </div>
+                            <div style="margin-top: 4px; color: #94a3b8;">
+                                <span id="installStepText">Step 1 of 5: Downloading...</span>
+                            </div>
+                            <div style="margin-top: 2px; color: #6b7280;">
+                                <span id="installRegionText">Region 0 of 18</span>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Population hierarchical structure -->
@@ -1333,6 +1519,11 @@
             let dragGhost = null;
             let cursorIndicator = null;
             let iseeAnalyticsActive = false;
+
+            // Shared variables for roads layers (used by iSEE Analytics)
+            let clippedRoadsLayer = null;
+            let activeRoadsRegion = null;
+            let roadsData = null;
 
             // Drag start
             bakool2022Label.addEventListener('dragstart', function(e) {
@@ -2120,12 +2311,18 @@
                                         detailedNLBakool2023: detailedNLBakool2023,
                                         bakoolNightlightPolygons2022: bakoolNightlightPolygons2022,
                                         bakoolNightlightPolygons2023: bakoolNightlightPolygons2023,
+                                        regionLayer: droppedRegionLayer,
+                                        allRegionLayers: allRegionLayers,
+                                        somaliaData: adm1Boundaries,  // Pass MPI/region data for basic analysis
+                                        // Roads 2023 layer references for iSEE Analytics
                                         clippedRoadsLayer: clippedRoadsLayer,
                                         activeRoadsRegion: activeRoadsRegion,
                                         roadsData: roadsData,
-                                        regionLayer: droppedRegionLayer,
-                                        allRegionLayers: allRegionLayers,
-                                        somaliaData: adm1Boundaries  // Pass MPI/region data for basic analysis
+                                        // Population layer references for iSEE Analytics
+                                        populationLayer: populationLayer,
+                                        populationData: populationData,
+                                        // MPI layer reference for iSEE Analytics
+                                        mpiLayer: mpiLayer
                                     };
 
                                     // Call runISEEAnalytics with region parameter
@@ -2150,24 +2347,11 @@
             });
 
             // ========================================
-            // DRAG-AND-DROP: Roads Layer (Multi-Region with Auto-Clipping)
+            // SHARED HELPER FUNCTIONS FOR ROAD LAYERS
             // ========================================
 
-            const roadsLabel = document.getElementById('roadsLabel');
-            let clippedRoadsLayer = null;
-            let activeRoadsRegion = null; // Track which region has roads displayed
-            let roadsData = null; // Store roads GeoJSON data with metadata
-
-            // Store region references
-            let lowerShebelleRegionLayer = null;
-
-            // Find Lower Shebelle region layer
-            adm1Layer.eachLayer(function(layer) {
-                if (layer.feature && layer.feature.properties &&
-                    layer.feature.properties.name === 'Lower Shebelle') {
-                    lowerShebelleRegionLayer = layer;
-                }
-            });
+            // Note: clippedRoadsLayer, activeRoadsRegion, roadsData declared above (near line 1522)
+            // for use by iSEE Analytics
 
             // Helper function: Point-in-polygon detection using ray casting algorithm
             function isPointInPolygon(point, layer) {
@@ -2195,382 +2379,50 @@
                 return false;
             }
 
-            // Drag start for Roads
-            roadsLabel.addEventListener('dragstart', function(e) {
-                draggedLayerId = 'roads';
-
-                // Add dragging class to body for cursor control
-                document.body.classList.add('dragging');
-
-                // Create cursor indicator
-                cursorIndicator = document.createElement('div');
-                cursorIndicator.className = 'cursor-indicator';
-                document.body.appendChild(cursorIndicator);
-
-                // Create ghost element (preview while dragging)
-                dragGhost = document.createElement('div');
-                dragGhost.style.cssText = `
-                    position: fixed;
-                    background: rgba(244, 143, 177, 0.9);
-                    color: white;
-                    padding: 8px 12px;
-                    border-radius: 6px;
-                    font-size: 0.85em;
-                    pointer-events: none;
-                    z-index: 10000;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-                `;
-                dragGhost.textContent = '🛣️ Roads (2 regions)';
-                document.body.appendChild(dragGhost);
-
-                // Add dragging class
-                roadsLabel.classList.add('dragging-layer');
-
-                // Store data
-                e.dataTransfer.effectAllowed = 'copy';
-                e.dataTransfer.setData('text/plain', 'roads');
-
-                // Hide default drag image
-                const img = new Image();
-                img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-                e.dataTransfer.setDragImage(img, 0, 0);
-            });
-
-            // Update ghost position
-            document.addEventListener('drag', function(e) {
-                if (dragGhost && draggedLayerId === 'roads' && e.clientX !== 0 && e.clientY !== 0) {
-                    dragGhost.style.left = (e.clientX + 10) + 'px';
-                    dragGhost.style.top = (e.clientY + 10) + 'px';
-                }
-            });
-
-            // Drag end - cleanup
-            roadsLabel.addEventListener('dragend', function(e) {
-                roadsLabel.classList.remove('dragging-layer');
-                document.body.classList.remove('dragging');
-
-                if (dragGhost) {
-                    document.body.removeChild(dragGhost);
-                    dragGhost = null;
-                }
-                if (cursorIndicator) {
-                    document.body.removeChild(cursorIndicator);
-                    cursorIndicator = null;
-                }
-                draggedLayerId = null;
-
-                // Remove highlight from regions
-                if (bakoolRegionLayer) {
-                    adm1Layer.resetStyle(bakoolRegionLayer);
-                }
-                if (lowerShebelleRegionLayer) {
-                    adm1Layer.resetStyle(lowerShebelleRegionLayer);
-                }
-            });
-
-            // Map dragover handler for Roads
-            mapContainer.addEventListener('dragover', function(e) {
-                if (draggedLayerId === 'roads') {
-                    e.preventDefault();
-
-                    const rect = mapContainer.getBoundingClientRect();
-                    const latlng = map.containerPointToLatLng([e.clientX - rect.left, e.clientY - rect.top]);
-
-                    let overBakool = false;
-                    let overLowerShebelle = false;
-
-                    // Check ONLY Bakool and Lower Shebelle with precise point-in-polygon
-                    if (bakoolRegionLayer && isPointInPolygon(latlng, bakoolRegionLayer)) {
-                        overBakool = true;
-                    }
-
-                    if (lowerShebelleRegionLayer && !overBakool && isPointInPolygon(latlng, lowerShebelleRegionLayer)) {
-                        overLowerShebelle = true;
-                    }
-
-                    if (overBakool || overLowerShebelle) {
-                        // Valid drop zone
-                        mapContainer.classList.add('drop-target');
-                        mapContainer.classList.remove('drop-invalid');
-
-                        if (dragGhost) {
-                            dragGhost.style.background = 'rgba(34, 197, 94, 0.9)'; // Green
-                            if (overBakool) {
-                                dragGhost.textContent = '✓ Drop to show Bakool roads (1,857)';
-                            } else {
-                                dragGhost.textContent = '✓ Drop to show Lower Shebelle roads (7,206)';
-                            }
-                        }
-
-                        // Highlight the region
-                        if (overBakool) {
-                            bakoolRegionLayer.setStyle({
-                                color: '#22c55e',
-                                weight: 4,
-                                opacity: 1,
-                                fillColor: '#22c55e',
-                                fillOpacity: 0.2,
-                                dashArray: '10, 5'
-                            });
-                            if (lowerShebelleRegionLayer) {
-                                adm1Layer.resetStyle(lowerShebelleRegionLayer);
-                            }
-                        } else if (overLowerShebelle) {
-                            lowerShebelleRegionLayer.setStyle({
-                                color: '#22c55e',
-                                weight: 4,
-                                opacity: 1,
-                                fillColor: '#22c55e',
-                                fillOpacity: 0.2,
-                                dashArray: '10, 5'
-                            });
-                            if (bakoolRegionLayer) {
-                                adm1Layer.resetStyle(bakoolRegionLayer);
-                            }
-                        }
-
-                        // Show flashing green cursor indicator
-                        if (cursorIndicator) {
-                            cursorIndicator.style.left = e.clientX + 'px';
-                            cursorIndicator.style.top = e.clientY + 'px';
-                            cursorIndicator.classList.add('active');
-                        }
-                    } else {
-                        // Outside valid regions - invalid drop zone
-                        mapContainer.classList.add('drop-invalid');
-                        mapContainer.classList.remove('drop-target');
-
-                        if (dragGhost) {
-                            dragGhost.style.background = 'rgba(239, 68, 68, 0.9)'; // Red
-                            dragGhost.textContent = '✗ Drop on Bakool or Lower Shebelle';
-                        }
-
-                        // Reset region styles
-                        if (bakoolRegionLayer) {
-                            adm1Layer.resetStyle(bakoolRegionLayer);
-                        }
-                        if (lowerShebelleRegionLayer) {
-                            adm1Layer.resetStyle(lowerShebelleRegionLayer);
-                        }
-
-                        if (cursorIndicator) {
-                            cursorIndicator.classList.remove('active');
-                        }
-                    }
-
-                    // Update cursor indicator position
-                    if (cursorIndicator && e.clientX !== 0 && e.clientY !== 0) {
-                        cursorIndicator.style.left = e.clientX + 'px';
-                        cursorIndicator.style.top = e.clientY + 'px';
-                    }
-                }
-            });
-
-            // Map drop handler for Roads
-            mapContainer.addEventListener('drop', function(e) {
-                if (draggedLayerId === 'roads') {
-                    e.preventDefault();
-
-                    // Check if Roads layer is already dropped
-                    if (roadsLabel.classList.contains('layer-dropped')) {
-                        // Show warning notification
-                        const rect = mapContainer.getBoundingClientRect();
-                        const latlng = map.containerPointToLatLng([e.clientX - rect.left, e.clientY - rect.top]);
-
-                        const warningPopup = L.popup({
-                            closeButton: false,
-                            autoClose: true,
-                            autoPan: false,
-                            className: 'drop-warning-popup'
-                        })
-                        .setLatLng(latlng)
-                        .setContent(`⚠️ Roads layer already active in ${activeRoadsRegion}`)
-                        .openOn(map);
-
-                        setTimeout(() => {
-                            map.closePopup(warningPopup);
-                        }, 2500);
-                        return; // Exit early
-                    }
-
-                    const rect = mapContainer.getBoundingClientRect();
-                    const latlng = map.containerPointToLatLng([e.clientX - rect.left, e.clientY - rect.top]);
-
-                    let droppedOnBakool = false;
-                    let droppedOnLowerShebelle = false;
-                    let targetRegion = null;
-
-                    // Use PRECISE point-in-polygon detection (same as dragover)
-                    if (bakoolRegionLayer && isPointInPolygon(latlng, bakoolRegionLayer)) {
-                        droppedOnBakool = true;
-                        targetRegion = 'Bakool';
-                    }
-
-                    // Check Lower Shebelle only if not over Bakool (mutually exclusive)
-                    if (lowerShebelleRegionLayer && !droppedOnBakool && isPointInPolygon(latlng, lowerShebelleRegionLayer)) {
-                        droppedOnLowerShebelle = true;
-                        targetRegion = 'Lower Shebelle'; // Match data spelling
-                    }
-
-                    // Only proceed if dropped on a valid region
-                    if (droppedOnBakool || droppedOnLowerShebelle) {
-                        // Reset region styles
-                        if (bakoolRegionLayer) {
-                            adm1Layer.resetStyle(bakoolRegionLayer);
-                        }
-                        if (lowerShebelleRegionLayer) {
-                            adm1Layer.resetStyle(lowerShebelleRegionLayer);
-                        }
-
-                        // Remove existing clipped roads layer if any
-                        if (clippedRoadsLayer && map.hasLayer(clippedRoadsLayer)) {
-                            map.removeLayer(clippedRoadsLayer);
-                        }
-
-                        // ========================================
-                        // AUTO-CLIP ROADS TO TARGET REGION
-                        // ========================================
-                        console.log('🛣️ Clipping roads to:', targetRegion);
-
-                        // Filter roads data for the target region
-                        const filteredFeatures = roadsData.features.filter(feature =>
-                            feature.properties.shapeName === targetRegion
-                        );
-
-                        console.log(`✓ Found ${filteredFeatures.length} roads in ${targetRegion}`);
-
-                        // Create new clipped layer
-                        const clippedData = {
-                            type: 'FeatureCollection',
-                            features: filteredFeatures
-                        };
-
-                        clippedRoadsLayer = L.geoJSON(clippedData, {
-                            style: function(feature) {
-                                return {
-                                    color: getRoadColor(feature.properties.TYPE),
-                                    weight: getRoadWidth(feature.properties.TYPE),
-                                    opacity: 0.7,
-                                    lineCap: 'round',
-                                    lineJoin: 'round'
-                                };
-                            },
-                            onEachFeature: function(feature, layer) {
-                                const props = feature.properties;
-                                layer.bindPopup(`
-                                    <div style="font-family: 'Segoe UI', sans-serif;">
-                                        <div style="font-weight: bold; color: #F48FB1; font-size: 1.1em; margin-bottom: 8px;">
-                                            🛣️ Road
-                                        </div>
-                                        <div style="margin: 6px 0;">
-                                            <span style="color: #94a3b8; font-size: 0.85em;">Type:</span><br>
-                                            <span class="metric-value">${props.TYPE}</span>
-                                        </div>
-                                        <div style="margin: 6px 0;">
-                                            <span style="color: #94a3b8; font-size: 0.85em;">Region:</span><br>
-                                            <span class="metric-value">${props.shapeName}</span>
-                                        </div>
-                                        <div class="source-link">
-                                            <strong>Data:</strong> Somalia All Roads 2021 (Clipped to ${targetRegion})
-                                        </div>
-                                    </div>
-                                `, { maxWidth: 300 });
-                            }
-                        });
-
-                        // Add clipped layer to map
-                        map.addLayer(clippedRoadsLayer);
-
-                        // Update active region tracker
-                        activeRoadsRegion = targetRegion;
-
-                        // Check the checkbox
-                        document.getElementById('roadsToggle').checked = true;
-
-                        // Add visual feedback
-                        roadsLabel.classList.add('layer-dropped');
-
-                        // Zoom to the region
-                        const targetLayer = droppedOnBakool ? bakoolRegionLayer : lowerShebelleRegionLayer;
-                        const targetBounds = targetLayer.getBounds();
-                        map.fitBounds(targetBounds, {
-                            padding: [50, 50],
-                            maxZoom: 10,
-                            animate: true,
-                            duration: 1.0
-                        });
-
-                        // Show success notification
-                        const regionDisplayName = droppedOnBakool ? 'Bakool' : 'Lower Shebelle';
-                        const notification = L.popup({
-                            closeButton: false,
-                            autoClose: true,
-                            autoPan: false,
-                            className: 'drop-success-popup'
-                        })
-                        .setLatLng(latlng)
-                        .setContent(`✓ Roads Layer Clipped to ${regionDisplayName} (${filteredFeatures.length} roads)`)
-                        .openOn(map);
-
-                        setTimeout(() => {
-                            map.closePopup(notification);
-                        }, 3000);
-                    } else {
-                        // Dropped on invalid region (e.g., Bay) - show warning
-                        if (bakoolRegionLayer) {
-                            adm1Layer.resetStyle(bakoolRegionLayer);
-                        }
-                        if (lowerShebelleRegionLayer) {
-                            adm1Layer.resetStyle(lowerShebelleRegionLayer);
-                        }
-
-                        // Show warning notification
-                        const warningPopup = L.popup({
-                            closeButton: false,
-                            autoClose: true,
-                            autoPan: false,
-                            className: 'drop-invalid-popup'
-                        })
-                        .setLatLng(latlng)
-                        .setContent('❌ Roads can only be dropped on Bakool or Lower Shebelle')
-                        .openOn(map);
-
-                        setTimeout(() => {
-                            map.closePopup(warningPopup);
-                        }, 2500);
-                    }
-
-                    // Remove cursor classes
-                    mapContainer.classList.remove('drop-target');
-                    mapContainer.classList.remove('drop-invalid');
-                }
-            });
-
-            // Enhanced Roads checkbox toggle - handle clipped layer
-            document.getElementById('roadsToggle').addEventListener('change', function(e) {
-                if (e.target.checked) {
-                    if (clippedRoadsLayer) {
-                        map.addLayer(clippedRoadsLayer);
-                    } else {
-                        // If no clipped layer exists, use full roads layer
-                        map.addLayer(roadsLayer);
-                    }
-                } else {
-                    if (clippedRoadsLayer) {
-                        map.removeLayer(clippedRoadsLayer);
-                    } else {
-                        map.removeLayer(roadsLayer);
-                    }
-                    // Remove visual feedback
-                    roadsLabel.classList.remove('layer-dropped');
-                    activeRoadsRegion = null;
-                }
-            });
-
             // ========================================
-            // DRAG-AND-DROP: Roads OSM Layer
+            // DRAG-AND-DROP: Roads OSM Layer (2023)
             // ========================================
+
             const roadsOSMLabel = document.getElementById('roadsOSMLabel');
+            const roadsOSMToggle = document.getElementById('roadsOSMToggle');
+
+            // Right-click context menu for Roads OSM 2023
+            roadsOSMLabel.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                const isActive = activeRoadsOSMLayer && map.hasLayer(activeRoadsOSMLayer);
+
+                showLayerContextMenu('roadsOSM', 'Roads OSM 2023', '#F48FB1', e.clientX, e.clientY, {
+                    isActive,
+                    onToggle: function() {
+                        if (isActive) {
+                            map.removeLayer(activeRoadsOSMLayer);
+                            roadsOSMToggle.checked = false;
+                            roadsOSMLabel.classList.remove('layer-dropped');
+                        } else if (activeRoadsOSMLayer) {
+                            map.addLayer(activeRoadsOSMLayer);
+                            roadsOSMToggle.checked = true;
+                            roadsOSMLabel.classList.add('layer-dropped');
+                        }
+                    },
+                    onZoom: function() {
+                        if (activeRoadsOSMLayer) {
+                            map.fitBounds(activeRoadsOSMLayer.getBounds(), { padding: [50, 50] });
+                        }
+                    },
+                    onRemove: function() {
+                        if (activeRoadsOSMLayer) {
+                            map.removeLayer(activeRoadsOSMLayer);
+                            activeRoadsOSMLayer = null;
+                            activeRoadsOSMRegion = null;
+                            roadsOSMToggle.checked = false;
+                            roadsOSMLabel.classList.remove('layer-dropped');
+                        }
+                    },
+                    onInfo: function() {
+                        alert(`Roads OSM 2023\n\nSource: OpenStreetMap via HDX\nRegion: ${activeRoadsOSMRegion || 'Not loaded'}\nFeatures: ${activeRoadsOSMLayer ? activeRoadsOSMLayer.getLayers().length : 0} roads`);
+                    }
+                });
+            });
 
             roadsOSMLabel.addEventListener('dragstart', function(e) {
                 draggedLayerId = 'roadsOSM';
@@ -2762,7 +2614,7 @@
                         const roadsFilePath = `roads_by_region/${safeRegionName}_roads.js`;
 
                         // Dynamically load the roads file using fetch and eval
-                        const roadsVarName = safeRegionName.toLowerCase().replace(/ /g, '_') + 'Roads';
+                        const roadsVarName = safeRegionName.toLowerCase() + 'Roads';
                         console.log('🔍 Loading roads file:', roadsFilePath);
                         console.log('🔍 Expected variable name:', roadsVarName);
 
@@ -2787,47 +2639,24 @@
                                     console.log(`✓ Found ${roadsVarName}!`);
                                     console.log(`✓ Data contains ${loadedRoadsData.features.length} road features`);
 
-                                    // Create Leaflet GeoJSON layer
+                                    // Create Leaflet GeoJSON layer using unified RoadSymbology module
                                     activeRoadsOSMLayer = L.geoJSON(loadedRoadsData, {
                                     style: function(feature) {
-                                        // Color roads by type (highway property from OSM)
-                                        const highway = feature.properties.highway || 'unknown';
-                                        let color = '#94a3b8'; // Default gray
-
-                                        if (highway === 'primary') color = '#ef4444'; // Red
-                                        else if (highway === 'secondary') color = '#f97316'; // Orange
-                                        else if (highway === 'tertiary') color = '#fbbf24'; // Yellow
-                                        else if (highway === 'trunk') color = '#dc2626'; // Dark red
-                                        else if (highway === 'motorway') color = '#7c2d12'; // Brown
-                                        else if (highway === 'residential') color = '#cbd5e1'; // Light gray
-                                        else if (highway === 'track') color = '#78716c'; // Dark gray
-                                        else if (highway === 'footway' || highway === 'path') color = '#a8a29e'; // Light brown
-
-                                        const style = {
-                                            color: color,
-                                            weight: highway === 'primary' || highway === 'trunk' || highway === 'motorway' ? 3 :
-                                                   highway === 'secondary' || highway === 'tertiary' ? 2 : 1,
-                                            opacity: 0.8
-                                        };
-
-                                        // Add dotted line for tracks
-                                        if (highway === 'track') {
-                                            style.dashArray = '5, 10';
+                                        // Use RoadSymbology module if available
+                                        if (typeof RoadSymbology !== 'undefined') {
+                                            return RoadSymbology.getStyle(feature);
                                         }
-
-                                        return style;
+                                        // Fallback styling
+                                        return { color: '#94a3b8', weight: 1.5, opacity: 0.8 };
                                     },
                                     onEachFeature: function(feature, layer) {
-                                        const props = feature.properties;
-                                        const popupContent = `
-                                            <div style="font-size: 0.9em;">
-                                                <strong>🛣️ Road Type:</strong> ${props.highway || 'Unknown'}<br>
-                                                <strong>📛 Name:</strong> ${props.name || 'Unnamed'}<br>
-                                                <strong>🛤️ Surface:</strong> ${props.surface || 'Unknown'}<br>
-                                                <strong>📍 OSM ID:</strong> ${props.osm_id || 'N/A'}
-                                            </div>
-                                        `;
-                                        layer.bindPopup(popupContent);
+                                        // Use RoadSymbology module for popup if available
+                                        if (typeof RoadSymbology !== 'undefined') {
+                                            layer.bindPopup(RoadSymbology.getPopupContent(feature, { source: 'OSM 2023' }));
+                                        } else {
+                                            const props = feature.properties;
+                                            layer.bindPopup(`<strong>${props.name || 'Road'}</strong><br>Type: ${props.fclass || props.highway || 'unknown'}`);
+                                        }
                                     }
                                 }).addTo(map);
 
@@ -3003,7 +2832,7 @@
                         const roadsFilePath = `roads_by_region_latest/${safeRegionName}_roads.js`;
 
                         // Dynamically load the roads file using fetch and eval
-                        const roadsVarName = safeRegionName.toLowerCase().replace(/ /g, '_') + 'Roads';
+                        const roadsVarName = safeRegionName.toLowerCase() + 'Roads';
 
                         fetch(roadsFilePath + '?t=' + new Date().getTime())
                             .then(response => {
@@ -3132,6 +2961,45 @@
                 }
             });
 
+            // Right-click context menu for Roads OSM Latest
+            roadsOSMLatestLabel.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                const isActive = activeRoadsOSMLatestLayer && map.hasLayer(activeRoadsOSMLatestLayer);
+
+                showLayerContextMenu('roadsOSMLatest', 'Roads OSM Latest', '#22c55e', e.clientX, e.clientY, {
+                    isActive,
+                    onToggle: function() {
+                        const toggle = document.getElementById('roadsOSMLatestToggle');
+                        if (isActive) {
+                            map.removeLayer(activeRoadsOSMLatestLayer);
+                            toggle.checked = false;
+                            roadsOSMLatestLabel.classList.remove('layer-dropped');
+                        } else if (activeRoadsOSMLatestLayer) {
+                            map.addLayer(activeRoadsOSMLatestLayer);
+                            toggle.checked = true;
+                            roadsOSMLatestLabel.classList.add('layer-dropped');
+                        }
+                    },
+                    onZoom: function() {
+                        if (activeRoadsOSMLatestLayer) {
+                            map.fitBounds(activeRoadsOSMLatestLayer.getBounds(), { padding: [50, 50] });
+                        }
+                    },
+                    onRemove: function() {
+                        if (activeRoadsOSMLatestLayer) {
+                            map.removeLayer(activeRoadsOSMLatestLayer);
+                            activeRoadsOSMLatestLayer = null;
+                            activeRoadsOSMLatestRegion = null;
+                            document.getElementById('roadsOSMLatestToggle').checked = false;
+                            roadsOSMLatestLabel.classList.remove('layer-dropped');
+                        }
+                    },
+                    onInfo: function() {
+                        alert(`Roads OSM Latest\n\nSource: OpenStreetMap via HDX API\nAuto-updated from latest data\nRegion: ${activeRoadsOSMLatestRegion || 'Not loaded'}\nFeatures: ${activeRoadsOSMLatestLayer ? activeRoadsOSMLatestLayer.getLayers().length : 0} roads`);
+                    }
+                });
+            });
+
             // Enable drag for Roads OSM Latest label with full visual feedback
             roadsOSMLatestLabel.addEventListener('dragstart', function(e) {
                 draggedLayerId = 'roadsOSMLatest';
@@ -3239,6 +3107,318 @@
                     }
                 }
             });
+
+            // ========================================
+            // DRAG-AND-DROP: Roads 2024 Layer (July 2024 HDX Export)
+            // ========================================
+            const roads2024Label = document.querySelector('#roads2024Label');
+            const roads2024Toggle = document.getElementById('roads2024Toggle');
+            let activeRoads2024Layer = null;
+            let activeRoads2024Region = null;
+
+            if (roads2024Label) {
+                // Toggle handler for Roads 2024
+                roads2024Toggle?.addEventListener('change', function(e) {
+                    if (e.target.checked) {
+                        if (activeRoads2024Layer) {
+                            map.addLayer(activeRoads2024Layer);
+                            roads2024Label.classList.add('layer-dropped');
+                        }
+                    } else {
+                        if (activeRoads2024Layer) {
+                            map.removeLayer(activeRoads2024Layer);
+                            roads2024Label.classList.remove('layer-dropped');
+                        }
+                    }
+                });
+
+                // Right-click context menu for Roads 2024
+                roads2024Label.addEventListener('contextmenu', function(e) {
+                    e.preventDefault();
+                    const isActive = activeRoads2024Layer && map.hasLayer(activeRoads2024Layer);
+
+                    showLayerContextMenu('roads2024', 'Roads 2024 (July)', '#fbbf24', e.clientX, e.clientY, {
+                        isActive,
+                        onToggle: function() {
+                            if (isActive) {
+                                map.removeLayer(activeRoads2024Layer);
+                                roads2024Toggle.checked = false;
+                                roads2024Label.classList.remove('layer-dropped');
+                            } else if (activeRoads2024Layer) {
+                                map.addLayer(activeRoads2024Layer);
+                                roads2024Toggle.checked = true;
+                                roads2024Label.classList.add('layer-dropped');
+                            }
+                        },
+                        onZoom: function() {
+                            if (activeRoads2024Layer) {
+                                map.fitBounds(activeRoads2024Layer.getBounds(), { padding: [50, 50] });
+                            }
+                        },
+                        onRemove: function() {
+                            if (activeRoads2024Layer) {
+                                map.removeLayer(activeRoads2024Layer);
+                                activeRoads2024Layer = null;
+                                activeRoads2024Region = null;
+                                roads2024Toggle.checked = false;
+                                roads2024Label.classList.remove('layer-dropped');
+                            }
+                        },
+                        onInfo: function() {
+                            alert(`Roads 2024 (July)\n\nSource: HDX Geopackage\nDate: 2024-07-23\nRegion: ${activeRoads2024Region || 'Not loaded'}\nFeatures: ${activeRoads2024Layer ? activeRoads2024Layer.getLayers().length : 0} roads`);
+                        }
+                    });
+                });
+
+                // Drag start for Roads 2024
+                roads2024Label.addEventListener('dragstart', function(e) {
+                    draggedLayerId = 'roads2024';
+
+                    document.body.classList.add('dragging');
+
+                    cursorIndicator = document.createElement('div');
+                    cursorIndicator.className = 'cursor-indicator';
+                    document.body.appendChild(cursorIndicator);
+
+                    dragGhost = document.createElement('div');
+                    dragGhost.style.cssText = `
+                        position: fixed;
+                        background: rgba(251, 191, 36, 0.9);
+                        color: #1f2937;
+                        padding: 8px 12px;
+                        border-radius: 6px;
+                        font-size: 0.85em;
+                        font-weight: bold;
+                        pointer-events: none;
+                        z-index: 10000;
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                    `;
+                    dragGhost.textContent = '🗓️ Roads 2024 - Drop on any region';
+                    document.body.appendChild(dragGhost);
+
+                    roads2024Label.classList.add('dragging-layer');
+
+                    e.dataTransfer.effectAllowed = 'copy';
+                    e.dataTransfer.setData('text/plain', 'roads2024');
+
+                    const img = new Image();
+                    img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+                    e.dataTransfer.setDragImage(img, 0, 0);
+                });
+
+                // Update ghost position for Roads 2024
+                document.addEventListener('drag', function(e) {
+                    if (dragGhost && draggedLayerId === 'roads2024' && e.clientX !== 0 && e.clientY !== 0) {
+                        dragGhost.style.left = (e.clientX + 10) + 'px';
+                        dragGhost.style.top = (e.clientY + 10) + 'px';
+                    }
+                });
+
+                // Drag end for Roads 2024
+                roads2024Label.addEventListener('dragend', function(e) {
+                    roads2024Label.classList.remove('dragging-layer');
+                    document.body.classList.remove('dragging');
+
+                    if (dragGhost) {
+                        document.body.removeChild(dragGhost);
+                        dragGhost = null;
+                    }
+                    if (cursorIndicator) {
+                        document.body.removeChild(cursorIndicator);
+                        cursorIndicator = null;
+                    }
+                    draggedLayerId = null;
+
+                    Object.values(allRegionLayers).forEach(regionLayer => {
+                        adm1Layer.resetStyle(regionLayer);
+                    });
+                });
+
+                // Map dragover handler for Roads 2024
+                mapContainer.addEventListener('dragover', function(e) {
+                    if (draggedLayerId === 'roads2024') {
+                        e.preventDefault();
+
+                        const rect = mapContainer.getBoundingClientRect();
+                        const latlng = map.containerPointToLatLng([e.clientX - rect.left, e.clientY - rect.top]);
+
+                        let hoveredRegion = null;
+                        let hoveredRegionName = null;
+                        Object.entries(allRegionLayers).forEach(([name, regionLayer]) => {
+                            if (isPointInPolygon(latlng, regionLayer)) {
+                                hoveredRegion = regionLayer;
+                                hoveredRegionName = name;
+                            }
+                        });
+
+                        Object.values(allRegionLayers).forEach(regionLayer => {
+                            adm1Layer.resetStyle(regionLayer);
+                        });
+
+                        if (hoveredRegion) {
+                            hoveredRegion.setStyle({
+                                fillColor: '#fbbf24',
+                                fillOpacity: 0.4,
+                                weight: 3,
+                                color: '#fbbf24'
+                            });
+                            mapContainer.classList.add('drop-target');
+                            mapContainer.classList.remove('drop-invalid');
+
+                            if (dragGhost) {
+                                dragGhost.style.background = 'rgba(251, 191, 36, 0.95)';
+                                dragGhost.textContent = `✓ Drop to load 2024 Roads for ${hoveredRegionName}`;
+                            }
+                        } else {
+                            mapContainer.classList.remove('drop-target');
+                            mapContainer.classList.add('drop-invalid');
+
+                            if (dragGhost) {
+                                dragGhost.style.background = 'rgba(239, 68, 68, 0.9)';
+                                dragGhost.textContent = '✗ Drop on a region';
+                            }
+                        }
+                    }
+                });
+
+                // Drop handler for Roads 2024
+                mapContainer.addEventListener('drop', function(e) {
+                    if (draggedLayerId !== 'roads2024') return;
+
+                    e.preventDefault();
+
+                    const rect = mapContainer.getBoundingClientRect();
+                    const latlng = map.containerPointToLatLng([e.clientX - rect.left, e.clientY - rect.top]);
+
+                    let droppedRegion = null;
+                    let droppedRegionLayer = null;
+                    Object.entries(allRegionLayers).forEach(([name, regionLayer]) => {
+                        if (isPointInPolygon(latlng, regionLayer)) {
+                            droppedRegion = name;
+                            droppedRegionLayer = regionLayer;
+                        }
+                    });
+
+                    if (droppedRegion) {
+                        // Remove existing 2024 roads layer
+                        if (activeRoads2024Layer) {
+                            map.removeLayer(activeRoads2024Layer);
+                            activeRoads2024Layer = null;
+                        }
+
+                        // Show loading popup
+                        const loadingPopup = L.popup({
+                            closeButton: false,
+                            autoClose: false,
+                            autoPan: false,
+                            className: 'loading-popup'
+                        })
+                        .setLatLng(latlng)
+                        .setContent(`⏳ Loading 2024 Roads for ${droppedRegion}...`)
+                        .openOn(map);
+
+                        // Load roads from roads_by_region_2024_07_23 folder
+                        const safeRegionName = droppedRegion.replace(/ /g, '_');
+                        const roadsFilePath = `roads_by_region_2024_07_23/${safeRegionName}_roads.js`;
+
+                        const script = document.createElement('script');
+                        script.src = roadsFilePath + '?v=' + Date.now();
+
+                        script.onload = function() {
+                            map.closePopup(loadingPopup);
+
+                            // Find the loaded data variable
+                            const varName = `${safeRegionName.toLowerCase()}Roads20240723`;
+                            console.log(`[Roads 2024] Looking for variable: ${varName}`);
+                            const loadedData = window[varName];
+                            console.log(`[Roads 2024] Found data:`, loadedData ? `Yes, ${loadedData.features?.length} features` : 'NO - undefined');
+
+                            if (loadedData && loadedData.features) {
+                                // Create layer using unified RoadSymbology module
+                                activeRoads2024Layer = L.geoJSON(loadedData, {
+                                    style: function(feature) {
+                                        // Use RoadSymbology module if available
+                                        if (typeof RoadSymbology !== 'undefined') {
+                                            return RoadSymbology.getStyle(feature);
+                                        }
+                                        // Fallback styling
+                                        return { color: '#fbbf24', weight: 1.5, opacity: 0.8 };
+                                    },
+                                    onEachFeature: function(feature, layer) {
+                                        // Use RoadSymbology module for popup if available
+                                        if (typeof RoadSymbology !== 'undefined') {
+                                            layer.bindPopup(RoadSymbology.getPopupContent(feature, { source: 'OSM 2024-07-23' }));
+                                        } else {
+                                            const props = feature.properties || {};
+                                            layer.bindPopup(`<strong>${props.name || 'Road'}</strong><br>Type: ${props.highway || 'unknown'}`);
+                                        }
+                                    }
+                                }).addTo(map);
+
+                                activeRoads2024Region = droppedRegion;
+
+                                // Update checkbox
+                                if (roads2024Toggle) roads2024Toggle.checked = true;
+                                roads2024Label.classList.add('layer-dropped');
+
+                                // Zoom to region
+                                map.fitBounds(droppedRegionLayer.getBounds(), {
+                                    padding: [50, 50],
+                                    maxZoom: 11
+                                });
+
+                                // Success popup
+                                L.popup({
+                                    closeButton: false,
+                                    autoClose: true,
+                                    autoPan: false,
+                                    className: 'drop-success-popup'
+                                })
+                                .setLatLng(latlng)
+                                .setContent(`✓ 2024 Roads loaded for ${droppedRegion}<br><small>${loadedData.features.length} road segments</small>`)
+                                .openOn(map);
+
+                                setTimeout(() => map.closePopup(), 3000);
+
+                                console.log(`[Roads 2024] Loaded ${loadedData.features.length} roads for ${droppedRegion}`);
+                            } else {
+                                // Variable not found - show error
+                                console.error(`[Roads 2024] Variable ${varName} not found in window!`);
+                                console.log('[Roads 2024] Available vars with "Roads":', Object.keys(window).filter(k => k.includes('Roads')));
+
+                                L.popup({
+                                    closeButton: true,
+                                    className: 'error-popup'
+                                })
+                                .setLatLng(latlng)
+                                .setContent(`❌ Could not find 2024 roads data<br><small>Expected: ${varName}</small>`)
+                                .openOn(map);
+                            }
+                        };
+
+                        script.onerror = function() {
+                            map.closePopup(loadingPopup);
+
+                            L.popup({
+                                closeButton: true,
+                                className: 'error-popup'
+                            })
+                            .setLatLng(latlng)
+                            .setContent(`❌ No 2024 roads data for ${droppedRegion}<br><small>File not found: ${roadsFilePath}</small>`)
+                            .openOn(map);
+                        };
+
+                        document.head.appendChild(script);
+                    }
+
+                    // Reset region styles
+                    Object.values(allRegionLayers).forEach(regionLayer => {
+                        adm1Layer.resetStyle(regionLayer);
+                    });
+
+                    mapContainer.classList.remove('drop-target', 'drop-invalid');
+                });
+            }
 
             document.getElementById('adm1Toggle').addEventListener('change', function(e) {
                 e.target.checked ? map.addLayer(adm1Layer) : map.removeLayer(adm1Layer);
@@ -3752,35 +3932,24 @@
                     </div>
                 </div>
                 <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid #334155;">
-                    <div style="color: #F48FB1; font-weight: bold; margin-bottom: 6px; font-size: 0.9em;">🛣️ Road Types (Bakool & Lower Shebelle)</div>
-                    <div style="font-size: 0.7em; line-height: 1.8; margin-top: 8px;">
-                        <div><span style="color: #C2185B; font-weight: bold;">━━━</span> Major road (251 roads)</div>
-                        <div><span style="color: #F48FB1; font-weight: bold;">━━━</span> Secondary road (2,914 roads)</div>
-                        <div><span style="color: #795548; font-weight: bold;">━━━</span> Track (5,898 roads)</div>
-                    </div>
-                    <div style="font-size: 0.65em; color: #64748b; margin-top: 8px; line-height: 1.4;">
-                        Bakool: 1,857 roads (85% tracks)<br>
-                        Lower Shebelle: 7,206 roads (4x more)
-                    </div>
-                </div>
-                <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid #334155;">
-                    <div style="color: #22c55e; font-weight: bold; margin-bottom: 6px; font-size: 0.9em;">🛣️ Roads OSM Latest (All Regions)</div>
-                    <div style="font-size: 0.75em; margin-bottom: 8px; color: #94a3b8;">
-                        OpenStreetMap Highway Classification
+                    <div style="color: #f97316; font-weight: bold; margin-bottom: 6px; font-size: 0.9em;">🛣️ Roads</div>
+                    <div style="font-size: 0.7em; margin-bottom: 8px; color: #94a3b8; font-style: italic;">
+                        See Concept, Source and Methods for details
                     </div>
                     <div style="font-size: 0.7em; line-height: 1.8; margin-top: 8px;">
-                        <div><span style="color: #7c2d12; font-weight: bold; font-size: 1.2em;">━━━</span> Motorway</div>
-                        <div><span style="color: #dc2626; font-weight: bold; font-size: 1.2em;">━━━</span> Trunk</div>
-                        <div><span style="color: #ef4444; font-weight: bold; font-size: 1.1em;">━━━</span> Primary</div>
-                        <div><span style="color: #f97316; font-weight: bold; font-size: 1em;">━━━</span> Secondary</div>
-                        <div><span style="color: #fbbf24; font-weight: bold; font-size: 1em;">━━━</span> Tertiary</div>
-                        <div><span style="color: #cbd5e1; font-weight: bold;">━━━</span> Residential</div>
-                        <div><span style="color: #78716c; font-weight: bold;">╌╌╌</span> Track</div>
-                        <div><span style="color: #94a3b8; font-weight: bold;">━━━</span> Other</div>
-                    </div>
-                    <div style="font-size: 0.65em; color: #64748b; margin-top: 8px; line-height: 1.4;">
-                        Latest data via HDX API<br>
-                        Drag & Drop per region
+                        <div><span style="color: #7c2d12; font-weight: bold;">━━━━━━━━━━━━━━━━</span> Trunk</div>
+                        <div><span style="color: #dc2626; font-weight: bold;">━━━━━━━━━━━━━━━━</span> Primary</div>
+                        <div><span style="color: #f97316; font-weight: bold;">━━━━━━━━━━━━━━━━</span> Secondary</div>
+                        <div><span style="color: #fbbf24; font-weight: bold;">━━━━━━━━━━━━━━━━</span> Tertiary</div>
+                        <div><span style="color: #60a5fa; font-weight: bold;">━━━━━━━━━━━━━━━━</span> Residential</div>
+                        <div><span style="color: #cbd5e1; font-weight: bold;">━━━━━━━━━━━━━━━━</span> Service</div>
+                        <div><span style="color: #94a3b8; font-weight: bold;">━━━━━━━━━━━━━━━━</span> Unclassified</div>
+                        <div><span style="color: #78716c; font-weight: bold;">━━ ━━ ━━ ━━ ━━ ━━ ━━</span> Track</div>
+                        <div><span style="color: #a8a29e; font-weight: bold;">━━ ━━ ━━ ━━ ━━ ━━ ━━</span> Path</div>
+                        <div><span style="color: #a8a29e; font-weight: bold;">━━ ━━ ━━ ━━ ━━ ━━ ━━</span> Footway</div>
+                        <div><span style="color: #d4d4d8; font-weight: bold;">━━ ━━ ━━ ━━ ━━ ━━ ━━</span> Pedestrian</div>
+                        <div><span style="color: #d4d4d8; font-weight: bold;">━━ ━━ ━━ ━━ ━━ ━━ ━━</span> Steps</div>
+                        <div><span style="color: #fca5a5; font-weight: bold;">━━ ━━ ━━ ━━ ━━ ━━ ━━</span> Construction</div>
                     </div>
                 </div>
                 <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid #334155;">
@@ -4597,4 +4766,894 @@
                     });
                 }
             }, 500);
+
+            // ========================================
+            // Open Source Geo-API Handler
+            // ========================================
+            setTimeout(function() {
+                const checkVersionsBtn = document.getElementById('checkRoadsVersionsBtn');
+                if (checkVersionsBtn) {
+                    checkVersionsBtn.addEventListener('click', async function() {
+                        // Show loading state
+                        const originalHTML = checkVersionsBtn.innerHTML;
+                        checkVersionsBtn.innerHTML = '⏳ Checking...';
+                        checkVersionsBtn.disabled = true;
+                        checkVersionsBtn.style.opacity = '0.6';
+                        checkVersionsBtn.style.cursor = 'not-allowed';
+
+                        try {
+                            // Call backend version check
+                            const response = await fetch('http://localhost:5000/api/check-version');
+
+                            if (!response.ok) {
+                                throw new Error('Server not responding');
+                            }
+
+                            const data = await response.json();
+
+                            if (!data.success) {
+                                throw new Error(data.message || 'Failed to check versions');
+                            }
+
+                            // Create version modal
+                            showVersionModal(data);
+
+                        } catch (error) {
+                            // Show error modal
+                            const modal = document.createElement('div');
+                            modal.style.cssText = `
+                                position: fixed;
+                                top: 0;
+                                left: 0;
+                                width: 100%;
+                                height: 100%;
+                                background: rgba(0, 0, 0, 0.8);
+                                z-index: 20000;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                            `;
+
+                            const modalContent = document.createElement('div');
+                            modalContent.style.cssText = `
+                                background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+                                border-radius: 16px;
+                                padding: 30px;
+                                max-width: 600px;
+                                width: 90%;
+                                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+                                border: 2px solid #ef4444;
+                                color: white;
+                            `;
+
+                            modalContent.innerHTML = `
+                                <div style="text-align: center;">
+                                    <div style="font-size: 3em; margin-bottom: 15px;">⚙️</div>
+                                    <h2 style="margin: 0 0 20px 0; color: #f59e0b;">Update Server Required</h2>
+
+                                    <div style="text-align: left; background: rgba(245, 158, 11, 0.1); padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                                        <p style="margin: 0 0 15px 0; font-size: 0.95em;">To check for OSM roads versions, please start the update server:</p>
+
+                                        <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+                                            <strong style="color: #0ea5e9;">Step 1: Install dependencies</strong>
+                                            <code style="display: block; background: rgba(0,0,0,0.4); padding: 8px; border-radius: 4px; color: #22c55e; font-weight: bold; margin-top: 8px;">pip install requests</code>
+                                        </div>
+
+                                        <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+                                            <strong style="color: #0ea5e9;">Step 2: Start the server</strong>
+                                            <code style="display: block; background: rgba(0,0,0,0.4); padding: 8px; border-radius: 4px; color: #22c55e; font-weight: bold; margin-top: 8px;">python update_server.py</code>
+                                        </div>
+
+                                        <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 6px;">
+                                            <strong style="color: #0ea5e9;">Step 3: Click the check button again</strong>
+                                            <p style="margin: 8px 0 0 0; font-size: 0.9em; opacity: 0.8;">The dashboard will show all available versions from HDX</p>
+                                        </div>
+                                    </div>
+
+                                    <div style="margin-top: 20px;">
+                                        <button id="closeErrorModal" style="
+                                            background: rgba(245, 158, 11, 0.9);
+                                            color: white;
+                                            border: 2px solid #f59e0b;
+                                            padding: 12px 30px;
+                                            border-radius: 8px;
+                                            cursor: pointer;
+                                            font-weight: bold;
+                                            font-size: 1em;
+                                            transition: all 0.3s;
+                                        " onmouseover="this.style.background='rgba(245, 158, 11, 1)'; this.style.transform='scale(1.05)';"
+                                           onmouseout="this.style.background='rgba(245, 158, 11, 0.9)'; this.style.transform='scale(1)';">
+                                            Got it!
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+
+                            modal.appendChild(modalContent);
+                            document.body.appendChild(modal);
+
+                            document.getElementById('closeErrorModal').addEventListener('click', function() {
+                                document.body.removeChild(modal);
+                            });
+                        } finally {
+                            // Reset button state
+                            checkVersionsBtn.innerHTML = originalHTML;
+                            checkVersionsBtn.disabled = false;
+                            checkVersionsBtn.style.opacity = '1';
+                            checkVersionsBtn.style.cursor = 'pointer';
+                        }
+                    });
+                }
+            }, 500);
+
+            // ========================================
+            // Show Version Modal Function
+            // ========================================
+            function showVersionModal(data) {
+                const modal = document.createElement('div');
+                modal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.85);
+                    z-index: 20000;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                `;
+
+                const modalContent = document.createElement('div');
+                modalContent.style.cssText = `
+                    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+                    border-radius: 16px;
+                    padding: 30px;
+                    max-width: 700px;
+                    width: 90%;
+                    max-height: 80vh;
+                    overflow-y: auto;
+                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.9);
+                    border: 2px solid #3b82f6;
+                    color: white;
+                `;
+
+                // Build versions HTML
+                // MODULAR FILTER: For each date, prefer GeoJSON if in_dashboard, otherwise show available formats
+                // This ensures we don't show redundant formats for dates we already have
+                let versionsHTML = '';
+                let hasDownloadable = false;
+
+                // Group versions by date
+                const versionsByDate = {};
+                data.versions.forEach(version => {
+                    const dateKey = version.date_short;
+                    if (!versionsByDate[dateKey]) {
+                        versionsByDate[dateKey] = [];
+                    }
+                    versionsByDate[dateKey].push(version);
+                });
+
+                // Process each date - intelligently select what to show
+                const processedVersions = [];
+                Object.keys(versionsByDate).sort().reverse().forEach(dateKey => {
+                    const versionsForDate = versionsByDate[dateKey];
+                    const hasLocalForDate = versionsForDate.some(v => v.status === 'in_dashboard');
+
+                    if (hasLocalForDate) {
+                        // Date is in dashboard - show only ONE entry (prefer GeoJSON)
+                        const geojsonVersion = versionsForDate.find(v => v.format === 'GEOJSON' && v.status === 'in_dashboard');
+                        const anyLocalVersion = versionsForDate.find(v => v.status === 'in_dashboard');
+                        processedVersions.push(geojsonVersion || anyLocalVersion);
+                    } else {
+                        // Date not in dashboard - show available formats (prefer GeoJSON if both available)
+                        const geojsonVersion = versionsForDate.find(v => v.format === 'GEOJSON');
+                        const geopackageVersion = versionsForDate.find(v => v.format === 'GEOPACKAGE');
+
+                        if (geojsonVersion) {
+                            processedVersions.push(geojsonVersion);
+                        } else if (geopackageVersion) {
+                            // Only Geopackage available - mark it needs conversion
+                            geopackageVersion.needsConversion = true;
+                            processedVersions.push(geopackageVersion);
+                        }
+                    }
+                });
+
+                processedVersions.forEach(version => {
+                    const statusColor = version.status === 'in_dashboard' ? '#22c55e' : '#f59e0b';
+                    const statusIcon = version.status === 'in_dashboard' ? '✓' : '📥';
+                    const statusText = version.status === 'in_dashboard' ? 'In Dashboard' : 'Available';
+                    const latestBadge = version.is_latest ? '<span style="background: #f59e0b; padding: 2px 8px; border-radius: 4px; font-size: 0.75em; margin-left: 8px;">LATEST</span>' : '';
+                    const olderBadge = !version.is_latest && version.status !== 'in_dashboard' ? '<span style="background: #6366f1; padding: 2px 8px; border-radius: 4px; font-size: 0.75em; margin-left: 8px;">OLDER</span>' : '';
+                    const disabled = version.status === 'in_dashboard' ? 'disabled' : '';
+                    const checkboxStyle = version.status === 'in_dashboard' ? 'opacity: 0.5; cursor: not-allowed;' : 'cursor: pointer;';
+                    const conversionNote = version.needsConversion ? '<div style="color: #f59e0b; margin-top: 5px;">⚠️ Will be converted to GeoJSON during download</div>' : '';
+
+                    // Determine version key for uninstall based on local_folder
+                    // roads_by_region_2024_07_23 = '2024'
+                    // roads_by_region_latest = 'latest'
+                    let versionKey = 'latest';
+                    if (version.local_folder === 'roads_by_region_2024_07_23' || version.date_short === '2024_07_23') {
+                        versionKey = '2024';
+                    }
+                    console.log(`[GeoAPI Modal] Version: ${version.readable}, date_short: ${version.date_short}, local_folder: ${version.local_folder}, versionKey: ${versionKey}`);
+
+                    // Uninstall button - only shown when in dashboard
+                    const uninstallBtn = version.status === 'in_dashboard' ? `
+                        <button class="uninstall-version-btn" data-version="${versionKey}" data-folder="${version.local_folder || ''}" style="
+                            background: rgba(239, 68, 68, 0.15);
+                            border: 1px solid #ef4444;
+                            color: #ef4444;
+                            padding: 4px 10px;
+                            border-radius: 4px;
+                            cursor: pointer;
+                            font-size: 0.75em;
+                            font-weight: bold;
+                            margin-left: 8px;
+                            transition: all 0.2s;
+                        " onmouseover="this.style.background='rgba(239, 68, 68, 0.3)';" onmouseout="this.style.background='rgba(239, 68, 68, 0.15)';">
+                            🗑️ Uninstall
+                        </button>
+                    ` : '';
+
+                    if (version.status !== 'in_dashboard') {
+                        hasDownloadable = true;
+                    }
+
+                    versionsHTML += `
+                        <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid ${statusColor};">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <input type="checkbox" id="version-${version.date}" class="version-checkbox" ${disabled}
+                                           style="${checkboxStyle}" data-version='${JSON.stringify(version)}'>
+                                    <label for="version-${version.date}" style="font-weight: bold; font-size: 1.1em; ${disabled ? 'opacity: 0.7;' : ''}">
+                                        📦 ${version.readable}${latestBadge}${olderBadge}
+                                    </label>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <div style="background: ${statusColor}; padding: 4px 12px; border-radius: 6px; font-size: 0.85em; font-weight: bold;">
+                                        ${statusIcon} ${statusText}
+                                    </div>
+                                    ${uninstallBtn}
+                                </div>
+                            </div>
+                            <div style="font-size: 0.9em; color: #94a3b8; margin-left: 28px;">
+                                <div>📊 Format: ${version.format}${version.needsConversion ? ' → GeoJSON' : ''}</div>
+                                <div>💾 Size: ${version.size_mb.toFixed(2)} MB</div>
+                                ${version.local_folder ? `<div>📁 Folder: ${version.local_folder}</div>` : ''}
+                                ${conversionNote}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                modalContent.innerHTML = `
+                    <div style="text-align: center;">
+                        <div style="font-size: 3em; margin-bottom: 15px;">📦</div>
+                        <h2 style="margin: 0 0 10px 0; color: #3b82f6;">Open Source Geo-API (Application Programming Interface)</h2>
+                        <p style="margin: 0 0 25px 0; color: #94a3b8; font-size: 0.95em;">Select versions to download and integrate</p>
+
+                        <div id="versionsContainer" style="text-align: left; margin-bottom: 25px;">
+                            ${versionsHTML}
+                        </div>
+
+                        ${hasDownloadable ? `
+                            <div style="background: rgba(59, 130, 246, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 3px solid #3b82f6;">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <input type="checkbox" id="selectAllVersions" style="cursor: pointer;">
+                                    <label for="selectAllVersions" style="font-weight: bold; color: #3b82f6; cursor: pointer;">
+                                        Select All Available Versions
+                                    </label>
+                                </div>
+                            </div>
+                        ` : `
+                            <div style="background: rgba(34, 197, 94, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 3px solid #22c55e;">
+                                <div style="color: #22c55e; font-weight: bold;">
+                                    ✓ All available versions are already in your dashboard!
+                                </div>
+                            </div>
+                        `}
+
+                        <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+                            ${hasDownloadable ? `
+                                <button id="downloadSelectedBtn" style="
+                                    background: rgba(34, 197, 94, 0.9);
+                                    color: white;
+                                    border: 2px solid #22c55e;
+                                    padding: 12px 30px;
+                                    border-radius: 8px;
+                                    cursor: pointer;
+                                    font-weight: bold;
+                                    font-size: 1em;
+                                    transition: all 0.3s;
+                                " onmouseover="this.style.background='rgba(34, 197, 94, 1)'; this.style.transform='scale(1.05)';"
+                                   onmouseout="this.style.background='rgba(34, 197, 94, 0.9)'; this.style.transform='scale(1)';">
+                                    ⬇️ Download Selected
+                                </button>
+                            ` : ''}
+                            <button id="searchHDXBtn" style="
+                                background: rgba(168, 85, 247, 0.9);
+                                color: white;
+                                border: 2px solid #a855f7;
+                                padding: 12px 30px;
+                                border-radius: 8px;
+                                cursor: pointer;
+                                font-weight: bold;
+                                font-size: 1em;
+                                transition: all 0.3s;
+                            " onmouseover="this.style.background='rgba(168, 85, 247, 1)'; this.style.transform='scale(1.05)';"
+                               onmouseout="this.style.background='rgba(168, 85, 247, 0.9)'; this.style.transform='scale(1)';">
+                                🔍 Search HDX for Road Data
+                            </button>
+                            <button id="closeVersionModal" style="
+                                background: rgba(100, 116, 139, 0.9);
+                                color: white;
+                                border: 2px solid #64748b;
+                                padding: 12px 30px;
+                                border-radius: 8px;
+                                cursor: pointer;
+                                font-weight: bold;
+                                font-size: 1em;
+                                transition: all 0.3s;
+                            " onmouseover="this.style.background='rgba(100, 116, 139, 1)'; this.style.transform='scale(1.05)';"
+                               onmouseout="this.style.background='rgba(100, 116, 139, 0.9)'; this.style.transform='scale(1)';">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                modal.appendChild(modalContent);
+                document.body.appendChild(modal);
+
+                // Setup "Select All" functionality
+                if (hasDownloadable) {
+                    const selectAllCheckbox = document.getElementById('selectAllVersions');
+                    const versionCheckboxes = document.querySelectorAll('.version-checkbox:not([disabled])');
+
+                    selectAllCheckbox.addEventListener('change', function() {
+                        versionCheckboxes.forEach(cb => {
+                            cb.checked = this.checked;
+                        });
+                    });
+
+                    // Update "Select All" when individual checkboxes change
+                    versionCheckboxes.forEach(cb => {
+                        cb.addEventListener('change', function() {
+                            const allChecked = Array.from(versionCheckboxes).every(checkbox => checkbox.checked);
+                            selectAllCheckbox.checked = allChecked;
+                        });
+                    });
+                }
+
+                // Uninstall buttons handler - Using GeoAPI Module
+                document.querySelectorAll('.uninstall-version-btn').forEach(btn => {
+                    btn.addEventListener('click', async function() {
+                        const versionKey = this.dataset.version;
+                        const versionLabel = versionKey === '2024' ? 'Roads 2024' : 'Roads 2026 (Latest)';
+                        const folderPath = versionKey === '2024' ? 'roads_by_region_2024_07_23' : 'roads_by_region_latest';
+
+                        if (!confirm(`Are you sure you want to uninstall ${versionLabel}?\n\nThis will:\n• Remove the layer from the map\n• Remove from the Layers panel\n• Delete all 18 region files from ${folderPath}\n\nYou can reinstall later from the Geo-API panel.`)) {
+                            return;
+                        }
+
+                        this.disabled = true;
+                        this.innerHTML = '⏳ Removing...';
+
+                        try {
+                            // Use GeoAPI module for complete uninstall
+                            if (typeof GeoAPI !== 'undefined') {
+                                const result = await GeoAPI.uninstall(versionKey);
+
+                                if (result.success) {
+                                    alert(`✅ ${versionLabel} uninstalled successfully!\n\n• Layer removed from map\n• Entry removed from panel\n• ${result.filesRemoved || 18} files deleted`);
+
+                                    // Close modal and refresh
+                                    document.body.removeChild(modal);
+                                    // Don't reopen - the version is now uninstalled
+                                } else {
+                                    throw new Error(result.error || 'Uninstall failed');
+                                }
+                            } else {
+                                // Fallback if GeoAPI not loaded
+                                const response = await fetch('http://localhost:5000/uninstall-roads', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ version: versionKey })
+                                });
+
+                                if (response.ok) {
+                                    const result = await response.json();
+
+                                    // Manual removal from map
+                                    if (versionKey === '2024') {
+                                        if (typeof activeRoads2024Layer !== 'undefined' && activeRoads2024Layer && map.hasLayer(activeRoads2024Layer)) {
+                                            map.removeLayer(activeRoads2024Layer);
+                                        }
+                                        window.activeRoads2024Layer = null;
+                                        const container = document.getElementById('roads2024Container');
+                                        if (container) container.remove();
+                                    } else {
+                                        if (typeof activeRoadsOSMLatestLayer !== 'undefined' && activeRoadsOSMLatestLayer && map.hasLayer(activeRoadsOSMLatestLayer)) {
+                                            map.removeLayer(activeRoadsOSMLatestLayer);
+                                        }
+                                        window.activeRoadsOSMLatestLayer = null;
+                                        const container = document.getElementById('roadsLatestContainer');
+                                        if (container) container.remove();
+                                    }
+
+                                    alert(`✅ ${versionLabel} uninstalled successfully!\n\nRemoved ${result.filesDeleted || 18} files.`);
+                                    document.body.removeChild(modal);
+                                } else {
+                                    throw new Error('Server returned error');
+                                }
+                            }
+                        } catch (error) {
+                            console.error('Uninstall error:', error);
+                            alert('❌ Could not uninstall roads.\n\nMake sure the update server is running (python update_server.py)');
+                            this.disabled = false;
+                            this.innerHTML = '🗑️ Uninstall';
+                        }
+                    });
+                });
+
+                // Close button handler
+                document.getElementById('closeVersionModal').addEventListener('click', function() {
+                    document.body.removeChild(modal);
+                });
+
+                // Search HDX button handler - Uses GeoAPI.search()
+                document.getElementById('searchHDXBtn').addEventListener('click', async function() {
+                    const btn = this;
+                    const originalHTML = btn.innerHTML;
+                    btn.innerHTML = '⏳ Searching HDX...';
+                    btn.disabled = true;
+
+                    try {
+                        // Use GeoAPI module if available
+                        if (typeof GeoAPI !== 'undefined') {
+                            const results = await GeoAPI.search();
+                            showHDXSearchResults(results, modal);
+                        } else {
+                            // Fallback - direct API call via backend
+                            const response = await fetch('http://localhost:5000/api/search-hdx', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    country: 'somalia',
+                                    resourceTypes: ['geojson', 'json', 'gpkg'],
+                                    query: 'roads'
+                                })
+                            });
+
+                            if (response.ok) {
+                                const data = await response.json();
+                                showHDXSearchResults(data.results || [], modal);
+                            } else {
+                                throw new Error('HDX search failed');
+                            }
+                        }
+                    } catch (error) {
+                        console.error('HDX search error:', error);
+                        alert('⚠️ Could not search HDX.\n\nMake sure the update server is running (python update_server.py)\n\nHDX search requires internet connection.');
+                    } finally {
+                        btn.innerHTML = originalHTML;
+                        btn.disabled = false;
+                    }
+                });
+
+                // Download selected button handler
+                if (hasDownloadable) {
+                    document.getElementById('downloadSelectedBtn').addEventListener('click', async function() {
+                        const selectedVersions = Array.from(document.querySelectorAll('.version-checkbox:checked:not([disabled])'))
+                            .map(cb => JSON.parse(cb.dataset.version));
+
+                        if (selectedVersions.length === 0) {
+                            alert('Please select at least one version to download.');
+                            return;
+                        }
+
+                        // Close version modal and start download process
+                        document.body.removeChild(modal);
+                        await startMultiVersionDownload(selectedVersions);
+                    });
+                }
+
+                // ESC key to close
+                const escHandler = function(e) {
+                    if (e.key === 'Escape' && document.body.contains(modal)) {
+                        document.body.removeChild(modal);
+                        document.removeEventListener('keydown', escHandler);
+                    }
+                };
+                document.addEventListener('keydown', escHandler);
+            }
+
+            // ========================================
+            // HDX Search Results Display Function
+            // Uses GeoAPI module for search
+            // ========================================
+            function showHDXSearchResults(results, parentModal) {
+                // Create search results modal (overlay on existing modal)
+                const searchModal = document.createElement('div');
+                searchModal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.9);
+                    z-index: 21000;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                `;
+
+                const searchContent = document.createElement('div');
+                searchContent.style.cssText = `
+                    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+                    border-radius: 16px;
+                    padding: 30px;
+                    max-width: 800px;
+                    width: 90%;
+                    max-height: 80vh;
+                    overflow-y: auto;
+                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.9);
+                    border: 2px solid #a855f7;
+                    color: white;
+                `;
+
+                // Build results HTML
+                let resultsHTML = '';
+                if (results.length === 0) {
+                    resultsHTML = `
+                        <div style="text-align: center; padding: 40px;">
+                            <div style="font-size: 3em; margin-bottom: 15px;">🔍</div>
+                            <h3 style="color: #f59e0b;">No road datasets found</h3>
+                            <p style="color: #94a3b8;">Try searching with different keywords or check your internet connection.</p>
+                        </div>
+                    `;
+                } else {
+                    results.slice(0, 10).forEach((dataset, index) => {
+                        const lastUpdated = dataset.lastUpdated ? new Date(dataset.lastUpdated).toLocaleDateString() : 'Unknown';
+                        const resourcesHTML = (dataset.resources || []).slice(0, 3).map(r => `
+                            <div style="display: inline-block; background: rgba(168, 85, 247, 0.2); padding: 3px 8px; border-radius: 4px; margin: 2px; font-size: 0.75em;">
+                                ${r.format} (${r.size ? (r.size / 1024 / 1024).toFixed(1) + 'MB' : 'unknown size'})
+                            </div>
+                        `).join('');
+
+                        resultsHTML += `
+                            <div class="hdx-result-item" data-index="${index}" style="
+                                background: rgba(255,255,255,0.05);
+                                padding: 15px;
+                                border-radius: 8px;
+                                margin-bottom: 12px;
+                                border-left: 4px solid #a855f7;
+                                cursor: pointer;
+                                transition: all 0.2s;
+                            " onmouseover="this.style.background='rgba(168, 85, 247, 0.15)';"
+                               onmouseout="this.style.background='rgba(255,255,255,0.05)';">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                    <div style="flex: 1;">
+                                        <div style="font-weight: bold; font-size: 1.05em; margin-bottom: 5px;">
+                                            📦 ${dataset.title || dataset.name || 'Unknown Dataset'}
+                                        </div>
+                                        <div style="font-size: 0.85em; color: #94a3b8; margin-bottom: 8px;">
+                                            ${dataset.description ? dataset.description.substring(0, 150) + '...' : 'No description available'}
+                                        </div>
+                                        <div style="font-size: 0.8em; color: #64748b;">
+                                            📅 Updated: ${lastUpdated} | 🏢 ${dataset.organization || 'Unknown org'}
+                                        </div>
+                                        <div style="margin-top: 8px;">
+                                            ${resourcesHTML}
+                                        </div>
+                                    </div>
+                                    <div style="margin-left: 15px;">
+                                        <a href="https://data.humdata.org/dataset/${dataset.name || dataset.id}" target="_blank"
+                                           style="
+                                               display: inline-block;
+                                               background: rgba(168, 85, 247, 0.3);
+                                               color: #a855f7;
+                                               padding: 6px 12px;
+                                               border-radius: 6px;
+                                               text-decoration: none;
+                                               font-size: 0.85em;
+                                               font-weight: bold;
+                                           " onclick="event.stopPropagation();">
+                                            View on HDX →
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+
+                searchContent.innerHTML = `
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <div style="font-size: 2.5em; margin-bottom: 10px;">🔍</div>
+                        <h2 style="margin: 0 0 5px 0; color: #a855f7;">HDX Road Data Search</h2>
+                        <p style="margin: 0; color: #94a3b8; font-size: 0.9em;">Found ${results.length} road-related datasets for Somalia</p>
+                    </div>
+
+                    <div style="max-height: 50vh; overflow-y: auto; margin-bottom: 20px;">
+                        ${resultsHTML}
+                    </div>
+
+                    <div style="display: flex; gap: 15px; justify-content: center;">
+                        <button id="closeSearchResults" style="
+                            background: rgba(100, 116, 139, 0.9);
+                            color: white;
+                            border: 2px solid #64748b;
+                            padding: 12px 30px;
+                            border-radius: 8px;
+                            cursor: pointer;
+                            font-weight: bold;
+                            font-size: 1em;
+                            transition: all 0.3s;
+                        " onmouseover="this.style.background='rgba(100, 116, 139, 1)'; this.style.transform='scale(1.05)';"
+                           onmouseout="this.style.background='rgba(100, 116, 139, 0.9)'; this.style.transform='scale(1)';">
+                            ← Back to Versions
+                        </button>
+                    </div>
+                `;
+
+                searchModal.appendChild(searchContent);
+                document.body.appendChild(searchModal);
+
+                // Close handler
+                document.getElementById('closeSearchResults').addEventListener('click', function() {
+                    document.body.removeChild(searchModal);
+                });
+
+                // ESC to close
+                const escHandler = function(e) {
+                    if (e.key === 'Escape' && document.body.contains(searchModal)) {
+                        document.body.removeChild(searchModal);
+                        document.removeEventListener('keydown', escHandler);
+                    }
+                };
+                document.addEventListener('keydown', escHandler);
+
+                console.log('[GeoAPI] HDX search results displayed:', results.length, 'datasets');
+            }
+
+            // ========================================
+            // Multi-Version Download Function
+            // ========================================
+            async function startMultiVersionDownload(versions) {
+                // Create download progress modal
+                const modal = document.createElement('div');
+                modal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.85);
+                    z-index: 20000;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                `;
+
+                const modalContent = document.createElement('div');
+                modalContent.style.cssText = `
+                    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+                    border-radius: 16px;
+                    padding: 30px;
+                    max-width: 700px;
+                    width: 90%;
+                    max-height: 80vh;
+                    overflow-y: auto;
+                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.9);
+                    border: 2px solid #22c55e;
+                    color: white;
+                `;
+
+                modalContent.innerHTML = `
+                    <div style="text-align: center;">
+                        <div id="downloadIcon" style="font-size: 3em; margin-bottom: 15px;">⬇️</div>
+                        <h2 style="margin: 0 0 20px 0; color: #22c55e;">Downloading Versions</h2>
+
+                        <div id="downloadProgress" style="text-align: left;">
+                            <div id="versionsStatus" style="margin-bottom: 20px;">
+                                <!-- Version status will be added here -->
+                            </div>
+
+                            <div style="background: rgba(34, 197, 94, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                                <div id="currentStatus" style="font-size: 0.95em; margin-bottom: 10px; font-weight: bold; color: #22c55e;">
+                                    Preparing downloads...
+                                </div>
+                                <div style="background: rgba(0,0,0,0.3); border-radius: 8px; height: 25px; overflow: hidden;">
+                                    <div id="overallProgressBar" style="background: linear-gradient(90deg, #22c55e, #10b981); height: 100%; width: 0%; transition: width 0.3s; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.85em;">
+                                        <span id="overallProgressText">0%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="actionButtons" style="margin-top: 20px;">
+                            <button id="cancelDownloadBtn" style="
+                                background: rgba(239, 68, 68, 0.9);
+                                color: white;
+                                border: 2px solid #ef4444;
+                                padding: 12px 30px;
+                                border-radius: 8px;
+                                cursor: pointer;
+                                font-weight: bold;
+                                font-size: 1em;
+                                transition: all 0.3s;
+                            " onmouseover="this.style.background='rgba(239, 68, 68, 1)'; this.style.transform='scale(1.05)';"
+                               onmouseout="this.style.background='rgba(239, 68, 68, 0.9)'; this.style.transform='scale(1)';">
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                modal.appendChild(modalContent);
+                document.body.appendChild(modal);
+
+                // Add version status items
+                const versionsStatusContainer = document.getElementById('versionsStatus');
+                versions.forEach(version => {
+                    const versionItem = document.createElement('div');
+                    versionItem.id = `version-status-${version.date}`;
+                    versionItem.style.cssText = `
+                        background: rgba(255,255,255,0.05);
+                        padding: 12px;
+                        border-radius: 6px;
+                        margin-bottom: 10px;
+                        border-left: 4px solid #94a3b8;
+                    `;
+                    versionItem.innerHTML = `
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span id="icon-${version.date}" style="font-size: 1.2em;">⏳</span>
+                            <div style="flex: 1;">
+                                <div style="font-weight: bold;">${version.readable}</div>
+                                <div style="font-size: 0.85em; color: #94a3b8;" id="status-${version.date}">Waiting...</div>
+                            </div>
+                        </div>
+                    `;
+                    versionsStatusContainer.appendChild(versionItem);
+                });
+
+                // Download versions sequentially
+                let completed = 0;
+                const total = versions.length;
+
+                for (const version of versions) {
+                    const versionItem = document.getElementById(`version-status-${version.date}`);
+                    const icon = document.getElementById(`icon-${version.date}`);
+                    const status = document.getElementById(`status-${version.date}`);
+                    const currentStatus = document.getElementById('currentStatus');
+
+                    // Update status
+                    versionItem.style.borderLeftColor = '#3b82f6';
+                    icon.textContent = '⏬';
+                    status.textContent = 'Downloading...';
+                    currentStatus.textContent = `Downloading ${version.readable}...`;
+
+                    try {
+                        // Start download (runs in background)
+                        const startResponse = await fetch('http://localhost:5000/api/download-version', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                version_date: version.date,
+                                resource_url: version.download_url,
+                                format_type: version.format
+                            })
+                        });
+
+                        const startResult = await startResponse.json();
+
+                        if (!startResult.success) {
+                            throw new Error(startResult.message || 'Failed to start download');
+                        }
+
+                        // Poll for progress until complete
+                        let downloadComplete = false;
+                        while (!downloadComplete) {
+                            await new Promise(resolve => setTimeout(resolve, 500)); // Poll every 500ms
+
+                            const statusResponse = await fetch('http://localhost:5000/api/download-status');
+                            const downloadStatus = await statusResponse.json();
+
+                            // Update UI with progress
+                            status.textContent = downloadStatus.message || 'Processing...';
+                            currentStatus.textContent = downloadStatus.message || `Downloading ${version.readable}...`;
+
+                            // Update progress bar
+                            const progressPct = downloadStatus.progress || 0;
+                            document.getElementById('overallProgressBar').style.width = progressPct + '%';
+                            document.getElementById('overallProgressText').textContent = progressPct + '%';
+
+                            if (downloadStatus.step === 'complete' || downloadStatus.progress >= 100) {
+                                downloadComplete = true;
+                                versionItem.style.borderLeftColor = '#22c55e';
+                                icon.textContent = '✓';
+                                status.textContent = 'Downloaded successfully';
+                                completed++;
+
+                                // AUTO-REGISTER NEW LAYER TO UI
+                                // This adds the downloaded version to the layer panel dynamically
+                                if (typeof LayerRegistry !== 'undefined') {
+                                    const dateFormatted = version.date.split('T')[0];
+                                    const folderDate = dateFormatted.replace(/-/g, '_');
+                                    const layerId = `roads_${folderDate}`;
+
+                                    LayerRegistry.registerDownloadedLayer({
+                                        id: layerId,
+                                        name: `Roads ${dateFormatted.substring(0, 7).replace('-', '/')}`,
+                                        thematic: 'roads',
+                                        folder: `roads_by_region_${folderDate}`,
+                                        date: dateFormatted,
+                                        color: '#fbbf24',  // Yellow/gold for archived versions
+                                        source: 'HDX - Humanitarian OpenStreetMap Team',
+                                        featureCount: downloadStatus.total_features || 0
+                                    });
+
+                                    console.log(`[Geo-API] Registered new layer: ${layerId}`);
+                                }
+                            } else if (downloadStatus.step === 'error' || downloadStatus.error) {
+                                throw new Error(downloadStatus.error || 'Download failed');
+                            }
+                        }
+
+                    } catch (error) {
+                        // Error
+                        versionItem.style.borderLeftColor = '#ef4444';
+                        icon.textContent = '❌';
+                        status.textContent = `Error: ${error.message}`;
+                    }
+                }
+
+                // All done
+                document.getElementById('downloadIcon').textContent = '✅';
+                document.getElementById('currentStatus').textContent = `Completed ${completed} of ${total} downloads`;
+                document.getElementById('actionButtons').innerHTML = `
+                    <button id="closeDownloadModal" style="
+                        background: rgba(34, 197, 94, 0.9);
+                        color: white;
+                        border: 2px solid #22c55e;
+                        padding: 12px 30px;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        font-weight: bold;
+                        font-size: 1em;
+                        transition: all 0.3s;
+                        margin-right: 10px;
+                    " onmouseover="this.style.background='rgba(34, 197, 94, 1)'; this.style.transform='scale(1.05)';"
+                       onmouseout="this.style.background='rgba(34, 197, 94, 0.9)'; this.style.transform='scale(1)';">
+                        Done - Close
+                    </button>
+                    <button id="reloadDashboard" style="
+                        background: rgba(59, 130, 246, 0.2);
+                        color: #3b82f6;
+                        border: 2px solid #3b82f6;
+                        padding: 12px 20px;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        font-weight: bold;
+                        font-size: 0.9em;
+                        transition: all 0.3s;
+                    " onmouseover="this.style.background='rgba(59, 130, 246, 0.3)';"
+                       onmouseout="this.style.background='rgba(59, 130, 246, 0.2)';">
+                        Reload Dashboard
+                    </button>
+                `;
+
+                document.getElementById('closeDownloadModal').addEventListener('click', function() {
+                    document.body.removeChild(modal);
+                    // Layers already registered - no reload needed!
+                });
+
+                document.getElementById('reloadDashboard').addEventListener('click', function() {
+                    document.body.removeChild(modal);
+                    location.reload();
+                });
+            }
         });

@@ -865,3 +865,116 @@
                 user-select: none;
             }
         }
+
+        /* ========================================
+           DDR MODULE STYLES
+           Drag-Drop-Rightclick interactions
+           ======================================== */
+
+        /* Layer label with drag indicator */
+        .ddr-layer-label {
+            cursor: grab;
+            user-select: none;
+            transition: all 0.2s ease;
+        }
+
+        .ddr-layer-label:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            padding: 2px 4px;
+            margin: -2px -4px;
+        }
+
+        .ddr-layer-label:active {
+            cursor: grabbing;
+        }
+
+        /* Dragging state */
+        .dragging-layer {
+            opacity: 0.5 !important;
+        }
+
+        /* Layer dropped indicator */
+        .layer-dropped {
+            position: relative;
+        }
+
+        .layer-dropped::after {
+            content: '✓';
+            position: absolute;
+            right: -20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #22c55e;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        /* Drop zone cursors */
+        .drop-target {
+            cursor: copy !important;
+        }
+
+        .drop-invalid {
+            cursor: not-allowed !important;
+        }
+
+        /* DDR Drag ghost element */
+        .ddr-drag-ghost {
+            position: fixed;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            font-weight: 500;
+            pointer-events: none;
+            z-index: 10000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            white-space: nowrap;
+        }
+
+        /* DDR Context menu */
+        #layerContextMenu {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        #layerContextMenu .ctx-menu-item {
+            transition: background 0.15s ease;
+        }
+
+        /* Success notification popup */
+        .drop-success-popup .leaflet-popup-content-wrapper {
+            background: rgba(34, 197, 94, 0.95) !important;
+            color: white !important;
+            font-weight: bold;
+            text-align: center;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .drop-success-popup .leaflet-popup-tip {
+            background: rgba(34, 197, 94, 0.95) !important;
+        }
+
+        /* Loading popup */
+        .loading-popup .leaflet-popup-content-wrapper {
+            background: rgba(59, 130, 246, 0.95) !important;
+            color: white !important;
+            text-align: center;
+            border-radius: 8px;
+        }
+
+        .loading-popup .leaflet-popup-tip {
+            background: rgba(59, 130, 246, 0.95) !important;
+        }
+
+        /* Error popup */
+        .error-popup .leaflet-popup-content-wrapper {
+            background: rgba(239, 68, 68, 0.95) !important;
+            color: white !important;
+            text-align: center;
+            border-radius: 8px;
+        }
+
+        .error-popup .leaflet-popup-tip {
+            background: rgba(239, 68, 68, 0.95) !important;
+        }

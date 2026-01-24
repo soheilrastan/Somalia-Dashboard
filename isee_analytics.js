@@ -583,19 +583,24 @@ function generateExecutiveSummary(datasets, targetRegion) {
 
     // Add key findings based on available data
     datasets.forEach(ds => {
-        if (ds.type === 'nightlight' && ds.metadata.values) {
+        if (ds.type === 'nightlight' && ds.metadata.values && ds.metadata.values.mean != null) {
             summary.keyFindings.push(
                 `${ds.name}: Mean nightlight intensity ${ds.metadata.values.mean.toFixed(3)} nW/cm²/sr`
             );
         }
         if (ds.type === 'population' && ds.metadata.values) {
             summary.keyFindings.push(
-                `Population: ${ds.metadata.totalCells} populated cells detected`
+                `Population: ${ds.metadata.totalCells || 0} populated cells detected`
             );
         }
-        if (ds.type === 'socioeconomic' && ds.metadata.values) {
+        if (ds.type === 'socioeconomic' && ds.metadata.values && ds.metadata.values.mpi != null) {
             summary.keyFindings.push(
                 `MPI: Multidimensional poverty index ${ds.metadata.values.mpi.toFixed(3)}`
+            );
+        }
+        if (ds.type === 'infrastructure' && ds.metadata.values) {
+            summary.keyFindings.push(
+                `Roads: ${ds.metadata.values.count || 0} segments, ${(ds.metadata.values.totalLengthKm || 0).toFixed(1)} km total`
             );
         }
     });
@@ -630,12 +635,14 @@ function analyzeLayer(dataset) {
         analysis.insights.push(`High-resolution (100m) data enables precise settlement mapping`);
     }
 
-    if (dataset.type === 'socioeconomic' && dataset.metadata.values) {
+    if (dataset.type === 'socioeconomic' && dataset.metadata.values && dataset.metadata.values.mpi != null) {
         const mpi = dataset.metadata.values.mpi;
         if (mpi > 0.4) {
             analysis.insights.push(`High poverty level (MPI=${mpi.toFixed(3)}) - Critical intervention needed`);
         } else if (mpi > 0.2) {
             analysis.insights.push(`Moderate poverty level (MPI=${mpi.toFixed(3)})`);
+        } else {
+            analysis.insights.push(`Lower poverty level (MPI=${mpi.toFixed(3)})`);
         }
     }
 
