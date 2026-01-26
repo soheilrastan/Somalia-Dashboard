@@ -1,0 +1,69 @@
+================================================================================
+SOMALIA DASHBOARD - QUICK REFERENCE CARD
+================================================================================
+
+🚨 CRITICAL RULE #1: NEVER CHANGE CODE WITHOUT ASKING FIRST
+   - Don't refactor, clean up, or "improve" code
+   - Don't remove features
+   - Always ask before making structural changes
+
+📁 SYSTEM ARCHITECTURE (The 4 Categories):
+
+1. LAYERS (Historical dates + latest update)
+   1.1 Visual Lite (Level 0) - Checkbox toggle, country-wide
+   1.2 Drag & Drop (Level 1) - Per-region, detail data
+       Note: If 1.2 dropped, uncheck 1.1
+
+2. ANALYTICS
+   - iSEE Analytics: Draggable to any region, calculates stats
+
+3. CONCEPT, SOURCES, METHODS
+   - Links to all data sources
+
+4. SYMBOLOGY
+   - Links to layers, color codes
+
+🔧 KEY TECHNICAL SPECS:
+
+Variable Naming:
+  - Roads: regionName.toLowerCase().replace(/ /g, '_') + 'Roads'
+  - Example: "Bakool" → bakoolRoads
+
+Road Colors (OSM):
+  - Motorway: #7c2d12 (dark brown)
+  - Trunk: #dc2626 (dark red)
+  - Primary: #ef4444 (bright red)
+  - Secondary: #f97316 (orange)
+  - Tertiary: #fbbf24 (yellow)
+  - Residential: #cbd5e1 (light gray)
+  - Track: #78716c (stone gray)
+
+Files Structure:
+  - roads_by_region_latest/{Region}_roads.js
+  - Variable: window[regionName.toLowerCase().replace(/ /g, '_') + 'Roads']
+
+🔗 CRITICAL APIS:
+
+HDX Roads API:
+  https://data.humdata.org/api/3/action/package_show?id=hotosm_som_roads
+
+Update Server:
+  - Port 5000: Flask backend
+  - Port 8000: Web server
+
+✅ WORKING FEATURES (v2.8):
+  - Drag-and-drop system
+  - Right-click layer management
+  - iSEE Analytics
+  - OSM Latest auto-update
+  - MPI visualization
+  - Nightlight polygons (Bakool 2022/2023)
+
+📋 BEFORE ANY CHANGES:
+  1. Read current code
+  2. Understand what's working
+  3. Ask user before modifying
+  4. Test in isolation
+  5. Commit to git
+
+For full details, see: DASHBOARD_COMPLETE_DOCUMENTATION.txt

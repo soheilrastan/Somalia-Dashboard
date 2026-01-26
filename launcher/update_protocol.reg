@@ -1,0 +1,15 @@
+Windows Registry Editor Version 5.00
+
+; Somalia Dashboard URL Protocol Fix
+; This updates the protocol to point to the launcher folder
+
+[HKEY_CURRENT_USER\Software\Classes\somalia-dashboard]
+@="URL:Somalia Dashboard Protocol"
+"URL Protocol"=""
+
+[HKEY_CURRENT_USER\Software\Classes\somalia-dashboard\shell]
+
+[HKEY_CURRENT_USER\Software\Classes\somalia-dashboard\shell\open]
+
+[HKEY_CURRENT_USER\Software\Classes\somalia-dashboard\shell\open\command]
+@="\"C:\\Windows\\System32\\wscript.exe\" \"C:\\Users\\10145080\\Downloads\\Somalia Dashboard\\launcher\\launch_silent.vbs\""

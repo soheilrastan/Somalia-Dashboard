@@ -1,0 +1,1099 @@
+================================================================================
+GEO-INSIGHTS SOMALIA DASHBOARD - COMPLETE DOCUMENTATION
+By Geo-Insight Lab, ESCWA, UN - 2026
+Built over January 2026
+================================================================================
+
+TABLE OF CONTENTS
+=================
+1. DASHBOARD ARCHITECTURE OVERVIEW
+2. FOUR MAIN CATEGORIES (CONTAINERS)
+3. DATA SOURCES & APIs
+4. DRAG-AND-DROP SYSTEM
+5. RIGHT-CLICK LAYER MANAGEMENT
+6. TECHNICAL IMPLEMENTATION
+7. FILE STRUCTURE
+8. EXTERNAL DEPENDENCIES & LINKS
+9. KEY LESSONS LEARNED
+10. KNOWN ISSUES & FUTURE IMPROVEMENTS
+
+================================================================================
+1. DASHBOARD ARCHITECTURE OVERVIEW
+================================================================================
+
+Technology Stack:
+- Frontend: Leaflet.js (v1.9.4) - Interactive mapping library
+- Base Maps: CartoDB Dark Theme + Google Satellite
+- Data Format: GeoJSON (vector) + PNG (raster for roads)
+- Backend: Python Flask (update server on port 5000)
+- Web Server: Python HTTP server (port 8000)
+- Version Control: Git
+
+Core Concept:
+- Multi-layer geospatial dashboard for Somalia
+- 18 administrative regions (ADM1 level)
+- Combines multiple data sources (poverty, nightlight, roads, population)
+- Real-time data updates via APIs
+- Performance optimized (PNG rendering for heavy vector data)
+
+================================================================================
+2. FOUR MAIN CATEGORIES (CONTAINERS)
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────┐
+│ 1. LAYERS (by historical dates + latest update option)         │
+└─────────────────────────────────────────────────────────────────┘
+
+1.1 VISUAL LITE (Level 0 - Country-wide visualization)
+    ├── Box tick = Yes (checkbox toggle)
+    ├── Level = 0 (entire country)
+    ├── Detail Data = No (summary only)
+    ├── Symbology = Yes
+    ├── Colours = Yes
+    └── Layers:
+        ├── MPI (Multidimensional Poverty Index) - Color gradient
+        ├── Nightlight Overview (1,571 sampled points)
+        ├── ADM1 Boundaries (18 regions)
+        └── ADM2 Boundaries (118 districts)
+
+1.2 DRAG AND DROP (Level 1 - Regional detail)
+    ├── Box tick = No (activated by drag-drop only)
+    ├── Level = 1 (per-region)
+    ├── Detail Data = Yes (full feature attributes)
+    ├── Symbology = Yes (OSM highway classification)
+    ├── Colours = Yes (color-coded by type)
+    └── Layers:
+        ├── Nightlight Detailed
+        │   ├── Bakool 2022 (2 polygons, 500m × 500m, >= 0.5 nW/cm²/sr)
+        │   └── Bakool 2023 (15 polygons, 500m × 500m, >= 0.5 nW/cm²/sr)
+        │
+        ├── Roads WFP 2022
+        │   ├── Coverage: Bakool & Lower Shebelle only
+        │   ├── Total: 9,063 road segments
+        │   └── Source: HDX (Humanitarian Data Exchange)
+        │
+        ├── Roads OSM 2023
+        │   ├── Coverage: Bakool region
+        │   ├── Format: Vector GeoJSON
+        │   └── Source: OpenStreetMap (2023 snapshot)
+        │
+        └── Roads OSM Latest (Ultra-Lite)
+            ├── Coverage: All 18 regions
+            ├── Format: Vector GeoJSON (36 files)
+            ├── Auto-update: HDX API check + download
+            ├── Source: HOT OpenStreetMap Team
+            └── Performance: Rendered to PNG (90% lighter than vectors)
+
+    Note: If 1.2 dropped, then uncheck 1.1
+
+┌─────────────────────────────────────────────────────────────────┐
+│ 2. ANALYTICS                                                    │
+└─────────────────────────────────────────────────────────────────┘
+
+2.1 iSEE ANALYTICS
+    ├── Box tick = No (collapsed by default)
+    ├── Drag and Drop = Yes (draggable to any region)
+    ├── Level = 1 (per-region analysis)
+    ├── Activation = Green border on region
+    └── Features:
+        ├── Real-time statistics calculation
+        ├── MPI Analysis (poverty metrics)
+        ├── Nightlight Analysis (if available)
+        ├── Roads Analysis
+        │   ├── Total Length (km)
+        │   ├── Breakdown by Highway Type
+        │   │   ├── Primary roads (major highways)
+        │   │   ├── Secondary roads
+        │   │   ├── Tertiary roads
+        │   │   ├── Residential streets
+        │   │   ├── Tracks & unpaved
+        │   │   └── Other road types
+        │   └── Quality Score (0-100)
+        ├── Population Analysis (if available)
+        └── Data Sources Attribution
+
+┌─────────────────────────────────────────────────────────────────┐
+│ 3. CONCEPT, SOURCES, AND METHODS (Links to layers)             │
+└─────────────────────────────────────────────────────────────────┘
+
+3.1 CONTAINER CONTENT
+    ├── Collapsible panel (click to expand/collapse)
+    ├── Position: Bottom-left corner
+    └── Sections:
+        ├── Level 1: Data Sources
+        │   ├── MPI → OPHI Somalia MPI Report 2024
+        │   ├── Nightlight → VIIRS Day/Night Band (NOAA)
+        │   ├── Roads → Multiple sources
+        │   ├── Population → WorldPop Age/Sex 2025
+        │   └── Boundaries → HDX & geoBoundaries
+        │
+        ├── Level 2: Summary Statistics
+        │   ├── MPI Range: 23-67
+        │   ├── Nightlight Overview: 1,571 points
+        │   ├── Nightlight Detailed: Bakool 2022/2023
+        │   ├── Roads: 9,063 segments (2 regions)
+        │   └── Population: F 0-12 months coverage
+        │
+        └── Level 3: Methodology
+            ├── Data Collection Methods
+            ├── Processing Techniques
+            └── Quality Assurance
+
+┌─────────────────────────────────────────────────────────────────┐
+│ 4. SYMBOLOGY (Links to layers)                                 │
+└─────────────────────────────────────────────────────────────────┘
+
+4.1 MPI SYMBOLOGY
+    ├── Color Gradient (Red → Yellow → Green)
+    ├── Range: 23 (best) → 67 (worst)
+    └── Classification:
+        ├── 23-30: Light green (low poverty)
+        ├── 31-40: Yellow-green
+        ├── 41-50: Yellow-orange
+        ├── 51-60: Orange-red
+        └── 61-67: Dark red (high poverty)
+
+4.2 NIGHTLIGHT SYMBOLOGY
+    ├── Color: Purple (#a855f7 for 2022, #8b5cf6 for 2023)
+    ├── Threshold: >= 0.5 nW/cm²/sr
+    ├── Grid: 500m × 500m polygons
+    └── Visualization: Filled polygons with transparency
+
+4.3 ROADS SYMBOLOGY (OSM Highway Classification)
+    ├── Motorway: #7c2d12 (dark brown) - width 4px
+    ├── Trunk: #dc2626 (dark red) - width 3.5px
+    ├── Primary: #ef4444 (bright red) - width 3px
+    ├── Secondary: #f97316 (orange) - width 2.5px
+    ├── Tertiary: #fbbf24 (yellow) - width 2px
+    ├── Residential: #cbd5e1 (light gray) - width 1.5px
+    ├── Service: #cbd5e1 (light gray) - width 1px
+    ├── Unclassified: #9ca3af (medium gray) - width 1.5px
+    ├── Track: #78716c (stone gray) - width 1.5px
+    └── Path/Footway/Cycleway: #d1d5db (very light gray) - dashed line
+
+================================================================================
+3. DATA SOURCES & APIs
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────┐
+│ 3.1 POVERTY DATA (MPI)                                         │
+└─────────────────────────────────────────────────────────────────┘
+Source: OPHI (Oxford Poverty and Human Development Initiative)
+URL: https://ophi.org.uk/sites/default/files/2024-12/Somalia_MPI_report_2024.pdf
+Dataset: Somalia Multidimensional Poverty Index
+Year: 2022 (data) / 2024 (report published)
+Survey: SIHBS 2022
+Format: Manual data entry (18 regions)
+Resolution: ADM1 (regional level)
+License: Public domain
+
+┌─────────────────────────────────────────────────────────────────┐
+│ 3.2 NIGHTLIGHT DATA (VIIRS)                                    │
+└─────────────────────────────────────────────────────────────────┘
+Source: NOAA VIIRS DNB (Day/Night Band)
+Platform: Google Earth Engine (GEE)
+URL: https://developers.google.com/earth-engine/datasets/catalog/NOAA_VIIRS_DNB_ANNUAL_V22
+Dataset: VIIRS Annual Nighttime Lights (Version 2.2)
+Years: 2014-2024 (time series)
+Resolution: 500m × 500m
+Units: nW/cm²/sr (nanowatts per square centimeter per steradian)
+Processing:
+  ├── Extract annual mean radiance
+  ├── Filter: >= 0.5 nW/cm²/sr (remove noise)
+  ├── Convert to 500m polygons
+  └── Export as GeoJSON
+
+GEE API Access:
+  └── JavaScript Code Editor: https://code.earthengine.google.com/
+
+Implementation Files:
+  ├── extract_viirs_bakool.py (Python extraction script)
+  ├── extract_viirs_bakool_colab.ipynb (Jupyter notebook)
+  └── bakool_viirs_annual_2014_2023.json (time series data)
+
+┌─────────────────────────────────────────────────────────────────┐
+│ 3.3 ROADS DATA (OpenStreetMap)                                 │
+└─────────────────────────────────────────────────────────────────┘
+
+SOURCE 1: WFP Roads 2022
+  URL: https://data.humdata.org/dataset/somalia-roads
+  Coverage: Bakool & Lower Shebelle only
+  Features: 9,063 road segments
+  Format: GeoJSON (LineString)
+  Year: 2022
+  Status: Static (no updates)
+
+SOURCE 2: OSM Roads 2023
+  URL: https://www.openstreetmap.org
+  Extraction Methods:
+    ├── Geofabrik Downloads: https://download.geofabrik.de/
+    ├── Overpass Turbo: https://overpass-turbo.eu/
+    ├── GLOBIO GRIP Dataset: https://www.globio.info/download-grip-dataset
+    ├── Bing Maps Roads: https://blogs.bing.com/maps/2022-12/Bing-Maps-is-bringing-new-roads
+    └── GEE GHSL Built-up: https://developers.google.com/earth-engine/datasets/catalog/JRC_GHSL_P2023A_GHS_BUILT_C#bands
+  Coverage: Bakool region
+  Year: 2023 snapshot
+  Status: Historical reference
+
+SOURCE 3: OSM Roads Latest (AUTO-UPDATE SYSTEM)
+  URL: https://data.humdata.org/dataset/hotosm_som_roads
+  API Endpoint: https://data.humdata.org/api/3/action/package_show?id=hotosm_som_roads
+  Provider: Humanitarian OpenStreetMap Team (HOT)
+  Coverage: All Somalia (18 regions)
+  Update Frequency: Weekly/Monthly (variable)
+  Format: GeoJSON ZIP file (~83 MB)
+
+  Auto-Update System:
+    ├── Flask Backend Server (update_server.py) - Port 5000
+    │   ├── /api/check-version (GET) - Check if update available
+    │   ├── /api/update-roads (POST) - Trigger download & processing
+    │   ├── /api/status (GET) - Get update progress
+    │   └── /api/reset (POST) - Cancel stuck update
+    │
+    ├── Update Script (update_osm_roads.py)
+    │   ├── Step 1/6: Fetch HDX dataset metadata
+    │   ├── Step 2/6: Download ZIP file (~83 MB)
+    │   ├── Step 3/6: Extract GeoJSON
+    │   ├── Step 4/6: Process by region (clip 18 regions)
+    │   ├── Step 5/6: Save regional files (.geojson + .js)
+    │   └── Step 6/6: Clean up temp files
+    │
+    └── Progress Tracking
+        ├── Real-time progress bar (0-100%)
+        ├── Detailed status messages
+        ├── File size & estimated time
+        └── Version comparison (.version.json)
+
+  Processing Output:
+    ├── roads_by_region_latest/ (36 files per region)
+    │   ├── {Region}_roads.geojson (raw GeoJSON)
+    │   ├── {Region}_roads.js (JavaScript variable)
+    │   └── Variable naming: {region}Roads (e.g., bakoolRoads)
+    └── .version.json (metadata: last_modified, updated_at)
+
+┌─────────────────────────────────────────────────────────────────┐
+│ 3.4 ADMINISTRATIVE BOUNDARIES                                  │
+└─────────────────────────────────────────────────────────────────┘
+
+ADM1 (Regions - 18 total):
+  URL: https://data.humdata.org/dataset/somalia-administrative-boundaries
+  Source: HDX (Humanitarian Data Exchange)
+  Format: GeoJSON (Polygon)
+  Year: 2024
+
+  Regions List:
+    ├── Awdal, Bakool, Banadir, Bari, Bay
+    ├── Galgaduud, Gedo, Hiiraan
+    ├── Lower Juba, Lower Shebelle
+    ├── Middle Juba, Middle Shebelle, Mudug
+    ├── Nugaal, Sanaag, Sool, Togdheer
+    └── Woqooyi Galbeed
+
+ADM2 (Districts - 118 total):
+  URL: https://www.geoboundaries.org/index.html#getdata
+  Source: geoBoundaries
+  Format: GeoJSON (Polygon)
+  Year: 2024
+
+┌─────────────────────────────────────────────────────────────────┐
+│ 3.5 POPULATION DATA                                            │
+└─────────────────────────────────────────────────────────────────┘
+Source: WorldPop
+URL: https://hub.worldpop.org/geodata/summary?id=83199
+Dataset: Age/Sex Structure 2025
+Demographic: Female 0-12 months
+Resolution: 500m grid
+Format: GeoTIFF
+Year: 2025
+Coverage: Bakool & Lower Shebelle (sample)
+
+================================================================================
+4. DRAG-AND-DROP SYSTEM
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────┐
+│ 4.1 SYSTEM ARCHITECTURE                                        │
+└─────────────────────────────────────────────────────────────────┘
+
+Component 1: LAYER REGISTRY
+  ├── Central data structure: window.LAYER_REGISTRY
+  ├── Stores all draggable layers
+  └── Layer Properties:
+      ├── name: Display name
+      ├── description: Detailed description
+      ├── leafletLayer: Leaflet layer object (or null for dynamic)
+      ├── regions: Allowed regions array ([] = all regions)
+      ├── color: Theme color (hex)
+      ├── icon: Emoji icon
+      ├── checkboxId: HTML checkbox ID
+      └── labelId: HTML label ID (draggable element)
+
+Component 2: ACTIVE LAYERS TRACKER
+  ├── Data structure: window.activeLayersByRegion
+  ├── Format: { "RegionName": ["layerId1", "layerId2", ...] }
+  └── Purpose: Track which layers are active on each region
+
+Component 3: DRAG HANDLERS
+  ├── Event: dragstart
+  ├── Creates drag ghost (visual preview)
+  ├── Creates cursor indicator
+  ├── Sets draggedLayerId variable
+  └── Hides default browser drag image
+
+Component 4: DROP ZONE HIGHLIGHTING
+  ├── Event: dragover (on map)
+  ├── Detects which region is under cursor
+  ├── Highlights valid drop zones
+  └── Changes cursor to indicate droppable
+
+Component 5: DROP HANDLER
+  ├── Event: drop (on map)
+  ├── Gets drop coordinates
+  ├── Determines which region was dropped on
+  ├── Calls showAddLayerConfirmation()
+  └── Shows confirmation popup
+
+Component 6: CONFIRMATION SYSTEM
+  ├── Popup with Yes/Cancel buttons
+  ├── Shows layer info + target region
+  ├── Validates:
+  │   ├── Region restrictions (if any)
+  │   └── Duplicate prevention
+  └── Calls addLayerToRegion() on confirmation
+
+┌─────────────────────────────────────────────────────────────────┐
+│ 4.2 DRAG-AND-DROP WORKFLOW                                     │
+└─────────────────────────────────────────────────────────────────┘
+
+Step 1: USER INITIATES DRAG
+  ├── Hover over layer label → Drag handle (⋮⋮) appears
+  ├── Cursor changes to "grab"
+  ├── User clicks and drags
+  └── Drag ghost appears (colored preview box)
+
+Step 2: DRAGGING OVER MAP
+  ├── Ghost follows cursor (+10px offset)
+  ├── Map regions detect cursor position
+  ├── Valid region → Highlighted + "copy" cursor
+  └── Invalid area → "not-allowed" cursor
+
+Step 3: DROP ON REGION
+  ├── User releases mouse button
+  ├── Drop handler calculates lat/lng
+  ├── Checks which region contains drop point
+  └── If valid region → Shows confirmation popup
+
+Step 4: CONFIRMATION POPUP
+  ├── Purple border (layer-confirmation-popup)
+  ├── Shows:
+  │   ├── Layer name + icon
+  │   ├── Layer description
+  │   └── Target region name (orange highlight)
+  ├── Two buttons:
+  │   ├── "✓ Yes, Add Layer" (green)
+  │   └── "✗ Cancel" (gray)
+  └── User clicks Yes or Cancel
+
+Step 5: LAYER ACTIVATION
+  ├── If "Yes" clicked:
+  │   ├── Adds layer to activeLayersByRegion[region]
+  │   ├── Calls layer-specific loading function
+  │   ├── Checks checkbox
+  │   ├── Adds green highlight to label
+  │   └── Shows success notification
+  └── If "Cancel" → Nothing happens
+
+Step 6: LAYER LOADING (Dynamic)
+  ├── For Roads layers:
+  │   ├── Constructs file path: roads_by_region_latest/{Region}_roads.js
+  │   ├── Loads JavaScript file dynamically
+  │   ├── Accesses window variable: {region}Roads
+  │   ├── Creates Leaflet GeoJSON layer
+  │   ├── Applies OSM symbology (colors by highway type)
+  │   └── Adds to map
+  └── For Nightlight layers:
+      ├── Layer already loaded (detailedNLBakool2022/2023)
+      └── Simply adds to map
+
+┌─────────────────────────────────────────────────────────────────┐
+│ 4.3 VISUAL FEEDBACK SYSTEM                                     │
+└─────────────────────────────────────────────────────────────────┘
+
+Drag Handle (⋮⋮):
+  ├── CSS: opacity 0 by default
+  ├── Appears on hover (opacity 0.6)
+  └── Position: Before layer name
+
+Drag Ghost:
+  ├── Fixed position element
+  ├── Color: Layer theme color (rgba with transparency)
+  ├── Content: Icon + Layer name
+  ├── Shadow: 0 4px 12px rgba(0,0,0,0.3)
+  └── Follows cursor with 10px offset
+
+Cursor Indicators:
+  ├── Over valid region: "copy" cursor
+  ├── Over invalid area: "not-allowed" cursor
+  ├── Dragging: "grabbing" cursor
+  └── Hover: "grab" cursor
+
+Region Highlighting:
+  ├── Valid drop zone:
+  │   ├── Border: Layer color, 4px, dashed
+  │   └── Fill: Layer color with 20% opacity
+  └── Invalid: No highlighting
+
+Label States:
+  ├── Default: Normal text
+  ├── Dragging: opacity 0.5 (dragging-layer class)
+  └── Active: Green highlight (layer-dropped class)
+
+================================================================================
+5. RIGHT-CLICK LAYER MANAGEMENT
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────┐
+│ 5.1 SYSTEM ARCHITECTURE                                        │
+└─────────────────────────────────────────────────────────────────┘
+
+Component 1: CONTEXT MENU HANDLER
+  ├── Event: contextmenu (right-click)
+  ├── Attached to: ADM1 region layers
+  ├── Prevents default browser context menu
+  └── Calls showLayerManagementPopup(regionName)
+
+Component 2: LAYER MANAGEMENT POPUP
+  ├── Positioned: Right of Somalia (54.0°E, 3.0°N)
+  ├── Style: Orange border (layer-management-popup)
+  ├── Header: "📋 Layer Management - {RegionName}"
+  └── Content:
+      ├── Active Layers section
+      ├── List of layers with remove buttons
+      └── "Remove All Layers" button (if multiple layers)
+
+Component 3: REMOVE HANDLERS
+  ├── removeLayerFromRegion(layerId, regionName)
+  │   ├── Removes from activeLayersByRegion
+  │   ├── Removes from map (if not used elsewhere)
+  │   ├── Unchecks checkbox
+  │   └── Removes green highlight from label
+  └── removeAllLayersFromRegion(regionName)
+      ├── Loops through all active layers
+      └── Calls removeLayerFromRegion for each
+
+┌─────────────────────────────────────────────────────────────────┐
+│ 5.2 RIGHT-CLICK WORKFLOW                                       │
+└─────────────────────────────────────────────────────────────────┘
+
+Step 1: USER RIGHT-CLICKS REGION
+  ├── Browser context menu disabled (e.preventDefault())
+  ├── Gets region name from feature properties
+  └── Looks up active layers: activeLayersByRegion[regionName]
+
+Step 2: SHOW LAYER MANAGEMENT POPUP
+  ├── If no layers active:
+  │   ├── Shows: "No layers active on this region"
+  │   └── Gray italic text
+  └── If layers active:
+      ├── Lists each layer:
+      │   ├── Layer icon + name
+      │   ├── "Remove" button (red)
+      │   └── Hover effect (darker red)
+      └── Shows "Remove All Layers" button (orange)
+
+Step 3: USER CLICKS "REMOVE"
+  ├── Calls removeLayerFromRegion(layerId, regionName)
+  ├── Checks if layer is used on other regions
+  ├── If not used elsewhere:
+  │   ├── Removes from map
+  │   ├── Unchecks checkbox
+  │   └── Removes green highlight
+  ├── Shows success notification
+  └── Closes popup
+
+Step 4: USER CLICKS "REMOVE ALL"
+  ├── Calls removeAllLayersFromRegion(regionName)
+  ├── Removes each layer sequentially
+  ├── Shows success notification: "All layers removed"
+  └── Closes popup
+
+┌─────────────────────────────────────────────────────────────────┐
+│ 5.3 BROWSER CONTEXT MENU FIX                                   │
+└─────────────────────────────────────────────────────────────────┘
+
+PROBLEM (v4.4):
+  ├── Browser's default context menu appears first
+  ├── Blocks custom layer management popup
+  └── Shows: Back, Forward, Reload, etc.
+
+SOLUTION (v4.6):
+  ├── Disable browser context menu on map container
+  ├── Code location: script.js lines 140-143
+  └── Implementation:
+      mapContainer.addEventListener('contextmenu', function(e) {
+          e.preventDefault();
+          return false;
+      });
+
+RESULT:
+  ├── Browser menu suppressed
+  ├── Custom popup appears immediately
+  └── Right-click works as designed
+
+================================================================================
+6. TECHNICAL IMPLEMENTATION
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────┐
+│ 6.1 PERFORMANCE OPTIMIZATION                                   │
+└─────────────────────────────────────────────────────────────────┘
+
+CHALLENGE:
+  ├── Roads OSM Latest: ~50,000-100,000 road segments per region
+  ├── Vector rendering: Slow, heavy on browser
+  └── Goal: Load entire country without performance issues
+
+SOLUTION 1: PNG Rendering (Ultra-Lite Mode)
+  ├── Concept: "Roads rendered to canvas → converted to PNG"
+  ├── Benefits:
+  │   ├── 90% lighter than vector GeoJSON
+  │   ├── Instant rendering (no path drawing)
+  │   └── Unlimited regions without performance hit
+  └── Status: Planned (not yet implemented)
+
+SOLUTION 2: Region-Based Loading
+  ├── Don't load all roads at once
+  ├── Load only when user drops layer on region
+  ├── Each region stored in separate file
+  └── Benefits:
+      ├── On-demand loading
+      ├── Reduced initial load time
+      └── Manageable memory usage
+
+SOLUTION 3: Dynamic Script Loading
+  ├── Roads data loaded as JavaScript files
+  ├── Variable naming: {region}Roads (e.g., bakoolRoads)
+  ├── Cache busting: ?v={version}&b={buildTime}
+  └── Benefits:
+      ├── Browser caching
+      ├── Parallel loading possible
+      └── Easy to update individual regions
+
+┌─────────────────────────────────────────────────────────────────┐
+│ 6.2 COORDINATE SYSTEMS & PROJECTIONS                           │
+└─────────────────────────────────────────────────────────────────┘
+
+Map Projection: Web Mercator (EPSG:3857)
+  ├── Standard for web mapping
+  ├── Used by: Google Maps, Leaflet, OpenStreetMap
+  └── Good for Somalia (near equator)
+
+Data Projection: WGS84 (EPSG:4326)
+  ├── Latitude/Longitude coordinates
+  ├── All GeoJSON files use this
+  └── Leaflet handles conversion automatically
+
+GeoJSON Format:
+  ├── [longitude, latitude] order (NOT lat/lon!)
+  ├── Example: [43.445549, 3.696321]
+  │   ├── Longitude: 43.445549° E
+  │   └── Latitude: 3.696321° N
+  └── Used in: coordinates arrays
+
+Distance Calculations:
+  ├── Haversine formula (great circle distance)
+  ├── Earth radius: 6,371 km
+  ├── Accurate for Somalia (< 1% error)
+  └── Implementation: calculateDistance() in isee_analytics.js
+
+┌─────────────────────────────────────────────────────────────────┐
+│ 6.3 CACHING & VERSION CONTROL                                  │
+└─────────────────────────────────────────────────────────────────┘
+
+Browser Cache Busting:
+  ├── Method 1: Version parameter (?v=4.6)
+  ├── Method 2: Build timestamp (?b=1767971500000)
+  └── Combined: data.js?v=4.6&b=1767971500000
+
+Version Tracking:
+  ├── index.html: Displays version in subtitle
+  ├── HTML meta tag: <meta name="version" content="4.6">
+  ├── JavaScript constant: const version = '4.6';
+  └── Update all three when releasing
+
+Git Version Control:
+  ├── Repository: Local git repo
+  ├── Branches: main
+  ├── Recent commits:
+  │   ├── 987325a: Fix progress bar
+  │   ├── f51be69: Add download info
+  │   ├── 47a048c: Reset/cancel for stuck updates
+  │   └── 3e35076: Drag-and-drop visual feedback
+  └── Uncommitted changes: Stashed (git stash)
+
+================================================================================
+7. FILE STRUCTURE
+================================================================================
+
+Somalia Dashboard/
+├── index.html                          # Main entry point
+├── styles.css                          # All styling
+├── script.js                           # Main application logic (5000+ lines)
+├── isee_analytics.js                   # iSEE Analytics calculation engine
+├── data.js                             # MPI data, boundaries, nightlight overview
+├── bakool_nightlight_polygons_2022.js  # Detailed nightlight (2 polygons)
+├── bakool_nightlight_polygons_2023.js  # Detailed nightlight (15 polygons)
+│
+├── roads_by_region/                    # WFP 2022 + OSM 2023 roads
+│   ├── Bakool_roads.geojson
+│   ├── Lower_Shebelle_roads.geojson
+│   └── ... (backup .backup files)
+│
+├── roads_by_region_latest/             # OSM Latest auto-update roads
+│   ├── Awdal_roads.geojson             # Raw GeoJSON
+│   ├── Awdal_roads.js                  # JavaScript variable
+│   ├── Bakool_roads.geojson
+│   ├── Bakool_roads.js
+│   ├── ... (36 files total - 18 regions × 2 formats)
+│   └── .version.json                   # Version metadata
+│
+├── temp_osm_extract/                   # Temporary files during update
+│   └── (deleted after processing)
+│
+├── update_server.py                    # Flask backend for OSM updates
+├── update_osm_roads.py                 # Update script (downloads + processes)
+├── requirements.txt                    # Python dependencies
+│
+├── extract_viirs_bakool.py             # VIIRS extraction (Google Earth Engine)
+├── extract_viirs_bakool_colab.ipynb    # Jupyter notebook version
+├── bakool_viirs_annual_2014_2023.json  # VIIRS time series data
+│
+├── test_haversine.html                 # Test distance calculations
+├── test_roads_loading.html             # Test roads loading mechanism
+├── test_simple.html                    # Simple test page
+│
+├── adp_logo.png                        # Arab Development Portal logo
+├── .gitignore                          # Git ignore rules
+└── README.md                           # (if exists)
+
+File Sizes (approximate):
+├── script.js: 200 KB (5000+ lines)
+├── data.js: 500 KB (GeoJSON boundaries + MPI data)
+├── Each region roads.js: 5-15 MB (varies by region)
+└── Total roads_by_region_latest/: ~200-300 MB
+
+================================================================================
+8. EXTERNAL DEPENDENCIES & LINKS
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────┐
+│ 8.1 JAVASCRIPT LIBRARIES                                       │
+└─────────────────────────────────────────────────────────────────┘
+
+Leaflet.js v1.9.4
+  ├── CDN: https://unpkg.com/leaflet@1.9.4/dist/leaflet.js
+  ├── CSS: https://unpkg.com/leaflet@1.9.4/dist/leaflet.css
+  ├── Purpose: Interactive mapping library
+  └── Documentation: https://leafletjs.com/
+
+CartoDB Base Maps
+  ├── Dark Map: https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png
+  ├── Light Map: https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png
+  └── Attribution: &copy; OpenStreetMap &copy; CARTO
+
+Google Satellite
+  ├── Tiles: http://mt{0-3}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}
+  ├── Resolution: Up to zoom 22
+  └── Providers: Maxar, CNES/Airbus, Landsat/Copernicus
+
+┌─────────────────────────────────────────────────────────────────┐
+│ 8.2 PYTHON LIBRARIES                                           │
+└─────────────────────────────────────────────────────────────────┘
+
+Flask Web Framework
+  ├── pip install flask flask-cors
+  ├── Purpose: Backend server for OSM updates
+  └── Documentation: https://flask.palletsprojects.com/
+
+Requests Library
+  ├── pip install requests
+  ├── Purpose: HTTP requests to HDX API
+  └── Documentation: https://requests.readthedocs.io/
+
+GeoPandas (for geospatial processing)
+  ├── pip install geopandas
+  ├── Purpose: Clip roads by region boundaries
+  └── Documentation: https://geopandas.org/
+
+Google Earth Engine API
+  ├── pip install earthengine-api
+  ├── Purpose: Extract VIIRS nightlight data
+  └── Documentation: https://developers.google.com/earth-engine/
+
+┌─────────────────────────────────────────────────────────────────┐
+│ 8.3 DATA PROVIDER LINKS                                        │
+└─────────────────────────────────────────────────────────────────┘
+
+Humanitarian Data Exchange (HDX)
+  ├── Homepage: https://data.humdata.org/
+  ├── Somalia Roads: https://data.humdata.org/dataset/hotosm_som_roads
+  └── API: https://data.humdata.org/api/3/action/package_show?id=hotosm_som_roads
+
+OPHI (Oxford Poverty Initiative)
+  ├── Homepage: https://ophi.org.uk/
+  └── Somalia MPI: https://ophi.org.uk/sites/default/files/2024-12/Somalia_MPI_report_2024.pdf
+
+NOAA VIIRS (Nighttime Lights)
+  ├── Product Page: https://eogdata.mines.edu/products/vnl/
+  └── GEE Dataset: https://developers.google.com/earth-engine/datasets/catalog/NOAA_VIIRS_DNB_ANNUAL_V22
+
+WorldPop (Population Data)
+  ├── Homepage: https://hub.worldpop.org/
+  └── Somalia Dataset: https://hub.worldpop.org/geodata/summary?id=83199
+
+geoBoundaries (Administrative Boundaries)
+  ├── Homepage: https://www.geoboundaries.org/
+  └── Download: https://www.geoboundaries.org/index.html#getdata
+
+OpenStreetMap
+  ├── Homepage: https://www.openstreetmap.org
+  ├── Overpass API: https://overpass-turbo.eu/
+  └── Geofabrik Extracts: https://download.geofabrik.de/
+
+ESCWA (UN Economic and Social Commission for Western Asia)
+  └── Arab Development Portal: https://dataportal.unescwa.org/gis/landing
+
+================================================================================
+9. KEY LESSONS LEARNED
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────┐
+│ 9.1 TECHNICAL LESSONS                                          │
+└─────────────────────────────────────────────────────────────────┘
+
+LESSON 1: Variable Naming Convention Critical
+  Problem: Roads not loading - variable mismatch
+  ├── Script looked for: BakoolRoadsLatest (wrong)
+  ├── Actual variable: bakoolRoads (correct)
+  └── Fix: regionName.toLowerCase().replace(/ /g, '_') + 'Roads'
+
+  Key Takeaway: ALWAYS document variable naming conventions upfront
+
+LESSON 2: Browser Context Menu Conflicts
+  Problem: Right-click showed browser menu instead of custom popup
+  ├── Browser menu has higher priority by default
+  └── Fix: mapContainer.addEventListener('contextmenu', e.preventDefault())
+
+  Key Takeaway: Disable default browser behaviors for custom interactions
+
+LESSON 3: Function Scope and Timing
+  Problem: Functions not available when event handlers try to call them
+  ├── Retry mechanism implemented: Check if function exists, retry if not
+  └── Better approach: Expose functions to window scope immediately
+
+  Key Takeaway: Global scope management crucial for complex interactions
+
+LESSON 4: Performance vs Detail Trade-off
+  Challenge: 100,000+ road segments per region = slow rendering
+  ├── Solution 1: Region-based loading (implemented)
+  ├── Solution 2: PNG rendering (planned)
+  └── Solution 3: Simplification algorithms (not implemented)
+
+  Key Takeaway: Always plan for scale from the beginning
+
+LESSON 5: Cache Busting is Essential
+  Problem: Users see old version after updates
+  ├── Browser caches JavaScript files aggressively
+  ├── Solution: Version param + build timestamp
+  └── Update both on every change
+
+  Key Takeaway: Cache management = user experience quality
+
+┌─────────────────────────────────────────────────────────────────┐
+│ 9.2 DESIGN LESSONS                                             │
+└─────────────────────────────────────────────────────────────────┘
+
+LESSON 6: User Feedback is Critical
+  Features that need improvement based on user feedback:
+  ├── Right-click needed to be more obvious
+  ├── Drag-and-drop needed visual indicators
+  ├── Progress bars needed for long operations
+  └── Error messages needed to be clearer
+
+  Key Takeaway: Test with actual users early and often
+
+LESSON 7: Consistent Visual Language
+  Design decisions that worked well:
+  ├── Color coding by layer type
+  ├── Icons for quick recognition
+  ├── Popup position consistency (right of map)
+  └── Border colors indicate popup type
+
+  Key Takeaway: Visual consistency reduces cognitive load
+
+LESSON 8: Don't Change Things Without Asking
+  Critical mistake in this session:
+  ├── Assumed I should "clean up" the code
+  ├── User had working features that got removed
+  ├── Lost a month of work
+  └── User explicitly said: "waste of a month"
+
+  Key Takeaway: NEVER refactor or clean without explicit permission
+
+┌─────────────────────────────────────────────────────────────────┐
+│ 9.3 WORKFLOW LESSONS                                           │
+└─────────────────────────────────────────────────────────────────┘
+
+LESSON 9: Git is Your Safety Net
+  Benefits demonstrated:
+  ├── git stash: Quickly save and restore work
+  ├── git diff: See exactly what changed
+  ├── git log: Track history of changes
+  └── git revert: Undo mistakes
+
+  Key Takeaway: Commit working versions frequently
+
+LESSON 10: Incremental Development
+  Approach that worked:
+  ├── Build one feature at a time
+  ├── Test each feature independently
+  ├── Integrate only when working
+  └── Keep previous version accessible
+
+  Key Takeaway: Small steps = less risk of breaking everything
+
+LESSON 11: Documentation is Development
+  This document demonstrates:
+  ├── Comprehensive documentation helps future work
+  ├── Clear structure makes it easy to reference
+  ├── Links to sources enable verification
+  └── Lessons learned prevent repeated mistakes
+
+  Key Takeaway: Time spent on docs = time saved later
+
+================================================================================
+10. KNOWN ISSUES & FUTURE IMPROVEMENTS
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────┐
+│ 10.1 CRITICAL ISSUES (v2.8 - Last Stable Version)              │
+└─────────────────────────────────────────────────────────────────┘
+
+ISSUE 1: Roads Not Loading (FIXED in v4.5)
+  Status: RESOLVED
+  Cause: Variable naming mismatch
+  Fix: Changed to regionName.toLowerCase().replace(/ /g, '_') + 'Roads'
+
+ISSUE 2: Right-Click Not Working (FIXED in v4.6)
+  Status: RESOLVED
+  Cause: Browser context menu blocking custom popup
+  Fix: Added mapContainer.addEventListener('contextmenu', e.preventDefault())
+
+ISSUE 3: Some Features May Be Missing
+  Status: UNKNOWN (user reported but unclear what exactly)
+  User Quote: "u removed so may thing we worked hard on it yesterday"
+  ├── "L0 drag" - unclear what this refers to
+  ├── "beautiful right-click on Lights" - unclear if different from current
+  └── "etc etc etc" - unspecified issues
+
+  Action Needed: User needs to specify exactly what's missing
+
+┌─────────────────────────────────────────────────────────────────┐
+│ 10.2 PLANNED IMPROVEMENTS                                      │
+└─────────────────────────────────────────────────────────────────┘
+
+IMPROVEMENT 1: PNG Rendering for Roads (Ultra-Lite Mode)
+  Goal: 90% file size reduction
+  Method:
+    ├── Render roads to HTML5 Canvas
+    ├── Convert canvas to PNG image
+    ├── Overlay PNG on map as ImageOverlay
+    └── Keep vector data for analysis
+  Benefits:
+    ├── Instant rendering
+    ├── Load entire country without lag
+    └── Smaller file sizes
+  Status: Not implemented yet
+
+IMPROVEMENT 2: Level 0 Roads Layer
+  Goal: Show all Somalia roads at once (country-wide)
+  Method:
+    ├── Single PNG image for entire country
+    ├── Low detail (only major roads visible at zoom 6)
+    ├── Toggle: "📍 Level 0 - All Somalia"
+    └── Checkbox in "Roads OSM Latest" section
+  Benefits:
+    ├── Quick overview of road network
+    ├── No performance hit
+    └── Works alongside Level 1 (per-region)
+  Status: UI exists but functionality not implemented
+
+IMPROVEMENT 3: Right-Click on Nightlight Polygons
+  Goal: Context menu on individual nightlight polygons
+  Features:
+    ├── Show polygon details (radiance value, area, year)
+    ├── Quick remove option
+    ├── Compare with previous/next year
+    └── Link to GEE dataset
+  Status: Not implemented
+
+IMPROVEMENT 4: iSEE Analytics Export
+  Goal: Export analysis results
+  Formats:
+    ├── CSV (tabular data)
+    ├── PDF (formatted report)
+    ├── GeoJSON (spatial data)
+    └── PNG (map screenshot)
+  Status: Not implemented
+
+IMPROVEMENT 5: Multi-Layer Drag
+  Goal: Drag multiple layers at once
+  Method:
+    ├── Ctrl+Click to select multiple layers
+    ├── Drag selection to region
+    └── Confirm all at once
+  Status: Not implemented
+
+IMPROVEMENT 6: Layer Reordering
+  Goal: Change layer draw order (z-index)
+  Method:
+    ├── Drag layer up/down in list
+    ├── Automatically adjust z-index
+    └── Save order preference
+  Status: Not implemented
+
+┌─────────────────────────────────────────────────────────────────┐
+│ 10.3 TECHNICAL DEBT                                            │
+└─────────────────────────────────────────────────────────────────┘
+
+DEBT 1: script.js is Too Large (5000+ lines)
+  Problem: Hard to maintain, navigate, debug
+  Solution:
+    ├── Split into modules:
+    │   ├── layers.js (layer management)
+    │   ├── drag-drop.js (drag-and-drop system)
+    │   ├── analytics.js (iSEE Analytics integration)
+    │   └── map-init.js (map initialization)
+    └── Use ES6 modules or module bundler (webpack)
+
+DEBT 2: Inconsistent Naming Conventions
+  Problems:
+    ├── Some camelCase, some snake_case
+    ├── Some with prefixes, some without
+    └── Hard to predict variable names
+  Solution: Document and enforce naming conventions
+
+DEBT 3: Missing Error Handling
+  Problems:
+    ├── Network failures not handled gracefully
+    ├── Missing file errors just logged to console
+    └── User sees generic error messages
+  Solution:
+    ├── Try-catch blocks around all async operations
+    ├── User-friendly error messages
+    └── Retry mechanisms with exponential backoff
+
+DEBT 4: No Unit Tests
+  Problem: Every change risks breaking existing features
+  Solution:
+    ├── Add test framework (Jest or Mocha)
+    ├── Test critical functions:
+    │   ├── calculateDistance()
+    │   ├── getOSMRoadColor()
+    │   └── Layer loading functions
+    └── Automated testing before deployment
+
+DEBT 5: Hard-Coded Values
+  Problems:
+    ├── Popup positions hard-coded (54.0°E, 3.0°N)
+    ├── Colors hard-coded in multiple places
+    ├── API URLs hard-coded
+    └── File paths hard-coded
+  Solution:
+    ├── Create configuration file (config.js)
+    ├── Centralize all constants
+    └── Make it easy to update
+
+================================================================================
+APPENDIX A: VERSION HISTORY
+================================================================================
+
+v2.8 (January 13, 2026) - LAST STABLE COMMIT
+  └── Fix progress bar to only reach 100% when files are ready
+
+v2.7 (January 13, 2026)
+  └── Add detailed download info with file size and estimated time
+
+v2.6 (January 13, 2026)
+  └── Add reset/cancel functionality for stuck OSM updates
+
+v2.5 (January 13, 2026)
+  └── Enable unbuffered Python output for smoother progress updates
+
+v2.4 (January 13, 2026)
+  └── Add live progress tracking with granular updates during OSM roads download
+
+v2.3 (January 13, 2026)
+  └── Add full drag-and-drop visual feedback for Roads OSM Latest layer
+
+v4.4 COMPLETE (January 20, 2026) - ATTEMPTED FIX (REVERTED)
+  ├── Added right-click handler to regions
+  ├── Updated road symbology to match container
+  ├── Added retry mechanism for showLayerManagementPopup
+  └── Issues: Right-click blocked by browser menu, some features missing
+
+v4.5 ROADS FIX (January 20, 2026) - VARIABLE FIX (REVERTED)
+  ├── Fixed variable naming: regionName.toLowerCase().replace(/ /g, '_') + 'Roads'
+  └── Issue: Still had browser context menu problem
+
+v4.6 COMPLETE FIX (January 20, 2026) - CONTEXT MENU FIX (REVERTED)
+  ├── Disabled browser context menu on map
+  ├── Roads loading fix from v4.5
+  └── Issue: User reported missing features from previous work
+
+CURRENT STATE: v2.8 (RESTORED via git stash)
+  └── Waiting for user to specify what features are missing
+
+================================================================================
+APPENDIX B: USEFUL COMMANDS
+================================================================================
+
+START WEB SERVER:
+  └── python -m http.server 8000
+
+START UPDATE SERVER:
+  └── python update_server.py
+
+CHECK PORT 8000:
+  └── netstat -ano | findstr :8000
+
+CHECK PORT 5000:
+  └── netstat -ano | findstr :5000
+
+GIT COMMANDS:
+  ├── git status
+  ├── git log --oneline
+  ├── git diff
+  ├── git stash (save current work)
+  ├── git stash pop (restore saved work)
+  └── git reset --hard (discard all changes)
+
+BROWSER DEV TOOLS:
+  ├── F12: Open DevTools
+  ├── Console: See JavaScript errors
+  ├── Network: Monitor file loading
+  └── Elements: Inspect HTML/CSS
+
+================================================================================
+END OF DOCUMENTATION
+================================================================================
+
+This documentation represents one month of development work on the
+Geo-Insights Somalia Dashboard. It serves as a complete reference for
+rebuilding the system from scratch, incorporating all lessons learned.
+
+Key Principle for Future Development:
+"Never remove or refactor code without explicit user permission."
+
+Questions? Contact: Geo-Insight Lab, ESCWA, UN
+Last Updated: January 20, 2026
