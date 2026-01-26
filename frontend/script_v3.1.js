@@ -898,18 +898,18 @@
             });
         }
 
-        // Placeholder for iSEE Analytics trigger from context menu
+        // iSEE Analytics trigger from context menu
+        // Note: Full implementation is inside setTimeout where all layer refs are available
+        // This placeholder will be replaced by the real function inside setTimeout
+        var triggerISEEAnalyticsImpl = null;
+
         function triggerISEEAnalytics(regionName, regionLayer) {
             console.log(`[iSEE] Triggering analytics for ${regionName}`);
-            // This will be connected to the existing iSEE Analytics function
-            if (typeof runISEEAnalytics === 'function') {
-                const activeLayers = {};
-                regionLockState.loadedLayers.forEach(l => {
-                    if (l.type === 'nightlight') {
-                        activeLayers[l.name] = true;
-                    }
-                });
-                runISEEAnalytics(activeLayers, map, {}, regionName);
+            if (triggerISEEAnalyticsImpl) {
+                triggerISEEAnalyticsImpl(regionName, regionLayer);
+            } else {
+                console.error('[iSEE] Analytics implementation not yet loaded');
+                alert('Please wait for the dashboard to fully load before running analytics.');
             }
         }
 
@@ -1994,6 +1994,80 @@
             let clippedRoadsLayer = null;
             let activeRoadsRegion = null;
             let roadsData = null;
+
+            // ========================================
+            // iSEE ANALYTICS IMPLEMENTATION
+            // Defined here where all layer refs are in scope
+            // ========================================
+            triggerISEEAnalyticsImpl = function(regionName, regionLayer) {
+                console.log(`[iSEE] Running analytics for ${regionName}`);
+
+                // Build activeBakoolLayers from regionLockState
+                const activeLayers = {
+                    'bakool2022': false,
+                    'bakool2023': false
+                };
+
+                // Check which layers are loaded
+                regionLockState.loadedLayers.forEach(l => {
+                    if (l.name === 'Bakool Nightlight 2022') activeLayers['bakool2022'] = true;
+                    if (l.name === 'Bakool Nightlight 2023') activeLayers['bakool2023'] = true;
+                });
+
+                // Also check the checkbox states as backup
+                const toggle2022 = document.getElementById('bakool2022Toggle');
+                const toggle2023 = document.getElementById('bakool2023Toggle');
+                if (toggle2022 && toggle2022.checked) activeLayers['bakool2022'] = true;
+                if (toggle2023 && toggle2023.checked) activeLayers['bakool2023'] = true;
+
+                // Find roads layer from regionLockState
+                let currentRoadsLayer = null;
+                let currentRoadsData = null;
+                let currentRoadsRegion = null;
+
+                regionLockState.loadedLayers.forEach(l => {
+                    if (l.type === 'roads' && l.layer) {
+                        currentRoadsLayer = l.layer;
+                        currentRoadsRegion = regionName;
+                        // Try to get the roads data from the layer
+                        if (l.layer.toGeoJSON) {
+                            currentRoadsData = l.layer.toGeoJSON();
+                        }
+                    }
+                });
+
+                // Build full layerRefs object
+                const layerRefs = {
+                    detailedNLBakool2022: detailedNLBakool2022,
+                    detailedNLBakool2023: detailedNLBakool2023,
+                    bakoolNightlightPolygons2022: typeof bakoolNightlightPolygons2022 !== 'undefined' ? bakoolNightlightPolygons2022 : null,
+                    bakoolNightlightPolygons2023: typeof bakoolNightlightPolygons2023 !== 'undefined' ? bakoolNightlightPolygons2023 : null,
+                    regionLayer: regionLayer,
+                    allRegionLayers: allRegionLayers,
+                    somaliaData: adm1Boundaries,
+                    // Roads layer references
+                    clippedRoadsLayer: currentRoadsLayer || clippedRoadsLayer,
+                    activeRoadsRegion: currentRoadsRegion || activeRoadsRegion,
+                    roadsData: currentRoadsData || roadsData,
+                    // Population and MPI
+                    populationLayer: typeof populationLayer !== 'undefined' ? populationLayer : null,
+                    populationData: typeof populationData !== 'undefined' ? populationData : null,
+                    mpiLayer: mpiLayer
+                };
+
+                console.log('[iSEE] Layer refs prepared:', layerRefs);
+                console.log('[iSEE] Active layers:', activeLayers);
+
+                // Call the actual iSEE Analytics function
+                if (typeof runISEEAnalytics === 'function') {
+                    runISEEAnalytics(activeLayers, map, layerRefs, regionName);
+                } else {
+                    console.error('[iSEE] runISEEAnalytics function not found!');
+                    alert('Error: iSEE Analytics module not loaded. Please refresh the page.');
+                }
+            };
+
+            console.log('[iSEE] Analytics implementation registered');
 
             // Drag start
             bakool2022Label.addEventListener('dragstart', function(e) {
