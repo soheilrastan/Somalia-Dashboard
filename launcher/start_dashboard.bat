@@ -1,6 +1,6 @@
 @echo off
 REM ======================================================================
-REM   Somalia Dashboard v3.0 - Bulletproof Silent Launcher
+REM   Somalia Dashboard v3.1 - Bulletproof Silent Launcher
 REM   Geo-Insights Lab, ESCWA, United Nations
 REM ======================================================================
 REM   This script is called by the HTML launcher via URL protocol.

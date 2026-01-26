@@ -946,7 +946,7 @@
             // Open dashboard and close this window
             setTimeout(() => {
                 const timestamp = Date.now();
-                window.open('http://localhost:8000/frontend/index_v3.0.html?v=3.0&t=' + timestamp, '_blank');
+                window.open('http://localhost:8000/frontend/index_v3.1.html?v=3.1&t=' + timestamp, '_blank');
                 setTimeout(() => {
                     window.close();
                     document.querySelector('.close-notice').textContent =
@@ -958,7 +958,7 @@
         // Check if dashboard server (port 8000) is ready
         async function checkDashboardServer() {
             try {
-                const response = await fetch('http://localhost:8000/frontend/index_v3.0.html', {
+                const response = await fetch('http://localhost:8000/frontend/index_v3.1.html', {
                     method: 'HEAD',
                     mode: 'no-cors'
                 });
