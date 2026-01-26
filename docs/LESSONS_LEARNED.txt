@@ -213,6 +213,485 @@ ALWAYS convert dates to underscore format when comparing with folder names.
 
 
 ================================================================================
+LESSON 6: GIT LFS AND GITHUB PAGES INCOMPATIBILITY
+================================================================================
+Date: 2026-01-24
+Issue: Large road files not loading when hosted on GitHub Pages
+
+PROBLEM:
+- Used Git LFS for large road files (>50 MB)
+- GitHub Pages doesn't serve Git LFS files properly
+- Returns LFS pointer text instead of actual file content
+- Breaks drag-and-drop functionality completely
+
+SOLUTION:
+--------------------------------------------------------------------------------
+1. Don't use Git LFS for files needed by GitHub Pages
+2. Optimize files to stay under GitHub's 100 MB limit instead
+3. If files are too large, use external hosting or a backend server
+
+To remove Git LFS tracking:
+    git lfs untrack "*.geojson"
+    git rm --cached path/to/file.geojson
+    git add path/to/file.geojson
+    git commit -m "Remove LFS tracking"
+--------------------------------------------------------------------------------
+
+ALTERNATIVE: Optimize GeoJSON files (see Lesson 7)
+
+Files affected: All roads_by_region/*.geojson files
+
+
+================================================================================
+LESSON 7: GEOJSON FILE SIZE OPTIMIZATION
+================================================================================
+Date: 2026-01-24
+Issue: Road data files too large for fast loading (1.27 GB total)
+
+PROBLEM:
+- Original road files had 10+ decimal precision in coordinates
+- Unnecessary whitespace in JSON
+- Bay region alone was 139 MB
+
+SOLUTION - COORDINATE PRECISION REDUCTION:
+--------------------------------------------------------------------------------
+# Python optimization script pattern
+import json
+
+def optimize_geojson(input_path, output_path, precision=5):
+    with open(input_path) as f:
+        data = json.load(f)
+
+    def round_coords(coords, precision):
+        if isinstance(coords[0], list):
+            return [round_coords(c, precision) for c in coords]
+        return [round(coords[0], precision), round(coords[1], precision)]
+
+    for feature in data['features']:
+        geom = feature['geometry']
+        geom['coordinates'] = round_coords(geom['coordinates'], precision)
+
+    with open(output_path, 'w') as f:
+        json.dump(data, f, separators=(',', ':'))  # Minified
+--------------------------------------------------------------------------------
+
+RESULTS:
+- 5-6 decimal precision = ~1-11cm accuracy (sufficient for roads)
+- Total size: 849 MB -> 219 MB (74% reduction)
+- Bay region: 139 MB -> 35 MB (75% reduction)
+- Load time: 4x faster
+
+Files: tools/optimize_geojson.py, tools/optimize_roads_js.py
+
+
+================================================================================
+LESSON 8: DYNAMIC SCRIPT LOADING - GLOBAL SCOPE ISSUES
+================================================================================
+Date: 2026-01-24
+Issue: Variables defined in dynamically loaded scripts not accessible
+
+PROBLEM:
+- Used eval() to execute dynamically loaded JavaScript
+- Variables defined with var/let/const stayed in eval() scope
+- Main script couldn't access the loaded data
+
+SOLUTION - USE INDIRECT EVAL FOR GLOBAL SCOPE:
+--------------------------------------------------------------------------------
+// WRONG - variables stay in local scope
+eval(scriptContent);
+
+// CORRECT - variables go to global scope
+(1, eval)(scriptContent);
+
+// Or use Function constructor
+const loadScript = new Function(scriptContent);
+loadScript();
+
+// Or assign to window explicitly in the loaded script
+window.myData = { ... };
+--------------------------------------------------------------------------------
+
+USE WHEN: Loading GeoJSON data files dynamically via fetch()
+
+Files affected: All drag-drop handlers that load .js data files
+
+
+================================================================================
+LESSON 9: BROWSER CACHE ISSUES DURING DEVELOPMENT
+================================================================================
+Date: 2026-01-24
+Issue: Code changes not reflecting in browser despite deployment
+
+PROBLEM:
+- Browser aggressively caches JavaScript and CSS files
+- Users see old version of dashboard
+- Confusing during development and testing
+
+SOLUTION - MULTI-LAYER CACHE BUSTING:
+--------------------------------------------------------------------------------
+1. Add version parameter to script/CSS URLs:
+   <script src="script.js?v=3.1&t=1706234567"></script>
+
+2. Add cache-control meta tags:
+   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+   <meta http-equiv="Pragma" content="no-cache">
+   <meta http-equiv="Expires" content="0">
+
+3. Use build timestamp in JavaScript:
+   const buildTime = Date.now();
+   document.write('<script src="script.js?v=' + version + '&b=' + buildTime + '"><\/script>');
+
+4. Add "Clear Cache & Reload" button for users:
+   location.reload(true);  // Force reload from server
+--------------------------------------------------------------------------------
+
+Files affected: frontend/index_v3.1.html
+
+
+================================================================================
+LESSON 10: UNICODE ENCODING IN PYTHON ON WINDOWS
+================================================================================
+Date: 2026-01-23
+Issue: Python scripts crashing with UnicodeEncodeError on Windows
+
+PROBLEM:
+- Python print() uses system encoding on Windows (cp1252)
+- Emojis and special characters in output cause crashes
+- Server logs fail when processing international text
+
+SOLUTION:
+--------------------------------------------------------------------------------
+# At the top of Python scripts, force UTF-8 output:
+import sys
+import io
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+
+# Or set environment variable before running:
+set PYTHONIOENCODING=utf-8
+--------------------------------------------------------------------------------
+
+Files affected: backend/update_server.py, tools/update_osm_roads.py
+
+
+================================================================================
+LESSON 11: REGION-FIRST WORKFLOW PATTERN
+================================================================================
+Date: 2026-01-26
+Issue: Users could overload map by loading many layers across different regions
+
+PROBLEM:
+- No restriction on loading layers for multiple regions
+- Map performance degraded with too many layers
+- Analysis confused when layers from different regions mixed
+
+SOLUTION - REGION LOCK STATE MANAGEMENT:
+--------------------------------------------------------------------------------
+const regionLockState = {
+    isLocked: false,
+    lockedRegion: null,
+    lockedRegionLayer: null,
+    loadedLayers: [],  // Track all layers for this region
+
+    lock: function(regionName, layer) { ... },
+    unlock: function() {
+        // Remove all layers, reset checkboxes, zoom out
+    },
+    addLayer: function(name, layer, type) { ... },
+    removeLayer: function(name) { ... },
+    hasLayer: function(name) { ... }
+};
+--------------------------------------------------------------------------------
+
+WORKFLOW:
+1. User must click a region to "lock" it first
+2. All drag-drop operations target only the locked region
+3. Right-click context menu to manage layers or unlock
+4. Unlock clears ALL layers (clean slate)
+
+Files affected: frontend/script_v3.1.js
+
+
+================================================================================
+LESSON 12: COLLAPSIBLE UI CONTAINERS
+================================================================================
+Date: 2026-01-22
+Issue: Too many UI panels cluttering the map view
+
+PROBLEM:
+- Multiple information panels (Layers, AI Insights, Sources, Legend)
+- Covered too much of the map
+- Overwhelming for users
+
+SOLUTION - COLLAPSIBLE PANELS:
+--------------------------------------------------------------------------------
+/* CSS for collapsible container */
+.container.collapsed {
+    max-height: 50px;
+    overflow: hidden;
+}
+
+.container-header {
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+}
+
+.toggle-icon {
+    transition: transform 0.3s;
+}
+
+/* JavaScript toggle */
+header.addEventListener('click', function() {
+    container.classList.toggle('collapsed');
+    icon.textContent = container.classList.contains('collapsed') ? '▶' : '▼';
+});
+--------------------------------------------------------------------------------
+
+BEST PRACTICES:
+- Start panels collapsed by default for more map visibility
+- Use consistent toggle icons (▶ collapsed, ▼ expanded)
+- Match padding/sizing across all collapsible containers
+
+Files affected: frontend/styles_v3.1.css, frontend/script_v3.1.js
+
+
+================================================================================
+LESSON 13: MODULAR JAVASCRIPT ARCHITECTURE (IIFE PATTERN)
+================================================================================
+Date: 2026-01-24
+Issue: Script becoming too large and difficult to maintain
+
+PROBLEM:
+- Single script.js file with 5000+ lines
+- Hard to find specific functionality
+- Risk of variable name collisions
+
+SOLUTION - IIFE MODULES:
+--------------------------------------------------------------------------------
+// modules/road-symbology.js
+const RoadSymbology = (function() {
+    // Private variables
+    const ROAD_COLORS = { ... };
+
+    // Private functions
+    function getColor(roadType) { ... }
+
+    // Public API
+    return {
+        styleRoad: function(feature) { ... },
+        getLegend: function() { ... }
+    };
+})();
+
+// Usage in main script
+const style = RoadSymbology.styleRoad(feature);
+--------------------------------------------------------------------------------
+
+MODULES CREATED:
+- modules/ddr.js - Drag-Drop-Rightclick handling
+- modules/road-symbology.js - Road styling with bridging table
+- modules/layer-registry.js - Layer state management
+- modules/geo-api.js - HDX API integration
+- modules/isee_analytics.js - AI-powered analysis
+
+Files affected: modules/*.js
+
+
+================================================================================
+LESSON 14: ROAD TYPE STANDARDIZATION (BRIDGING TABLE)
+================================================================================
+Date: 2026-01-24
+Issue: Different road datasets use different classification systems
+
+PROBLEM:
+- OSM uses: motorway, trunk, primary, secondary, tertiary, residential, track...
+- HDX 2021 uses: Highway, Primary, Secondary, Tertiary, Local...
+- HDX 2024 uses: different variations
+- No consistent styling or analysis
+
+SOLUTION - BRIDGING TABLE:
+--------------------------------------------------------------------------------
+const ROAD_BRIDGING_TABLE = {
+    // Standard Class -> [aliases from different sources]
+    'Highway':     ['motorway', 'trunk', 'Highway', 'highway'],
+    'Primary':     ['primary', 'primary_link', 'Primary', 'primary road'],
+    'Secondary':   ['secondary', 'secondary_link', 'Secondary'],
+    'Tertiary':    ['tertiary', 'tertiary_link', 'Tertiary'],
+    'Residential': ['residential', 'living_street', 'Residential', 'Local'],
+    'Track':       ['track', 'path', 'Track', 'trail'],
+    'Unclassified':['unclassified', 'road', 'Unknown', '']
+};
+
+function standardizeRoadType(rawType) {
+    for (const [standard, aliases] of Object.entries(ROAD_BRIDGING_TABLE)) {
+        if (aliases.includes(rawType)) return standard;
+    }
+    return 'Other';
+}
+--------------------------------------------------------------------------------
+
+Files: modules/road-symbology.js, docs/ROAD_STANDARDIZATION_METHODOLOGY.md
+
+
+================================================================================
+LESSON 15: LAUNCHER SYSTEM FOR DASHBOARD
+================================================================================
+Date: 2026-01-24
+Issue: Users need to manually start Python servers before using dashboard
+
+PROBLEM:
+- Dashboard requires two servers: HTTP (port 8000) and API (port 5000)
+- Non-technical users don't know how to start servers
+- Servers need proper initialization order
+
+SOLUTION - ONE-CLICK LAUNCHER:
+--------------------------------------------------------------------------------
+Architecture:
+1. HTML Launcher (user clicks this)
+   - Calls URL protocol handler
+
+2. Batch Script (start_dashboard.bat)
+   - Kills existing processes on ports 8000/5000
+   - Clears Python cache
+   - Validates ports are free
+   - Installs missing dependencies
+   - Starts servers in background
+
+3. VBS Wrapper (run_hidden.vbs)
+   - Runs batch script without visible window
+
+Server startup order:
+1. Dashboard Server (Python http.server, port 8000)
+2. API Server (Flask update_server.py, port 5000)
+3. Wait for servers to be ready
+4. Open browser to dashboard URL
+--------------------------------------------------------------------------------
+
+Files: launcher/*.bat, launcher/*.vbs, launcher/*.html
+
+
+================================================================================
+LESSON 16: PORT CONFLICT RESOLUTION
+================================================================================
+Date: 2026-01-24
+Issue: "Port already in use" errors when restarting dashboard
+
+PROBLEM:
+- Previous Python processes not properly terminated
+- Ports 8000 and 5000 remain occupied
+- New server instances fail to start
+
+SOLUTION:
+--------------------------------------------------------------------------------
+REM In batch script - aggressive port clearing
+
+REM Kill by port
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":8000.*LISTENING"') do (
+    taskkill /F /PID %%a 2>nul
+)
+
+REM Kill Python processes
+taskkill /F /IM python.exe /FI "WINDOWTITLE eq *http.server*" 2>nul
+
+REM Wait for ports to be released
+timeout /t 2 /nobreak >nul
+
+REM Verify port is free before starting
+netstat -an | findstr ":8000.*LISTENING" >nul
+if %errorlevel%==0 (
+    echo ERROR: Port 8000 still in use
+    exit /b 1
+)
+--------------------------------------------------------------------------------
+
+Files: launcher/start_dashboard.bat
+
+
+================================================================================
+LESSON 17: DRAG-AND-DROP VISUAL FEEDBACK
+================================================================================
+Date: 2026-01-23
+Issue: Users unsure if drag operation is working or where to drop
+
+PROBLEM:
+- No visual indication during drag
+- Unclear which regions are valid drop targets
+- No feedback on successful/failed drops
+
+SOLUTION - COMPREHENSIVE VISUAL FEEDBACK:
+--------------------------------------------------------------------------------
+// 1. Ghost element follows cursor
+const dragGhost = document.createElement('div');
+dragGhost.style.cssText = `
+    position: fixed;
+    background: rgba(168, 85, 247, 0.9);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    pointer-events: none;
+    z-index: 10000;
+`;
+dragGhost.textContent = 'Layer Name';
+document.body.appendChild(dragGhost);
+
+// 2. Update position on drag
+document.addEventListener('drag', function(e) {
+    dragGhost.style.left = (e.clientX + 10) + 'px';
+    dragGhost.style.top = (e.clientY + 10) + 'px';
+});
+
+// 3. Highlight valid drop zone
+region.setStyle({ fillOpacity: 0.3, color: '#22c55e' });
+
+// 4. Success/failure popups
+L.popup({ className: 'drop-success-popup' })
+    .setContent('✓ Layer loaded successfully')
+    .openOn(map);
+--------------------------------------------------------------------------------
+
+Files: frontend/script_v3.1.js, frontend/styles_v3.1.css
+
+
+================================================================================
+LESSON 18: OSM ROADS FORMAT DETECTION
+================================================================================
+Date: 2026-01-23
+Issue: iSEE Analytics failing because OSM data has different structure
+
+PROBLEM:
+- Legacy roads use: { roads: { features: [...] } }
+- OSM roads use: { metadata: {...}, features: [...] }
+- Analytics assumed legacy format, crashed on OSM data
+
+SOLUTION:
+--------------------------------------------------------------------------------
+function detectRoadsFormat(data) {
+    // Check for OSM format (has metadata.data_source)
+    if (data.metadata && data.metadata.data_source === 'OpenStreetMap') {
+        return 'osm';
+    }
+    // Check for legacy format (has roads wrapper)
+    if (data.roads && data.roads.features) {
+        return 'legacy';
+    }
+    // Direct GeoJSON
+    if (data.features) {
+        return 'geojson';
+    }
+    return 'unknown';
+}
+
+// Use appropriate extraction
+const features = format === 'osm' ? data.features :
+                 format === 'legacy' ? data.roads.features :
+                 data.features;
+--------------------------------------------------------------------------------
+
+Files: modules/isee_analytics.js
+
+
+================================================================================
 FUTURE LESSONS TO ADD:
 ================================================================================
 - Add new lessons here as they are discovered
