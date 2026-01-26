@@ -1997,77 +1997,119 @@
 
             // ========================================
             // iSEE ANALYTICS IMPLEMENTATION
-            // Defined here where all layer refs are in scope
+            // AUTOMATIC LAYER DISCOVERY - No need to add new layers manually!
+            // All layers registered in regionLockState are automatically included
             // ========================================
             triggerISEEAnalyticsImpl = function(regionName, regionLayer) {
                 console.log(`[iSEE] Running analytics for ${regionName}`);
+                console.log(`[iSEE] Loaded layers:`, regionLockState.loadedLayers);
 
-                // Build activeBakoolLayers from regionLockState
-                const activeLayers = {
-                    'bakool2022': false,
-                    'bakool2023': false
+                // ========================================
+                // AUTOMATIC LAYER DISCOVERY
+                // Any layer added to regionLockState.loadedLayers is automatically included
+                // Layer types: 'nightlight', 'roads', 'population', 'landcover', 'vegetation', etc.
+                // ========================================
+
+                // Build dynamic layers object from regionLockState
+                // This automatically includes ALL current and future layers!
+                const dynamicLayers = {};
+                const layersByType = {
+                    nightlight: [],
+                    roads: [],
+                    population: [],
+                    landcover: [],
+                    vegetation: [],
+                    socioeconomic: [],
+                    infrastructure: [],
+                    other: []
                 };
 
-                // Check which layers are loaded
+                // Categorize all loaded layers automatically
                 regionLockState.loadedLayers.forEach(l => {
-                    if (l.name === 'Bakool Nightlight 2022') activeLayers['bakool2022'] = true;
-                    if (l.name === 'Bakool Nightlight 2023') activeLayers['bakool2023'] = true;
+                    // Create a safe key from the layer name
+                    const safeKey = l.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+                    dynamicLayers[safeKey] = {
+                        active: true,
+                        name: l.name,
+                        layer: l.layer,
+                        type: l.type,
+                        region: regionName,
+                        // Try to extract GeoJSON data if available
+                        data: l.layer && l.layer.toGeoJSON ? l.layer.toGeoJSON() : null
+                    };
+
+                    // Also categorize by type for easier access
+                    const category = layersByType[l.type] ? l.type : 'other';
+                    layersByType[category].push({
+                        name: l.name,
+                        layer: l.layer,
+                        data: l.layer && l.layer.toGeoJSON ? l.layer.toGeoJSON() : null
+                    });
                 });
 
-                // Also check the checkbox states as backup
+                // Legacy support: Build activeBakoolLayers for backward compatibility
+                const activeBakoolLayers = {
+                    'bakool2022': dynamicLayers['bakool_nightlight_2022']?.active || false,
+                    'bakool2023': dynamicLayers['bakool_nightlight_2023']?.active || false
+                };
+
+                // Also check checkbox states as backup for legacy layers
                 const toggle2022 = document.getElementById('bakool2022Toggle');
                 const toggle2023 = document.getElementById('bakool2023Toggle');
-                if (toggle2022 && toggle2022.checked) activeLayers['bakool2022'] = true;
-                if (toggle2023 && toggle2023.checked) activeLayers['bakool2023'] = true;
+                if (toggle2022 && toggle2022.checked) activeBakoolLayers['bakool2022'] = true;
+                if (toggle2023 && toggle2023.checked) activeBakoolLayers['bakool2023'] = true;
 
-                // Find roads layer from regionLockState
-                let currentRoadsLayer = null;
-                let currentRoadsData = null;
-                let currentRoadsRegion = null;
-
-                regionLockState.loadedLayers.forEach(l => {
-                    if (l.type === 'roads' && l.layer) {
-                        currentRoadsLayer = l.layer;
-                        currentRoadsRegion = regionName;
-                        // Try to get the roads data from the layer
-                        if (l.layer.toGeoJSON) {
-                            currentRoadsData = l.layer.toGeoJSON();
-                        }
-                    }
-                });
-
-                // Build full layerRefs object
+                // Build comprehensive layerRefs object
+                // Includes both legacy references AND new dynamic layers
                 const layerRefs = {
+                    // ========================================
+                    // NEW: Dynamic layers (auto-discovered)
+                    // ========================================
+                    dynamicLayers: dynamicLayers,           // All layers by safe key
+                    layersByType: layersByType,             // Layers grouped by type
+                    loadedLayersList: regionLockState.loadedLayers,  // Raw list
+
+                    // ========================================
+                    // LEGACY: Hardcoded references (backward compatibility)
+                    // ========================================
                     detailedNLBakool2022: detailedNLBakool2022,
                     detailedNLBakool2023: detailedNLBakool2023,
                     bakoolNightlightPolygons2022: typeof bakoolNightlightPolygons2022 !== 'undefined' ? bakoolNightlightPolygons2022 : null,
                     bakoolNightlightPolygons2023: typeof bakoolNightlightPolygons2023 !== 'undefined' ? bakoolNightlightPolygons2023 : null,
+
+                    // Region data
                     regionLayer: regionLayer,
                     allRegionLayers: allRegionLayers,
                     somaliaData: adm1Boundaries,
-                    // Roads layer references
-                    clippedRoadsLayer: currentRoadsLayer || clippedRoadsLayer,
-                    activeRoadsRegion: currentRoadsRegion || activeRoadsRegion,
-                    roadsData: currentRoadsData || roadsData,
+                    targetRegion: regionName,
+
+                    // Roads (from dynamic or legacy)
+                    clippedRoadsLayer: layersByType.roads[0]?.layer || clippedRoadsLayer,
+                    activeRoadsRegion: layersByType.roads.length > 0 ? regionName : activeRoadsRegion,
+                    roadsData: layersByType.roads[0]?.data || roadsData,
+
                     // Population and MPI
-                    populationLayer: typeof populationLayer !== 'undefined' ? populationLayer : null,
-                    populationData: typeof populationData !== 'undefined' ? populationData : null,
+                    populationLayer: layersByType.population[0]?.layer || (typeof populationLayer !== 'undefined' ? populationLayer : null),
+                    populationData: layersByType.population[0]?.data || (typeof populationData !== 'undefined' ? populationData : null),
                     mpiLayer: mpiLayer
                 };
 
-                console.log('[iSEE] Layer refs prepared:', layerRefs);
-                console.log('[iSEE] Active layers:', activeLayers);
+                console.log('[iSEE] Dynamic layers discovered:', Object.keys(dynamicLayers).length);
+                console.log('[iSEE] Layers by type:', Object.fromEntries(
+                    Object.entries(layersByType).map(([k, v]) => [k, v.length])
+                ));
+                console.log('[iSEE] Legacy activeBakoolLayers:', activeBakoolLayers);
 
                 // Call the actual iSEE Analytics function
                 if (typeof runISEEAnalytics === 'function') {
-                    runISEEAnalytics(activeLayers, map, layerRefs, regionName);
+                    runISEEAnalytics(activeBakoolLayers, map, layerRefs, regionName);
                 } else {
                     console.error('[iSEE] runISEEAnalytics function not found!');
                     alert('Error: iSEE Analytics module not loaded. Please refresh the page.');
                 }
             };
 
-            console.log('[iSEE] Analytics implementation registered');
+            console.log('[iSEE] Analytics implementation registered (with automatic layer discovery)');
 
             // Drag start
             bakool2022Label.addEventListener('dragstart', function(e) {
