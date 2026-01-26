@@ -978,3 +978,177 @@
         .error-popup .leaflet-popup-tip {
             background: rgba(239, 68, 68, 0.95) !important;
         }
+
+        /* ========================================
+           REGION-FIRST ANALYSIS STYLES
+           ======================================== */
+
+        /* Region lock status indicator */
+        .region-lock-indicator {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(34, 197, 94, 0.95);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9em;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4);
+            display: none;
+            animation: slideDown 0.3s ease;
+        }
+
+        .region-lock-indicator.visible {
+            display: block;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        /* Context menu popup styling */
+        .context-menu-popup .leaflet-popup-content-wrapper {
+            background: rgba(30, 41, 59, 0.98) !important;
+            color: #e8e8e8 !important;
+            border-radius: 10px;
+            padding: 0;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            border: 1px solid #374151;
+        }
+
+        .context-menu-popup .leaflet-popup-content {
+            margin: 0 !important;
+            width: auto !important;
+        }
+
+        .context-menu-popup .leaflet-popup-tip {
+            background: rgba(30, 41, 59, 0.98) !important;
+        }
+
+        .region-context-menu {
+            font-size: 0.9em;
+        }
+
+        .context-menu-item {
+            transition: background 0.15s ease;
+        }
+
+        .context-menu-item:hover {
+            background: rgba(255, 255, 255, 0.1) !important;
+        }
+
+        /* Region locked popup */
+        .region-locked-popup .leaflet-popup-content-wrapper {
+            background: rgba(30, 41, 59, 0.98) !important;
+            border: 2px solid #22c55e;
+            border-radius: 12px;
+        }
+
+        /* Region locked warning popup */
+        .region-locked-warning-popup .leaflet-popup-content-wrapper {
+            background: rgba(30, 41, 59, 0.98) !important;
+            border: 2px solid #f59e0b;
+            border-radius: 12px;
+        }
+
+        /* Disabled drag state */
+        .drag-disabled {
+            opacity: 0.5 !important;
+            cursor: not-allowed !important;
+            pointer-events: none !important;
+        }
+
+        .drag-disabled .drag-handle {
+            display: none !important;
+        }
+
+        /* Region tooltip when locked */
+        .region-tooltip-locked {
+            background: rgba(34, 197, 94, 0.9) !important;
+            border: none !important;
+            color: white !important;
+            font-weight: 600;
+        }
+
+        /* Pulse animation for locked region */
+        @keyframes regionPulse {
+            0% {
+                stroke-opacity: 1;
+                fill-opacity: 0.15;
+            }
+            50% {
+                stroke-opacity: 0.7;
+                fill-opacity: 0.08;
+            }
+            100% {
+                stroke-opacity: 1;
+                fill-opacity: 0.15;
+            }
+        }
+
+        .region-locked-pulse path {
+            animation: regionPulse 2s ease-in-out infinite;
+        }
+
+        /* Initial drag-disabled state before region selection */
+        .no-region-selected [draggable="true"] {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .no-region-selected [draggable="true"]:hover {
+            background: rgba(239, 68, 68, 0.1) !important;
+        }
+
+        .no-region-selected [draggable="true"]:hover::after {
+            content: "Select a region first";
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(239, 68, 68, 0.9);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75em;
+            white-space: nowrap;
+        }
+
+        /* Hint message when no region selected */
+        .select-region-hint {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(59, 130, 246, 0.95);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 0.95em;
+            z-index: 1000;
+            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
+            animation: bounce 2s ease-in-out infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateX(-50%) translateY(0);
+            }
+            50% {
+                transform: translateX(-50%) translateY(-5px);
+            }
+        }
+
+        .select-region-hint.hidden {
+            display: none;
+        }

@@ -1,5 +1,92 @@
-        // VERSION 3.0 - Simplified Dashboard (2026-01-21)
-        console.log('🚀 Dashboard v3.0: Simplified with L0/L1 Roads Structure');
+        // VERSION 3.1 - Region-First Analysis Workflow (2026-01-26)
+        console.log('🚀 Dashboard v3.1: Region-First Analysis Workflow');
+
+        // ========================================
+        // REGION-FIRST ANALYSIS STATE MANAGEMENT
+        // ========================================
+        // User must select (lock) a region before any layer operations
+        // This prevents map overload and ensures focused analysis
+
+        const regionLockState = {
+            isLocked: false,
+            lockedRegion: null,        // Region name (e.g., "Bakool")
+            lockedRegionLayer: null,   // Leaflet layer reference
+            loadedLayers: [],          // Track layers loaded for this region: [{name, layer, type}]
+
+            // Lock a region
+            lock: function(regionName, regionLayer) {
+                this.isLocked = true;
+                this.lockedRegion = regionName;
+                this.lockedRegionLayer = regionLayer;
+                this.loadedLayers = [];
+                console.log(`🔒 Region locked: ${regionName}`);
+
+                // Dispatch custom event for UI updates
+                document.dispatchEvent(new CustomEvent('regionLocked', {
+                    detail: { region: regionName, layer: regionLayer }
+                }));
+            },
+
+            // Unlock region and clear all layers
+            unlock: function() {
+                const previousRegion = this.lockedRegion;
+
+                // Remove all loaded layers from map
+                this.loadedLayers.forEach(layerInfo => {
+                    if (layerInfo.layer && map.hasLayer(layerInfo.layer)) {
+                        map.removeLayer(layerInfo.layer);
+                    }
+                });
+
+                // Reset state
+                this.isLocked = false;
+                this.lockedRegion = null;
+                this.lockedRegionLayer = null;
+                this.loadedLayers = [];
+
+                console.log(`🔓 Region unlocked: ${previousRegion} - All layers cleared`);
+
+                // Dispatch custom event for UI updates
+                document.dispatchEvent(new CustomEvent('regionUnlocked', {
+                    detail: { previousRegion: previousRegion }
+                }));
+
+                return previousRegion;
+            },
+
+            // Register a layer as loaded for current region
+            addLayer: function(name, layer, type) {
+                if (!this.isLocked) return false;
+                this.loadedLayers.push({ name, layer, type });
+                console.log(`📍 Layer added to ${this.lockedRegion}: ${name}`);
+                return true;
+            },
+
+            // Remove a specific layer
+            removeLayer: function(name) {
+                const idx = this.loadedLayers.findIndex(l => l.name === name);
+                if (idx !== -1) {
+                    const layerInfo = this.loadedLayers[idx];
+                    if (layerInfo.layer && map.hasLayer(layerInfo.layer)) {
+                        map.removeLayer(layerInfo.layer);
+                    }
+                    this.loadedLayers.splice(idx, 1);
+                    console.log(`🗑️ Layer removed: ${name}`);
+                    return true;
+                }
+                return false;
+            },
+
+            // Check if a specific layer is loaded
+            hasLayer: function(name) {
+                return this.loadedLayers.some(l => l.name === name);
+            },
+
+            // Get list of loaded layer names
+            getLoadedLayerNames: function() {
+                return this.loadedLayers.map(l => l.name);
+            }
+        };
 
         // Mobile detection and initial setup
         const isMobile = window.innerWidth <= 767;
@@ -436,84 +523,467 @@
         console.log('Bakool 2023 nightlight polygons loaded');
 
         // Add Somalia ADM1 (regional) boundaries - thicker lines
-        let selectedRegion = null;  // Track selected region
-        
+        let selectedRegion = null;  // Track selected region (visual only, not lock)
+
+        // Define styles for region states
+        const regionStyles = {
+            default: {
+                color: '#94a3b8',
+                weight: 2.5,
+                opacity: 0.7,
+                fillOpacity: 0,
+                dashArray: '5, 5'
+            },
+            hover: {
+                color: '#60a5fa',
+                weight: 3,
+                opacity: 0.9,
+                fillColor: '#60a5fa',
+                fillOpacity: 0.05
+            },
+            locked: {
+                color: '#22c55e',
+                weight: 4,
+                opacity: 1,
+                fillColor: '#22c55e',
+                fillOpacity: 0.15,
+                dashArray: null
+            },
+            lockedPulse: {
+                color: '#4ade80',
+                weight: 5,
+                opacity: 1,
+                fillColor: '#22c55e',
+                fillOpacity: 0.2,
+                dashArray: null
+            }
+        };
+
         const adm1Layer = L.geoJSON(adm1Boundaries, {
             style: function(feature) {
-                return {
-                    color: '#94a3b8',
-                    weight: 2.5,
-                    opacity: 0.7,
-                    fillOpacity: 0,
-                    dashArray: '5, 5'
-                };
+                return regionStyles.default;
             },
             onEachFeature: function(feature, layer) {
-                // Hover tooltip
-                if (feature.properties && feature.properties.name) {
-                    layer.bindTooltip(feature.properties.name + ' Region', {
-                        permanent: false,
-                        direction: 'center',
-                        className: 'region-tooltip'
-                    });
-                }
-                
-                // Click event to highlight and show popup
-                layer.on('click', function(e) {
-                    // Reset previous selection
-                    if (selectedRegion) {
-                        adm1Layer.resetStyle(selectedRegion);
+                const regionName = feature.properties.name;
+
+                // Hover tooltip - shows different message based on lock state
+                layer.bindTooltip('', {
+                    permanent: false,
+                    direction: 'center',
+                    className: 'region-tooltip'
+                });
+
+                // Update tooltip on hover
+                layer.on('mouseover', function(e) {
+                    if (regionLockState.isLocked) {
+                        if (regionLockState.lockedRegion === regionName) {
+                            layer.setTooltipContent(`${regionName} Region (LOCKED - Right-click to manage)`);
+                        } else {
+                            layer.setTooltipContent(`${regionName} Region (Unlock current region first)`);
+                        }
+                    } else {
+                        layer.setTooltipContent(`Click to select ${regionName} for analysis`);
                     }
-                    
-                    // Highlight clicked region
-                    layer.setStyle({
-                        color: '#f59e0b',
-                        weight: 4,
-                        opacity: 1,
-                        fillColor: '#f59e0b',
-                        fillOpacity: 0.1
-                    });
-                    
-                    selectedRegion = layer;
-                    
-                    // Create popup content
-                    const props = feature.properties;
-                    const popupContent = `
-                        <div class="popup-header" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
-                            ${props.name} Region
-                        </div>
-                        <div class="popup-body">
-                            <div class="popup-metric">
-                                <span class="metric-label">🗺️ Region (ADM1):</span>
-                                <span class="metric-value">${props.name}</span>
-                            </div>
-                            <div class="popup-metric">
-                                <span class="metric-label">📏 Area:</span>
-                                <span class="metric-value">${Math.round(props.area_km2).toLocaleString()} km²</span>
-                            </div>
-                            <div class="popup-metric">
-                                <span class="metric-label">📊 % of Somalia's Total Area:</span>
-                                <span class="metric-value">${props.area_percent}%</span>
-                            </div>
-                            <div style="margin-top: 10px; padding: 10px; background: rgba(245, 158, 11, 0.15); border-left: 3px solid #f59e0b; border-radius: 5px; font-size: 0.8em;">
-                                <strong>Total Somalia:</strong> 640,627 km²
-                            </div>
-                        </div>
-                    `;
-                    
-                    // Show popup at click location
-                    L.popup()
-                        .setLatLng(e.latlng)
-                        .setContent(popupContent)
-                        .openOn(map);
-                    
-                    // Prevent event from bubbling
+
+                    // Hover highlight only if not locked or is the locked region
+                    if (!regionLockState.isLocked) {
+                        layer.setStyle(regionStyles.hover);
+                    }
+                });
+
+                layer.on('mouseout', function(e) {
+                    if (!regionLockState.isLocked) {
+                        layer.setStyle(regionStyles.default);
+                    } else if (regionLockState.lockedRegion === regionName) {
+                        layer.setStyle(regionStyles.locked);
+                    }
+                });
+
+                // Click event - REGION LOCKING
+                layer.on('click', function(e) {
                     L.DomEvent.stopPropagation(e);
+
+                    const props = feature.properties;
+
+                    // If already locked to this region, show info popup
+                    if (regionLockState.isLocked && regionLockState.lockedRegion === regionName) {
+                        const loadedLayersList = regionLockState.loadedLayers.length > 0
+                            ? regionLockState.loadedLayers.map(l => `• ${l.name}`).join('<br>')
+                            : '<em>No layers loaded yet</em>';
+
+                        L.popup()
+                            .setLatLng(e.latlng)
+                            .setContent(`
+                                <div class="popup-header" style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);">
+                                    🔒 ${props.name} (Locked)
+                                </div>
+                                <div class="popup-body">
+                                    <div class="popup-metric">
+                                        <span class="metric-label">📏 Area:</span>
+                                        <span class="metric-value">${Math.round(props.area_km2).toLocaleString()} km²</span>
+                                    </div>
+                                    <div class="popup-metric">
+                                        <span class="metric-label">📊 Loaded Layers:</span>
+                                    </div>
+                                    <div style="margin-left: 10px; font-size: 0.85em; color: #94a3b8;">
+                                        ${loadedLayersList}
+                                    </div>
+                                    <div style="margin-top: 12px; padding: 8px; background: rgba(34, 197, 94, 0.15); border-left: 3px solid #22c55e; border-radius: 5px; font-size: 0.8em;">
+                                        <strong>Tip:</strong> Right-click to manage layers or unlock
+                                    </div>
+                                </div>
+                            `)
+                            .openOn(map);
+                        return;
+                    }
+
+                    // If locked to different region, show warning
+                    if (regionLockState.isLocked && regionLockState.lockedRegion !== regionName) {
+                        L.popup({
+                            className: 'region-locked-warning-popup'
+                        })
+                            .setLatLng(e.latlng)
+                            .setContent(`
+                                <div class="popup-header" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+                                    ⚠️ Region Locked
+                                </div>
+                                <div class="popup-body">
+                                    <p style="margin: 0 0 10px 0;">
+                                        <strong>${regionLockState.lockedRegion}</strong> is currently selected for analysis.
+                                    </p>
+                                    <p style="margin: 0; font-size: 0.85em; color: #94a3b8;">
+                                        Right-click on ${regionLockState.lockedRegion} to unlock before selecting ${regionName}.
+                                    </p>
+                                </div>
+                            `)
+                            .openOn(map);
+                        return;
+                    }
+
+                    // Not locked - LOCK THIS REGION
+                    // Reset all region styles first
+                    adm1Layer.eachLayer(function(l) {
+                        l.setStyle(regionStyles.default);
+                    });
+
+                    // Apply locked style
+                    layer.setStyle(regionStyles.locked);
+
+                    // Lock the region
+                    regionLockState.lock(regionName, layer);
+
+                    // Zoom to region
+                    map.fitBounds(layer.getBounds(), {
+                        padding: [50, 50],
+                        maxZoom: 9
+                    });
+
+                    // Show confirmation popup
+                    L.popup({
+                        className: 'region-locked-popup'
+                    })
+                        .setLatLng(e.latlng)
+                        .setContent(`
+                            <div class="popup-header" style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);">
+                                🔒 ${props.name} Selected
+                            </div>
+                            <div class="popup-body">
+                                <div class="popup-metric">
+                                    <span class="metric-label">📏 Area:</span>
+                                    <span class="metric-value">${Math.round(props.area_km2).toLocaleString()} km²</span>
+                                </div>
+                                <div class="popup-metric">
+                                    <span class="metric-label">📊 % of Somalia:</span>
+                                    <span class="metric-value">${props.area_percent}%</span>
+                                </div>
+                                <div style="margin-top: 12px; padding: 10px; background: rgba(34, 197, 94, 0.15); border-left: 3px solid #22c55e; border-radius: 5px; font-size: 0.85em;">
+                                    <strong>✓ Region locked for analysis!</strong><br>
+                                    <span style="color: #94a3b8;">Now drag layers from the sidebar onto this region.</span>
+                                </div>
+                            </div>
+                        `)
+                        .openOn(map);
+
+                    // Enable drag-drop indicators
+                    updateDragDropState(true);
+                });
+
+                // Right-click context menu
+                layer.on('contextmenu', function(e) {
+                    L.DomEvent.stopPropagation(e);
+                    L.DomEvent.preventDefault(e);
+
+                    // Only show context menu if this is the locked region
+                    if (regionLockState.isLocked && regionLockState.lockedRegion === regionName) {
+                        showRegionContextMenu(e.latlng, regionName, layer);
+                    } else if (!regionLockState.isLocked) {
+                        // If not locked, show hint to click first
+                        L.popup()
+                            .setLatLng(e.latlng)
+                            .setContent(`
+                                <div style="padding: 8px; font-size: 0.9em;">
+                                    Click to select <strong>${regionName}</strong> for analysis first.
+                                </div>
+                            `)
+                            .openOn(map);
+                    }
                 });
             }
         });
-        
+
         adm1Layer.addTo(map);
+
+        // ========================================
+        // CONTEXT MENU FOR LOCKED REGION
+        // ========================================
+        let contextMenuPopup = null;
+
+        function showRegionContextMenu(latlng, regionName, regionLayer) {
+            // Build layer list HTML
+            let layerListHTML = '';
+            if (regionLockState.loadedLayers.length > 0) {
+                layerListHTML = regionLockState.loadedLayers.map((layerInfo, idx) => `
+                    <div class="context-menu-item" data-action="remove-layer" data-layer-name="${layerInfo.name}" style="padding: 6px 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                        <span>📍 ${layerInfo.name}</span>
+                        <span style="color: #ef4444; font-size: 0.85em;">✕ Remove</span>
+                    </div>
+                `).join('');
+            } else {
+                layerListHTML = '<div style="padding: 8px 12px; color: #6b7280; font-style: italic;">No layers loaded</div>';
+            }
+
+            const menuContent = `
+                <div class="region-context-menu" style="min-width: 220px;">
+                    <div style="padding: 10px 12px; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; font-weight: 600; border-radius: 8px 8px 0 0;">
+                        🔒 ${regionName}
+                    </div>
+
+                    <div style="border-bottom: 1px solid #374151; padding: 4px 0;">
+                        <div style="padding: 6px 12px; color: #9ca3af; font-size: 0.75em; text-transform: uppercase;">Loaded Layers</div>
+                        ${layerListHTML}
+                    </div>
+
+                    <div class="context-menu-item" data-action="isee-analytics" style="padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #374151;">
+                        📊 iSEE Analytics
+                    </div>
+
+                    <div class="context-menu-item" data-action="remove-all" style="padding: 10px 12px; cursor: pointer; color: #f59e0b; border-bottom: 1px solid #374151;">
+                        🗑️ Remove All Layers
+                    </div>
+
+                    <div class="context-menu-item" data-action="unlock" style="padding: 10px 12px; cursor: pointer; color: #ef4444;">
+                        🔓 Unlock Region
+                    </div>
+                </div>
+            `;
+
+            // Close existing context menu
+            if (contextMenuPopup) {
+                map.closePopup(contextMenuPopup);
+            }
+
+            contextMenuPopup = L.popup({
+                closeButton: true,
+                className: 'context-menu-popup',
+                maxWidth: 280,
+                autoPan: true
+            })
+                .setLatLng(latlng)
+                .setContent(menuContent)
+                .openOn(map);
+
+            // Add click handlers after popup is added to DOM
+            setTimeout(() => {
+                const menuItems = document.querySelectorAll('.context-menu-item');
+                menuItems.forEach(item => {
+                    item.addEventListener('click', function(e) {
+                        const action = this.dataset.action;
+
+                        if (action === 'remove-layer') {
+                            const layerName = this.dataset.layerName;
+                            regionLockState.removeLayer(layerName);
+                            // Refresh menu
+                            showRegionContextMenu(latlng, regionName, regionLayer);
+                        } else if (action === 'isee-analytics') {
+                            map.closePopup(contextMenuPopup);
+                            // Trigger iSEE Analytics for this region
+                            triggerISEEAnalytics(regionName, regionLayer);
+                        } else if (action === 'remove-all') {
+                            // Remove all layers
+                            const layerNames = [...regionLockState.loadedLayers.map(l => l.name)];
+                            layerNames.forEach(name => regionLockState.removeLayer(name));
+                            // Refresh menu
+                            showRegionContextMenu(latlng, regionName, regionLayer);
+                        } else if (action === 'unlock') {
+                            map.closePopup(contextMenuPopup);
+                            unlockRegion();
+                        }
+                    });
+
+                    // Hover effect
+                    item.addEventListener('mouseenter', function() {
+                        this.style.background = 'rgba(255,255,255,0.1)';
+                    });
+                    item.addEventListener('mouseleave', function() {
+                        this.style.background = 'transparent';
+                    });
+                });
+            }, 50);
+        }
+
+        // Unlock region function
+        function unlockRegion() {
+            if (!regionLockState.isLocked) return;
+
+            const previousRegion = regionLockState.lockedRegion;
+            const previousLayer = regionLockState.lockedRegionLayer;
+
+            // Unlock and clear
+            regionLockState.unlock();
+
+            // Reset visual style
+            if (previousLayer) {
+                previousLayer.setStyle(regionStyles.default);
+            }
+
+            // Reset all checkbox states in layer controls
+            resetLayerCheckboxes();
+
+            // Disable drag-drop indicators
+            updateDragDropState(false);
+
+            // Zoom out to full Somalia view
+            map.setView([5.5, 46.2], 6);
+
+            // Show confirmation
+            L.popup()
+                .setLatLng(map.getCenter())
+                .setContent(`
+                    <div style="padding: 12px; text-align: center;">
+                        <div style="font-size: 1.5em; margin-bottom: 8px;">🔓</div>
+                        <strong>${previousRegion}</strong> unlocked<br>
+                        <span style="color: #6b7280; font-size: 0.85em;">All layers cleared. Select a new region to continue.</span>
+                    </div>
+                `)
+                .openOn(map);
+        }
+
+        // Helper to reset checkboxes when unlocking
+        function resetLayerCheckboxes() {
+            const checkboxIds = [
+                'bakool2022Toggle', 'bakool2023Toggle', 'iseeAnalyticsToggle',
+                'roadsOSMToggle', 'roadsOSMLatestToggle', 'roads2024Toggle'
+            ];
+            checkboxIds.forEach(id => {
+                const checkbox = document.getElementById(id);
+                if (checkbox) checkbox.checked = false;
+            });
+
+            // Remove layer-dropped classes
+            const labels = document.querySelectorAll('.layer-dropped');
+            labels.forEach(label => label.classList.remove('layer-dropped'));
+        }
+
+        // Update drag-drop visual state
+        function updateDragDropState(enabled) {
+            const draggableLabels = document.querySelectorAll('[draggable="true"]');
+            draggableLabels.forEach(label => {
+                if (enabled) {
+                    label.classList.remove('drag-disabled');
+                    label.style.opacity = '1';
+                } else {
+                    label.classList.add('drag-disabled');
+                    label.style.opacity = '0.5';
+                }
+            });
+        }
+
+        // Placeholder for iSEE Analytics trigger from context menu
+        function triggerISEEAnalytics(regionName, regionLayer) {
+            console.log(`[iSEE] Triggering analytics for ${regionName}`);
+            // This will be connected to the existing iSEE Analytics function
+            if (typeof runISEEAnalytics === 'function') {
+                const activeLayers = {};
+                regionLockState.loadedLayers.forEach(l => {
+                    if (l.type === 'nightlight') {
+                        activeLayers[l.name] = true;
+                    }
+                });
+                runISEEAnalytics(activeLayers, map, {}, regionName);
+            }
+        }
+
+        // ========================================
+        // DRAG-DROP WARNING FUNCTIONS
+        // ========================================
+
+        // Show warning when no region is selected
+        function showSelectRegionWarning() {
+            L.popup({
+                className: 'region-locked-warning-popup'
+            })
+                .setLatLng(map.getCenter())
+                .setContent(`
+                    <div class="popup-header" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);">
+                        📍 Select a Region First
+                    </div>
+                    <div class="popup-body">
+                        <p style="margin: 0 0 10px 0;">
+                            Click on a region to select it for analysis before loading layers.
+                        </p>
+                        <p style="margin: 0; font-size: 0.85em; color: #94a3b8;">
+                            This ensures focused analysis and optimal performance.
+                        </p>
+                    </div>
+                `)
+                .openOn(map);
+        }
+
+        // Show warning when trying to drop layer on wrong region
+        function showWrongRegionWarning(layerName, requiredRegion) {
+            L.popup({
+                className: 'region-locked-warning-popup'
+            })
+                .setLatLng(map.getCenter())
+                .setContent(`
+                    <div class="popup-header" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+                        ⚠️ Region Mismatch
+                    </div>
+                    <div class="popup-body">
+                        <p style="margin: 0 0 10px 0;">
+                            <strong>${layerName}</strong> is only available for <strong>${requiredRegion}</strong>.
+                        </p>
+                        <p style="margin: 0; font-size: 0.85em; color: #94a3b8;">
+                            Currently locked: ${regionLockState.lockedRegion || 'None'}<br>
+                            Unlock and select ${requiredRegion} to use this layer.
+                        </p>
+                    </div>
+                `)
+                .openOn(map);
+        }
+
+        // Show warning when layer not available for current region
+        function showLayerNotAvailableWarning(layerName, availableRegions) {
+            const regionList = Array.isArray(availableRegions) ? availableRegions.join(', ') : availableRegions;
+            L.popup({
+                className: 'region-locked-warning-popup'
+            })
+                .setLatLng(map.getCenter())
+                .setContent(`
+                    <div class="popup-header" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
+                        ❌ Layer Not Available
+                    </div>
+                    <div class="popup-body">
+                        <p style="margin: 0 0 10px 0;">
+                            <strong>${layerName}</strong> is not available for <strong>${regionLockState.lockedRegion}</strong>.
+                        </p>
+                        <p style="margin: 0; font-size: 0.85em; color: #94a3b8;">
+                            Available for: ${regionList}
+                        </p>
+                    </div>
+                `)
+                .openOn(map);
+        }
 
         // Store references to ALL regions for drag-drop (iSEE Analytics can now work with any region)
         let bakoolRegionLayer = null;
@@ -1527,6 +1997,20 @@
 
             // Drag start
             bakool2022Label.addEventListener('dragstart', function(e) {
+                // REGION-FIRST: Check if a region is locked
+                if (!regionLockState.isLocked) {
+                    e.preventDefault();
+                    showSelectRegionWarning();
+                    return;
+                }
+
+                // REGION-FIRST: Only allow drop on Bakool if Bakool is locked
+                if (regionLockState.lockedRegion !== 'Bakool') {
+                    e.preventDefault();
+                    showWrongRegionWarning('Bakool Nightlight 2022', 'Bakool');
+                    return;
+                }
+
                 draggedLayerId = 'bakool2022';
 
                 // Add dragging class to body for cursor control
@@ -1747,6 +2231,9 @@
                                 map.addLayer(detailedNLBakool2022);
                                 document.getElementById('bakool2022Toggle').checked = true;
                                 activeBakoolLayers['bakool2022'] = true; // Mark as active
+
+                                // REGION-FIRST: Register layer with regionLockState
+                                regionLockState.addLayer('Bakool Nightlight 2022', detailedNLBakool2022, 'nightlight');
                             }
 
                             // 2. Add flashing green class to show layer is dropped
@@ -1800,6 +2287,20 @@
 
             // Drag start
             bakool2023Label.addEventListener('dragstart', function(e) {
+                // REGION-FIRST: Check if a region is locked
+                if (!regionLockState.isLocked) {
+                    e.preventDefault();
+                    showSelectRegionWarning();
+                    return;
+                }
+
+                // REGION-FIRST: Only allow drop on Bakool if Bakool is locked
+                if (regionLockState.lockedRegion !== 'Bakool') {
+                    e.preventDefault();
+                    showWrongRegionWarning('Bakool Nightlight 2023', 'Bakool');
+                    return;
+                }
+
                 draggedLayerId2023 = 'bakool2023';
 
                 // Add dragging class to body for cursor control
@@ -1994,6 +2495,9 @@
                                 map.addLayer(detailedNLBakool2023);
                                 document.getElementById('bakool2023Toggle').checked = true;
                                 activeBakoolLayers['bakool2023'] = true; // Mark as active
+
+                                // REGION-FIRST: Register layer with regionLockState
+                                regionLockState.addLayer('Bakool Nightlight 2023', detailedNLBakool2023, 'nightlight');
                             }
 
                             // Add flashing green class to show layer is dropped
@@ -2041,6 +2545,13 @@
 
             // Drag start
             iseeAnalyticsLabel.addEventListener('dragstart', function(e) {
+                // REGION-FIRST: Check if a region is locked
+                if (!regionLockState.isLocked) {
+                    e.preventDefault();
+                    showSelectRegionWarning();
+                    return;
+                }
+
                 draggedLayerId = 'iseeAnalytics';
                 document.body.classList.add('dragging');
 
@@ -2221,7 +2732,7 @@
                 }
             });
 
-            // Map drop handler for iSEE Analytics - NOW WORKS WITH ANY REGION
+            // Map drop handler for iSEE Analytics - NOW WORKS WITH LOCKED REGION
             mapContainer.addEventListener('drop', function(e) {
                 if (draggedLayerId === 'iseeAnalytics') {
                     e.preventDefault();
@@ -2229,18 +2740,15 @@
                     const rect = mapContainer.getBoundingClientRect();
                     const latlng = map.containerPointToLatLng([e.clientX - rect.left, e.clientY - rect.top]);
 
-                    // Detect which region was dropped on using point-in-polygon
-                    let droppedRegion = null;
-                    let droppedRegionLayer = null;
-
-                    for (let regionName in allRegionLayers) {
-                        const regionLayer = allRegionLayers[regionName];
-                        if (isPointInPolygon(latlng, regionLayer)) {
-                            droppedRegion = regionName;
-                            droppedRegionLayer = regionLayer;
-                            break;
-                        }
+                    // REGION-FIRST: Use locked region
+                    if (!regionLockState.isLocked) {
+                        showSelectRegionWarning();
+                        mapContainer.classList.remove('drop-target', 'drop-invalid');
+                        return;
                     }
+
+                    const droppedRegion = regionLockState.lockedRegion;
+                    const droppedRegionLayer = regionLockState.lockedRegionLayer;
 
                     if (droppedRegion) {
                         // Reset region style
@@ -2425,6 +2933,13 @@
             });
 
             roadsOSMLabel.addEventListener('dragstart', function(e) {
+                // REGION-FIRST: Check if a region is locked
+                if (!regionLockState.isLocked) {
+                    e.preventDefault();
+                    showSelectRegionWarning();
+                    return;
+                }
+
                 draggedLayerId = 'roadsOSM';
 
                 // Add dragging class to body for cursor control
@@ -2576,15 +3091,15 @@
                     const rect = mapContainer.getBoundingClientRect();
                     const latlng = map.containerPointToLatLng([e.clientX - rect.left, e.clientY - rect.top]);
 
-                    // Check which region was dropped on
-                    let droppedRegion = null;
-                    let droppedRegionLayer = null;
-                    Object.values(allRegionLayers).forEach(regionLayer => {
-                        if (isPointInPolygon(latlng, regionLayer)) {
-                            droppedRegion = regionLayer.feature.properties.name;
-                            droppedRegionLayer = regionLayer;
-                        }
-                    });
+                    // REGION-FIRST: Use locked region instead of detecting drop location
+                    if (!regionLockState.isLocked) {
+                        showSelectRegionWarning();
+                        mapContainer.classList.remove('drop-target', 'drop-invalid');
+                        return;
+                    }
+
+                    const droppedRegion = regionLockState.lockedRegion;
+                    const droppedRegionLayer = regionLockState.lockedRegionLayer;
 
                     if (droppedRegion) {
                         // Reset region styles
@@ -2661,6 +3176,9 @@
                                 }).addTo(map);
 
                                 activeRoadsOSMRegion = droppedRegion;
+
+                                // REGION-FIRST: Register layer with regionLockState
+                                regionLockState.addLayer(`Roads OSM - ${droppedRegion}`, activeRoadsOSMLayer, 'roads');
 
                                 // Close loading popup
                                 map.closePopup(loadingPopup);
@@ -2794,15 +3312,15 @@
                     const rect = mapContainer.getBoundingClientRect();
                     const latlng = map.containerPointToLatLng([e.clientX - rect.left, e.clientY - rect.top]);
 
-                    // Check which region was dropped on
-                    let droppedRegion = null;
-                    let droppedRegionLayer = null;
-                    Object.values(allRegionLayers).forEach(regionLayer => {
-                        if (isPointInPolygon(latlng, regionLayer)) {
-                            droppedRegion = regionLayer.feature.properties.name;
-                            droppedRegionLayer = regionLayer;
-                        }
-                    });
+                    // REGION-FIRST: Use locked region instead of detecting drop location
+                    if (!regionLockState.isLocked) {
+                        showSelectRegionWarning();
+                        mapContainer.classList.remove('drop-target', 'drop-invalid');
+                        return;
+                    }
+
+                    const droppedRegion = regionLockState.lockedRegion;
+                    const droppedRegionLayer = regionLockState.lockedRegionLayer;
 
                     if (droppedRegion) {
                         // Reset region styles
@@ -2888,6 +3406,9 @@
 
                                     // Store active region
                                     activeRoadsOSMLatestRegion = droppedRegion;
+
+                                    // REGION-FIRST: Register layer with regionLockState
+                                    regionLockState.addLayer(`Roads Latest - ${droppedRegion}`, activeRoadsOSMLatestLayer, 'roads');
 
                                     // Update checkbox state
                                     document.getElementById('roadsOSMLatestToggle').checked = true;
@@ -2994,6 +3515,13 @@
 
             // Enable drag for Roads OSM Latest label with full visual feedback
             roadsOSMLatestLabel.addEventListener('dragstart', function(e) {
+                // REGION-FIRST: Check if a region is locked
+                if (!regionLockState.isLocked) {
+                    e.preventDefault();
+                    showSelectRegionWarning();
+                    return;
+                }
+
                 draggedLayerId = 'roadsOSMLatest';
 
                 // Add dragging class to body for cursor control
@@ -3164,6 +3692,13 @@
 
                 // Drag start for Roads 2024
                 roads2024Label.addEventListener('dragstart', function(e) {
+                    // REGION-FIRST: Check if a region is locked
+                    if (!regionLockState.isLocked) {
+                        e.preventDefault();
+                        showSelectRegionWarning();
+                        return;
+                    }
+
                     draggedLayerId = 'roads2024';
 
                     document.body.classList.add('dragging');
@@ -3282,14 +3817,15 @@
                     const rect = mapContainer.getBoundingClientRect();
                     const latlng = map.containerPointToLatLng([e.clientX - rect.left, e.clientY - rect.top]);
 
-                    let droppedRegion = null;
-                    let droppedRegionLayer = null;
-                    Object.entries(allRegionLayers).forEach(([name, regionLayer]) => {
-                        if (isPointInPolygon(latlng, regionLayer)) {
-                            droppedRegion = name;
-                            droppedRegionLayer = regionLayer;
-                        }
-                    });
+                    // REGION-FIRST: Use locked region instead of detecting drop location
+                    if (!regionLockState.isLocked) {
+                        showSelectRegionWarning();
+                        mapContainer.classList.remove('drop-target', 'drop-invalid');
+                        return;
+                    }
+
+                    const droppedRegion = regionLockState.lockedRegion;
+                    const droppedRegionLayer = regionLockState.lockedRegionLayer;
 
                     if (droppedRegion) {
                         // Remove existing 2024 roads layer
@@ -3344,6 +3880,9 @@
                                     }).addTo(map);
 
                                     activeRoads2024Region = droppedRegion;
+
+                                    // REGION-FIRST: Register layer with regionLockState
+                                    regionLockState.addLayer(`Roads 2024 - ${droppedRegion}`, activeRoads2024Layer, 'roads');
 
                                     // Update checkbox
                                     if (roads2024Toggle) roads2024Toggle.checked = true;
@@ -5658,3 +6197,59 @@
                 });
             }
         });
+
+        // ========================================
+        // REGION-FIRST INITIALIZATION
+        // ========================================
+        // On page load, disable drag-drop until a region is selected
+
+        (function initRegionFirstMode() {
+            // Disable all draggable elements initially
+            updateDragDropState(false);
+
+            // Add select region hint
+            const hint = document.createElement('div');
+            hint.className = 'select-region-hint';
+            hint.id = 'selectRegionHint';
+            hint.innerHTML = '📍 Click on a region to begin analysis';
+            document.body.appendChild(hint);
+
+            // Add region lock indicator (hidden by default)
+            const indicator = document.createElement('div');
+            indicator.className = 'region-lock-indicator';
+            indicator.id = 'regionLockIndicator';
+            indicator.innerHTML = '🔒 <span id="lockedRegionName"></span> selected';
+            document.body.appendChild(indicator);
+
+            // Listen for region lock events
+            document.addEventListener('regionLocked', function(e) {
+                const regionName = e.detail.region;
+
+                // Hide hint
+                hint.classList.add('hidden');
+
+                // Show lock indicator
+                document.getElementById('lockedRegionName').textContent = regionName;
+                indicator.classList.add('visible');
+
+                // Enable drag-drop
+                updateDragDropState(true);
+
+                console.log(`[Region-First] ${regionName} locked - drag-drop enabled`);
+            });
+
+            document.addEventListener('regionUnlocked', function(e) {
+                // Show hint again
+                hint.classList.remove('hidden');
+
+                // Hide lock indicator
+                indicator.classList.remove('visible');
+
+                // Disable drag-drop
+                updateDragDropState(false);
+
+                console.log('[Region-First] Region unlocked - drag-drop disabled');
+            });
+
+            console.log('[Region-First] Mode initialized - waiting for region selection');
+        })();
