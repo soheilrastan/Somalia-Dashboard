@@ -3102,6 +3102,24 @@
                     const droppedRegionLayer = regionLockState.lockedRegionLayer;
 
                     if (droppedRegion) {
+                        // DUPLICATE CHECK: Check if Roads OSM is already loaded for this region
+                        const roadsOSMLayerName = `Roads OSM - ${droppedRegion}`;
+                        if (regionLockState.hasLayer(roadsOSMLayerName)) {
+                            L.popup({
+                                closeButton: false,
+                                autoClose: true,
+                                autoPan: false,
+                                className: 'drop-warning-popup'
+                            })
+                            .setLatLng(latlng)
+                            .setContent(`⚠️ Roads OSM already loaded for ${droppedRegion}`)
+                            .openOn(map);
+
+                            setTimeout(() => map.closePopup(), 2500);
+                            mapContainer.classList.remove('drop-target', 'drop-invalid');
+                            return;
+                        }
+
                         // Reset region styles
                         Object.values(allRegionLayers).forEach(regionLayer => {
                             adm1Layer.resetStyle(regionLayer);
@@ -3110,6 +3128,7 @@
                         // Remove any previously loaded Roads OSM layer
                         if (activeRoadsOSMLayer) {
                             map.removeLayer(activeRoadsOSMLayer);
+                            regionLockState.removeLayer(`Roads OSM - ${activeRoadsOSMRegion}`);
                             activeRoadsOSMLayer = null;
                         }
 
@@ -3323,6 +3342,24 @@
                     const droppedRegionLayer = regionLockState.lockedRegionLayer;
 
                     if (droppedRegion) {
+                        // DUPLICATE CHECK: Check if Roads Latest is already loaded for this region
+                        const roadsLatestLayerName = `Roads Latest - ${droppedRegion}`;
+                        if (regionLockState.hasLayer(roadsLatestLayerName)) {
+                            L.popup({
+                                closeButton: false,
+                                autoClose: true,
+                                autoPan: false,
+                                className: 'drop-warning-popup'
+                            })
+                            .setLatLng(latlng)
+                            .setContent(`⚠️ Roads Latest already loaded for ${droppedRegion}`)
+                            .openOn(map);
+
+                            setTimeout(() => map.closePopup(), 2500);
+                            mapContainer.classList.remove('drop-target', 'drop-invalid');
+                            return;
+                        }
+
                         // Reset region styles
                         Object.values(allRegionLayers).forEach(regionLayer => {
                             adm1Layer.resetStyle(regionLayer);
@@ -3331,6 +3368,7 @@
                         // Remove any previously loaded Roads OSM Latest layer
                         if (activeRoadsOSMLatestLayer) {
                             map.removeLayer(activeRoadsOSMLatestLayer);
+                            regionLockState.removeLayer(`Roads Latest - ${activeRoadsOSMLatestRegion}`);
                             activeRoadsOSMLatestLayer = null;
                         }
 
@@ -3828,9 +3866,28 @@
                     const droppedRegionLayer = regionLockState.lockedRegionLayer;
 
                     if (droppedRegion) {
-                        // Remove existing 2024 roads layer
+                        // DUPLICATE CHECK: Check if Roads 2024 is already loaded for this region
+                        const roads2024LayerName = `Roads 2024 - ${droppedRegion}`;
+                        if (regionLockState.hasLayer(roads2024LayerName)) {
+                            L.popup({
+                                closeButton: false,
+                                autoClose: true,
+                                autoPan: false,
+                                className: 'drop-warning-popup'
+                            })
+                            .setLatLng(latlng)
+                            .setContent(`⚠️ Roads 2024 already loaded for ${droppedRegion}`)
+                            .openOn(map);
+
+                            setTimeout(() => map.closePopup(), 2500);
+                            mapContainer.classList.remove('drop-target', 'drop-invalid');
+                            return;
+                        }
+
+                        // Remove existing 2024 roads layer (if different region was loaded before)
                         if (activeRoads2024Layer) {
                             map.removeLayer(activeRoads2024Layer);
+                            regionLockState.removeLayer(`Roads 2024 - ${activeRoads2024Region}`);
                             activeRoads2024Layer = null;
                         }
 

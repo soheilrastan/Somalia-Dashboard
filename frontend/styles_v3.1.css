@@ -1047,6 +1047,40 @@
             background: rgba(255, 255, 255, 0.1) !important;
         }
 
+        /* ========================================
+           FIX: Remove white bounding box around popups
+           This appears when popup opens on region lock
+           ======================================== */
+
+        /* Hide any bounding box rectangles that Leaflet might draw */
+        .leaflet-overlay-pane svg rect,
+        .leaflet-overlay-pane path[stroke="white"][fill="none"],
+        .leaflet-overlay-pane path[stroke="#ffffff"][fill="none"],
+        .leaflet-overlay-pane path[stroke="#fff"][fill="none"] {
+            display: none !important;
+        }
+
+        /* Remove ALL outlines and unexpected borders from popup elements */
+        .leaflet-popup,
+        .leaflet-popup *,
+        .leaflet-popup-content-wrapper,
+        .leaflet-popup-tip-container,
+        .leaflet-popup-pane,
+        .leaflet-popup-pane * {
+            outline: none !important;
+        }
+
+        /* Ensure popup has proper shadow, no white borders */
+        .leaflet-popup-content-wrapper {
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+            border: none !important;
+        }
+
+        /* Fix any focus rings on interactive elements */
+        .leaflet-container *:focus {
+            outline: none !important;
+        }
+
         /* Region locked popup */
         .region-locked-popup .leaflet-popup-content-wrapper {
             background: rgba(30, 41, 59, 0.98) !important;
