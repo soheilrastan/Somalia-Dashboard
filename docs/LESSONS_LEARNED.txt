@@ -692,6 +692,209 @@ Files: modules/isee_analytics.js
 
 
 ================================================================================
+LESSON 19: DROP ZONE VALIDATION - ONLY LOCKED REGION
+================================================================================
+Date: 2026-01-26
+Issue: Users could drop layers anywhere on the map, causing confusion
+
+PROBLEM:
+- Drag-drop allowed dropping anywhere on the map
+- System would auto-apply to locked region regardless of drop location
+- Users confused about where to drop layers
+- No clear feedback when dropping outside valid zone
+
+SOLUTION - POINT-IN-REGION VALIDATION:
+--------------------------------------------------------------------------------
+// Helper function to check if point is in locked region
+function isPointInLockedRegion(latlng) {
+    if (!regionLockState.isLocked || !regionLockState.lockedRegionLayer) {
+        return false;
+    }
+    const bounds = regionLockState.lockedRegionLayer.getBounds();
+    return bounds.contains(latlng);
+}
+
+// Show warning when dropping outside locked region
+function showDropOutsideRegionWarning(layerName, latlng) {
+    L.popup({ className: 'drop-invalid-popup' })
+        .setLatLng(latlng)
+        .setContent(`🚫 Drop not allowed here - Drop on ${regionLockState.lockedRegion}`)
+        .openOn(map);
+}
+
+// In each drop handler, add validation:
+if (!isPointInLockedRegion(latlng)) {
+    showDropOutsideRegionWarning('Layer Name', latlng);
+    return;
+}
+--------------------------------------------------------------------------------
+
+VISUAL FEEDBACK:
+- Green highlight + "✓ Drop to load..." when over locked region
+- Red cursor + "🚫 Drop only on [Region]" when outside
+- Warning popup if dropped in wrong location
+
+Files affected: frontend/script_v3.1.js (all drop handlers updated)
+
+
+================================================================================
+LESSON 20: BLOCK BROWSER DEFAULT CONTEXT MENU ON MAP
+================================================================================
+Date: 2026-01-26
+Issue: Browser's default right-click menu appearing instead of custom menu
+
+PROBLEM:
+- Right-clicking on map sometimes showed Windows/browser context menu
+- Custom context menu only worked on region polygons
+- Inconsistent user experience
+
+SOLUTION - GLOBAL CONTEXT MENU BLOCKER:
+--------------------------------------------------------------------------------
+// Block on Leaflet map events
+map.on('contextmenu', function(e) {
+    L.DomEvent.preventDefault(e);
+    L.DomEvent.stopPropagation(e);
+
+    // Show appropriate content based on state
+    if (regionLockState.isLocked && isPointInLockedRegion(e.latlng)) {
+        showRegionContextMenu(e.latlng, regionLockState.lockedRegion, ...);
+    } else if (regionLockState.isLocked) {
+        // Show hint: "Right-click on [Region] for options"
+    } else {
+        // Show hint: "Click on a region first to select it"
+    }
+});
+
+// Also block on DOM container
+map.getContainer().addEventListener('contextmenu', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    return false;
+});
+--------------------------------------------------------------------------------
+
+KEY INSIGHT: Need BOTH Leaflet event handler AND DOM event handler to fully
+block the browser's default context menu in all scenarios.
+
+Files affected: frontend/script_v3.1.js
+
+
+================================================================================
+LESSON 21: ANALYTICS STATE RESET ON LAYER CHANGES
+================================================================================
+Date: 2026-01-26
+Issue: iSEE Analytics showing stale/cached results after layers removed
+
+PROBLEM:
+- User loads layers, runs iSEE Analytics
+- User removes layers via context menu
+- User runs iSEE Analytics again - sees OLD cached results
+- Analytics state (iseeAnalyticsActive) not cleared
+- Old modal not removed from DOM
+
+SOLUTION - RESET FUNCTION CALLED ON LAYER CHANGES:
+--------------------------------------------------------------------------------
+// Reset function clears all analytics state
+function resetISEEAnalytics() {
+    console.log('[iSEE] Resetting analytics state - layers changed');
+
+    // Reset active flag
+    iseeAnalyticsActive = false;
+
+    // Uncheck checkbox
+    const toggle = document.getElementById('iseeAnalyticsToggle');
+    if (toggle) toggle.checked = false;
+
+    // Remove visual indicator
+    const label = document.getElementById('iseeAnalyticsLabel');
+    if (label) label.classList.remove('layer-dropped');
+
+    // Remove existing modal from DOM
+    const modal = document.getElementById('iseeAnalyticsModal');
+    if (modal) modal.remove();
+}
+
+// Make available globally
+window.resetISEEAnalytics = resetISEEAnalytics;
+
+// Call in regionLockState.removeLayer():
+if (typeof window.resetISEEAnalytics === 'function') {
+    window.resetISEEAnalytics();
+}
+
+// Call in regionLockState.unlock():
+if (typeof window.resetISEEAnalytics === 'function') {
+    window.resetISEEAnalytics();
+}
+
+// Also in displayInsightsWindow(), remove existing modal first:
+const existingModal = document.getElementById('iseeAnalyticsModal');
+if (existingModal) existingModal.remove();
+--------------------------------------------------------------------------------
+
+PATTERN: When cached state depends on dynamic data, always provide a reset
+function and call it whenever the underlying data changes.
+
+Files affected: frontend/script_v3.1.js, modules/isee_analytics.js
+
+
+================================================================================
+LESSON 22: SCALABLE DRAG-DROP ARCHITECTURE (FUTURE)
+================================================================================
+Date: 2026-01-26
+Issue: Each layer has duplicate drag-drop handler code
+
+PROBLEM:
+- 6+ layers each with separate dragstart, dragover, drop handlers
+- Same validation logic repeated in each
+- Adding 100 layers = 100x code duplication
+- Maintenance nightmare
+
+SOLUTION - CENTRALIZED DRAG-DROP MANAGER (TO IMPLEMENT):
+--------------------------------------------------------------------------------
+const DragDropManager = (function() {
+    const registeredLayers = {};
+
+    function register(config) {
+        // config = { id, label, type, onDrop, ... }
+        registeredLayers[config.id] = config;
+        setupDragStart(config);
+    }
+
+    // Single global dragover handler
+    mapContainer.addEventListener('dragover', function(e) {
+        const draggedId = getCurrentDraggedId();
+        if (!draggedId || !registeredLayers[draggedId]) return;
+
+        e.preventDefault();
+        const isValid = isPointInLockedRegion(getLatlngFromEvent(e));
+        updateVisualFeedback(isValid, registeredLayers[draggedId]);
+    });
+
+    // Single global drop handler
+    mapContainer.addEventListener('drop', function(e) {
+        const draggedId = getCurrentDraggedId();
+        if (!isPointInLockedRegion(latlng)) {
+            showDropOutsideRegionWarning(registeredLayers[draggedId].name, latlng);
+            return;
+        }
+        registeredLayers[draggedId].onDrop(latlng);
+    });
+
+    return { register };
+})();
+
+// Usage - one line per layer
+DragDropManager.register({ id: 'roadsOSM', name: 'Roads OSM 2023', onDrop: loadRoads });
+--------------------------------------------------------------------------------
+
+STATUS: Identified as future refactoring task. Current implementation works
+but will become unwieldy with many more layers.
+
+Files affected: frontend/script_v3.1.js (future refactor)
+
+
+================================================================================
 FUTURE LESSONS TO ADD:
 ================================================================================
 - Add new lessons here as they are discovered

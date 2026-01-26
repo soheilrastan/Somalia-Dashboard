@@ -44,6 +44,11 @@
                 this.lockedRegionLayer = null;
                 this.loadedLayers = [];
 
+                // Reset iSEE Analytics (clear cached results and modal)
+                if (typeof window.resetISEEAnalytics === 'function') {
+                    window.resetISEEAnalytics();
+                }
+
                 console.log(`🔓 Region unlocked: ${previousRegion} - All layers cleared`);
 
                 // Dispatch custom event for UI updates
@@ -72,6 +77,12 @@
                     }
                     this.loadedLayers.splice(idx, 1);
                     console.log(`🗑️ Layer removed: ${name}`);
+
+                    // Reset iSEE Analytics when layers change (invalidate cached results)
+                    if (typeof window.resetISEEAnalytics === 'function') {
+                        window.resetISEEAnalytics();
+                    }
+
                     return true;
                 }
                 return false;
@@ -734,6 +745,67 @@
         adm1Layer.addTo(map);
 
         // ========================================
+        // GLOBAL CONTEXT MENU BLOCKER
+        // ========================================
+        // Block browser's default context menu on the entire map
+        // This ensures our custom context menu always shows instead
+
+        map.on('contextmenu', function(e) {
+            L.DomEvent.preventDefault(e);
+            L.DomEvent.stopPropagation(e);
+
+            // If a region is locked, check if click is on the locked region
+            if (regionLockState.isLocked && regionLockState.lockedRegionLayer) {
+                const clickPoint = e.latlng;
+
+                // Check if click is inside the locked region
+                if (isPointInLockedRegion(clickPoint)) {
+                    // Show the full context menu for the locked region
+                    showRegionContextMenu(clickPoint, regionLockState.lockedRegion, regionLockState.lockedRegionLayer);
+                } else {
+                    // Clicked outside locked region - show hint
+                    L.popup({
+                        className: 'context-hint-popup',
+                        closeButton: false,
+                        autoClose: true
+                    })
+                    .setLatLng(clickPoint)
+                    .setContent(`
+                        <div style="padding: 8px; font-size: 0.9em; text-align: center;">
+                            <span style="color: #f59e0b;">⚠️</span> Right-click on <strong>${regionLockState.lockedRegion}</strong> for options
+                        </div>
+                    `)
+                    .openOn(map);
+
+                    setTimeout(() => map.closePopup(), 2000);
+                }
+            } else {
+                // No region locked - show hint to select a region
+                L.popup({
+                    className: 'context-hint-popup',
+                    closeButton: false,
+                    autoClose: true
+                })
+                .setLatLng(e.latlng)
+                .setContent(`
+                    <div style="padding: 8px; font-size: 0.9em; text-align: center;">
+                        <span style="color: #3b82f6;">💡</span> Click on a region first to select it
+                    </div>
+                `)
+                .openOn(map);
+
+                setTimeout(() => map.closePopup(), 2000);
+            }
+        });
+
+        // Also block on the map container DOM element
+        map.getContainer().addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        });
+
+        // ========================================
         // CONTEXT MENU FOR LOCKED REGION
         // ========================================
         let contextMenuPopup = null;
@@ -983,6 +1055,58 @@
                     </div>
                 `)
                 .openOn(map);
+        }
+
+        // Check if a point is inside the locked region (for drag-drop validation)
+        function isPointInLockedRegion(latlng) {
+            if (!regionLockState.isLocked || !regionLockState.lockedRegionLayer) {
+                return false;
+            }
+
+            // Use Leaflet's bounds.contains for quick check
+            const bounds = regionLockState.lockedRegionLayer.getBounds();
+            if (!bounds.contains(latlng)) {
+                return false;
+            }
+
+            // For more precise check, use point-in-polygon with the actual geometry
+            // This handles irregular region shapes better than just bounding box
+            try {
+                const layer = regionLockState.lockedRegionLayer;
+                if (layer.feature && layer.feature.geometry) {
+                    // Use Leaflet's built-in method if available, otherwise use bounds
+                    if (typeof turf !== 'undefined') {
+                        const point = turf.point([latlng.lng, latlng.lat]);
+                        return turf.booleanPointInPolygon(point, layer.feature);
+                    }
+                }
+            } catch (e) {
+                // Fall back to bounds check
+                console.log('Point-in-polygon check failed, using bounds:', e);
+            }
+
+            return bounds.contains(latlng);
+        }
+
+        // Show warning when dropping outside the locked region
+        function showDropOutsideRegionWarning(layerName, latlng) {
+            L.popup({
+                closeButton: false,
+                autoClose: true,
+                autoPan: false,
+                className: 'drop-invalid-popup'
+            })
+            .setLatLng(latlng)
+            .setContent(`
+                <div style="text-align: center;">
+                    <span style="font-size: 1.5em;">🚫</span><br>
+                    <strong>Drop not allowed here</strong><br>
+                    <small style="color: #94a3b8;">Drop <em>${layerName}</em> on <strong>${regionLockState.lockedRegion}</strong> region</small>
+                </div>
+            `)
+            .openOn(map);
+
+            setTimeout(() => map.closePopup(), 2500);
         }
 
         // Store references to ALL regions for drag-drop (iSEE Analytics can now work with any region)
@@ -1996,6 +2120,35 @@
             let roadsData = null;
 
             // ========================================
+            // iSEE ANALYTICS RESET FUNCTION
+            // Call this when layers change to invalidate cached results
+            // ========================================
+            function resetISEEAnalytics() {
+                console.log('[iSEE] Resetting analytics state - layers changed');
+
+                // Reset active state
+                iseeAnalyticsActive = false;
+
+                // Uncheck the checkbox
+                const iseeToggle = document.getElementById('iseeAnalyticsToggle');
+                if (iseeToggle) iseeToggle.checked = false;
+
+                // Remove layer-dropped class from label
+                const iseeLabel = document.getElementById('iseeAnalyticsLabel');
+                if (iseeLabel) iseeLabel.classList.remove('layer-dropped');
+
+                // Remove any existing iSEE Analytics modal from DOM
+                const existingModal = document.getElementById('iseeAnalyticsModal');
+                if (existingModal) {
+                    existingModal.remove();
+                    console.log('[iSEE] Removed existing analytics modal');
+                }
+            }
+
+            // Make resetISEEAnalytics available globally for regionLockState
+            window.resetISEEAnalytics = resetISEEAnalytics;
+
+            // ========================================
             // iSEE ANALYTICS IMPLEMENTATION
             // AUTOMATIC LAYER DISCOVERY - No need to add new layers manually!
             // All layers registered in regionLockState are automatically included
@@ -2380,7 +2533,8 @@
                             }, 2000);
                         }
                     } else {
-                        // Dropped outside Bakool - reset region style
+                        // Dropped outside Bakool - show warning and reset region style
+                        showDropOutsideRegionWarning('Bakool 2022 Nightlight', latlng);
                         if (bakoolRegionLayer) {
                             adm1Layer.resetStyle(bakoolRegionLayer);
                         }
@@ -2642,6 +2796,8 @@
                             }, 2000);
                         }
                     } else {
+                        // Dropped outside Bakool - show warning
+                        showDropOutsideRegionWarning('Bakool 2023 Nightlight', latlng);
                         if (bakoolRegionLayer) {
                             adm1Layer.resetStyle(bakoolRegionLayer);
                         }
@@ -2737,7 +2893,7 @@
                 hoveredRegionName = null;
             });
 
-            // Map dragover handler for iSEE Analytics - NOW WORKS WITH ANY REGION
+            // Map dragover handler for iSEE Analytics - ONLY ALLOWS DROP ON LOCKED REGION
             mapContainer.addEventListener('dragover', function(e) {
                 if (draggedLayerId === 'iseeAnalytics') {
                     e.preventDefault();
@@ -2745,21 +2901,13 @@
                     const rect = mapContainer.getBoundingClientRect();
                     const latlng = map.containerPointToLatLng([e.clientX - rect.left, e.clientY - rect.top]);
 
-                    // Detect which region we're hovering over using point-in-polygon
-                    let overRegion = null;
-                    let overRegionLayer = null;
+                    // REGION-FIRST: Only allow drop on the LOCKED region
+                    const isOverLockedRegion = isPointInLockedRegion(latlng);
+                    const lockedRegionName = regionLockState.lockedRegion;
+                    const lockedRegionLayer = regionLockState.lockedRegionLayer;
 
-                    for (let regionName in allRegionLayers) {
-                        const regionLayer = allRegionLayers[regionName];
-                        if (isPointInPolygon(latlng, regionLayer)) {
-                            overRegion = regionName;
-                            overRegionLayer = regionLayer;
-                            break;
-                        }
-                    }
-
-                    if (overRegion) {
-                        // Hovering over a valid region
+                    if (isOverLockedRegion && lockedRegionLayer) {
+                        // Hovering over the locked region
                         if (iseeAnalyticsActive) {
                             // iSEE Analytics already active - show warning
                             mapContainer.classList.add('drop-invalid');
@@ -2771,7 +2919,7 @@
                             }
 
                             // Highlight region in orange
-                            overRegionLayer.setStyle({
+                            lockedRegionLayer.setStyle({
                                 color: '#fb923c',
                                 weight: 4,
                                 opacity: 1,
@@ -2790,11 +2938,11 @@
 
                             if (dragGhost) {
                                 dragGhost.style.background = 'rgba(34, 197, 94, 0.9)'; // Green
-                                dragGhost.textContent = `✓ Drop on ${overRegion} to activate iSEE Analytics`;
+                                dragGhost.textContent = `✓ Drop on ${lockedRegionName} to activate iSEE Analytics`;
                             }
 
                             // Highlight region in green
-                            overRegionLayer.setStyle({
+                            lockedRegionLayer.setStyle({
                                 color: '#22c55e',
                                 weight: 4,
                                 opacity: 1,
@@ -2810,30 +2958,20 @@
                                 cursorIndicator.classList.add('active');
                             }
                         }
-
-                        // Update hoveredRegionName
-                        if (hoveredRegionName !== overRegion) {
-                            // Reset previously hovered region
-                            if (hoveredRegionName && allRegionLayers[hoveredRegionName]) {
-                                adm1Layer.resetStyle(allRegionLayers[hoveredRegionName]);
-                            }
-                            hoveredRegionName = overRegion;
-                        }
                     } else {
-                        // Not over any region
+                        // Not over the locked region - INVALID drop zone
+                        mapContainer.classList.add('drop-invalid');
                         mapContainer.classList.remove('drop-target');
-                        mapContainer.classList.remove('drop-invalid');
 
                         if (dragGhost) {
-                            dragGhost.style.background = 'rgba(168, 85, 247, 0.9)'; // Purple (neutral)
-                            dragGhost.textContent = '🔍 iSEE Analytics - Drop on any region';
+                            dragGhost.style.background = 'rgba(239, 68, 68, 0.9)'; // Red
+                            dragGhost.textContent = `🚫 Drop only on ${lockedRegionName}`;
                         }
 
-                        // Reset all region styles
-                        if (hoveredRegionName && allRegionLayers[hoveredRegionName]) {
-                            adm1Layer.resetStyle(allRegionLayers[hoveredRegionName]);
+                        // Reset locked region style
+                        if (lockedRegionLayer) {
+                            adm1Layer.resetStyle(lockedRegionLayer);
                         }
-                        hoveredRegionName = null;
 
                         if (cursorIndicator) {
                             cursorIndicator.classList.remove('active');
@@ -2859,6 +2997,13 @@
                     // REGION-FIRST: Use locked region
                     if (!regionLockState.isLocked) {
                         showSelectRegionWarning();
+                        mapContainer.classList.remove('drop-target', 'drop-invalid');
+                        return;
+                    }
+
+                    // CHECK: Drop must be ON the locked region, not anywhere else
+                    if (!isPointInLockedRegion(latlng)) {
+                        showDropOutsideRegionWarning('iSEE Analytics', latlng);
                         mapContainer.classList.remove('drop-target', 'drop-invalid');
                         return;
                     }
@@ -3132,39 +3277,31 @@
                     const rect = mapContainer.getBoundingClientRect();
                     const latlng = map.containerPointToLatLng([e.clientX - rect.left, e.clientY - rect.top]);
 
-                    // Check which region we're hovering over
-                    let currentRegion = null;
-                    Object.values(allRegionLayers).forEach(regionLayer => {
-                        if (isPointInPolygon(latlng, regionLayer)) {
-                            currentRegion = regionLayer.feature.properties.name;
-                        }
-                    });
+                    // REGION-FIRST: Only allow drop on the LOCKED region
+                    const isOverLockedRegion = isPointInLockedRegion(latlng);
+                    const lockedRegionName = regionLockState.lockedRegion;
 
-                    if (currentRegion) {
-                        // Valid drop zone (any region in Somalia)
+                    if (isOverLockedRegion) {
+                        // Valid drop zone (over the locked region)
                         mapContainer.classList.add('drop-target');
                         mapContainer.classList.remove('drop-invalid');
 
                         if (dragGhost) {
                             dragGhost.style.background = 'rgba(34, 197, 94, 0.9)'; // Green (ready)
-                            dragGhost.textContent = `✓ Drop to load OSM Roads for ${currentRegion}`;
+                            dragGhost.textContent = `✓ Drop to load OSM Roads for ${lockedRegionName}`;
                         }
 
-                        // Highlight the region in green
-                        Object.values(allRegionLayers).forEach(regionLayer => {
-                            if (regionLayer.feature.properties.name === currentRegion) {
-                                regionLayer.setStyle({
-                                    color: '#22c55e',
-                                    weight: 4,
-                                    opacity: 1,
-                                    fillColor: '#22c55e',
-                                    fillOpacity: 0.2,
-                                    dashArray: '10, 5'
-                                });
-                            } else {
-                                adm1Layer.resetStyle(regionLayer);
-                            }
-                        });
+                        // Highlight only the locked region in green
+                        if (regionLockState.lockedRegionLayer) {
+                            regionLockState.lockedRegionLayer.setStyle({
+                                color: '#22c55e',
+                                weight: 4,
+                                opacity: 1,
+                                fillColor: '#22c55e',
+                                fillOpacity: 0.2,
+                                dashArray: '10, 5'
+                            });
+                        }
 
                         // Show flashing green cursor indicator
                         if (cursorIndicator) {
@@ -3174,19 +3311,19 @@
                             cursorIndicator.classList.add('active');
                         }
                     } else {
-                        // Outside Somalia
+                        // Outside locked region - INVALID drop zone
                         mapContainer.classList.add('drop-invalid');
                         mapContainer.classList.remove('drop-target');
 
                         if (dragGhost) {
                             dragGhost.style.background = 'rgba(239, 68, 68, 0.9)'; // Red
-                            dragGhost.textContent = '✗ Drop on any region in Somalia';
+                            dragGhost.textContent = `🚫 Drop only on ${lockedRegionName}`;
                         }
 
-                        // Reset all regions
-                        Object.values(allRegionLayers).forEach(regionLayer => {
-                            adm1Layer.resetStyle(regionLayer);
-                        });
+                        // Reset locked region style (remove highlight)
+                        if (regionLockState.lockedRegionLayer) {
+                            adm1Layer.resetStyle(regionLockState.lockedRegionLayer);
+                        }
 
                         if (cursorIndicator) {
                             cursorIndicator.classList.remove('active');
@@ -3210,6 +3347,13 @@
                     // REGION-FIRST: Use locked region instead of detecting drop location
                     if (!regionLockState.isLocked) {
                         showSelectRegionWarning();
+                        mapContainer.classList.remove('drop-target', 'drop-invalid');
+                        return;
+                    }
+
+                    // CHECK: Drop must be ON the locked region, not anywhere else
+                    if (!isPointInLockedRegion(latlng)) {
+                        showDropOutsideRegionWarning('Roads OSM 2023', latlng);
                         mapContainer.classList.remove('drop-target', 'drop-invalid');
                         return;
                     }
@@ -3450,6 +3594,13 @@
                     // REGION-FIRST: Use locked region instead of detecting drop location
                     if (!regionLockState.isLocked) {
                         showSelectRegionWarning();
+                        mapContainer.classList.remove('drop-target', 'drop-invalid');
+                        return;
+                    }
+
+                    // CHECK: Drop must be ON the locked region, not anywhere else
+                    if (!isPointInLockedRegion(latlng)) {
+                        showDropOutsideRegionWarning('Roads OSM Latest', latlng);
                         mapContainer.classList.remove('drop-target', 'drop-invalid');
                         return;
                     }
@@ -3752,22 +3903,13 @@
                     const rect = mapContainer.getBoundingClientRect();
                     const latlng = map.containerPointToLatLng([e.clientX - rect.left, e.clientY - rect.top]);
 
-                    // Check which region is being hovered over
-                    let hoveredRegion = null;
-                    Object.values(allRegionLayers).forEach(regionLayer => {
-                        if (isPointInPolygon(latlng, regionLayer)) {
-                            hoveredRegion = regionLayer;
-                        }
-                    });
+                    // REGION-FIRST: Only allow drop on the LOCKED region
+                    const isOverLockedRegion = isPointInLockedRegion(latlng);
+                    const lockedRegionName = regionLockState.lockedRegion;
 
-                    // Reset all region styles first
-                    Object.values(allRegionLayers).forEach(regionLayer => {
-                        adm1Layer.resetStyle(regionLayer);
-                    });
-
-                    // Highlight the hovered region
-                    if (hoveredRegion) {
-                        hoveredRegion.setStyle({
+                    // Highlight only if over locked region
+                    if (isOverLockedRegion && regionLockState.lockedRegionLayer) {
+                        regionLockState.lockedRegionLayer.setStyle({
                             fillColor: '#22c55e',
                             fillOpacity: 0.4,
                             weight: 3,
@@ -3776,6 +3918,10 @@
                         mapContainer.classList.add('drop-target');
                         mapContainer.classList.remove('drop-invalid');
                     } else {
+                        // Reset locked region style
+                        if (regionLockState.lockedRegionLayer) {
+                            adm1Layer.resetStyle(regionLockState.lockedRegionLayer);
+                        }
                         mapContainer.classList.remove('drop-target');
                         mapContainer.classList.add('drop-invalid');
                     }
@@ -3923,21 +4069,12 @@
                         const rect = mapContainer.getBoundingClientRect();
                         const latlng = map.containerPointToLatLng([e.clientX - rect.left, e.clientY - rect.top]);
 
-                        let hoveredRegion = null;
-                        let hoveredRegionName = null;
-                        Object.entries(allRegionLayers).forEach(([name, regionLayer]) => {
-                            if (isPointInPolygon(latlng, regionLayer)) {
-                                hoveredRegion = regionLayer;
-                                hoveredRegionName = name;
-                            }
-                        });
+                        // REGION-FIRST: Only allow drop on the LOCKED region
+                        const isOverLockedRegion = isPointInLockedRegion(latlng);
+                        const lockedRegionName = regionLockState.lockedRegion;
 
-                        Object.values(allRegionLayers).forEach(regionLayer => {
-                            adm1Layer.resetStyle(regionLayer);
-                        });
-
-                        if (hoveredRegion) {
-                            hoveredRegion.setStyle({
+                        if (isOverLockedRegion && regionLockState.lockedRegionLayer) {
+                            regionLockState.lockedRegionLayer.setStyle({
                                 fillColor: '#fbbf24',
                                 fillOpacity: 0.4,
                                 weight: 3,
@@ -3948,15 +4085,19 @@
 
                             if (dragGhost) {
                                 dragGhost.style.background = 'rgba(251, 191, 36, 0.95)';
-                                dragGhost.textContent = `✓ Drop to load 2024 Roads for ${hoveredRegionName}`;
+                                dragGhost.textContent = `✓ Drop to load 2024 Roads for ${lockedRegionName}`;
                             }
                         } else {
+                            // Reset locked region style
+                            if (regionLockState.lockedRegionLayer) {
+                                adm1Layer.resetStyle(regionLockState.lockedRegionLayer);
+                            }
                             mapContainer.classList.remove('drop-target');
                             mapContainer.classList.add('drop-invalid');
 
                             if (dragGhost) {
                                 dragGhost.style.background = 'rgba(239, 68, 68, 0.9)';
-                                dragGhost.textContent = '✗ Drop on a region';
+                                dragGhost.textContent = `🚫 Drop only on ${lockedRegionName}`;
                             }
                         }
                     }
@@ -3974,6 +4115,13 @@
                     // REGION-FIRST: Use locked region instead of detecting drop location
                     if (!regionLockState.isLocked) {
                         showSelectRegionWarning();
+                        mapContainer.classList.remove('drop-target', 'drop-invalid');
+                        return;
+                    }
+
+                    // CHECK: Drop must be ON the locked region, not anywhere else
+                    if (!isPointInLockedRegion(latlng)) {
+                        showDropOutsideRegionWarning('Roads 2024', latlng);
                         mapContainer.classList.remove('drop-target', 'drop-invalid');
                         return;
                     }

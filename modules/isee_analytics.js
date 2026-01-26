@@ -938,6 +938,13 @@ function generateRecommendations(datasets, results, targetRegion) {
 
 // STEP 4: Display insights window
 function displayInsightsWindow(results, datasets, targetRegion) {
+    // Remove any existing modal first (prevent duplicates and stale data)
+    const existingModal = document.getElementById('iseeAnalyticsModal');
+    if (existingModal) {
+        existingModal.remove();
+        console.log('[iSEE] Removed previous analytics modal');
+    }
+
     // Create draggable, resizable modal window overlay
     const modal = document.createElement('div');
     modal.id = 'iseeAnalyticsModal';
