@@ -1,0 +1,224 @@
+================================================================================
+LESSONS LEARNED - Somalia Dashboard Development
+Geo-Insights Lab, ESCWA, United Nations
+================================================================================
+Last Updated: 2026-01-26
+================================================================================
+
+This document captures important lessons, fixes, and architectural decisions
+that should be referenced for future development.
+
+================================================================================
+LESSON 1: WHITE RECTANGLE BORDER ON REGION SELECTION (Leaflet Popups)
+================================================================================
+Date: 2026-01-26
+Issue: White rectangular border appears around popups when selecting a region
+
+ROOT CAUSE:
+- Leaflet's default SVG rendering can draw bounding box rectangles
+- Browser focus outlines on popup elements
+- Inherited borders from popup containers
+
+FIX (add to CSS):
+--------------------------------------------------------------------------------
+/* Hide any bounding box rectangles that Leaflet might draw */
+.leaflet-overlay-pane svg rect,
+.leaflet-overlay-pane path[stroke="white"][fill="none"],
+.leaflet-overlay-pane path[stroke="#ffffff"][fill="none"],
+.leaflet-overlay-pane path[stroke="#fff"][fill="none"] {
+    display: none !important;
+}
+
+/* Remove ALL outlines from popup elements */
+.leaflet-popup, .leaflet-popup *, .leaflet-popup-content-wrapper,
+.leaflet-popup-tip-container, .leaflet-popup-pane, .leaflet-popup-pane * {
+    outline: none !important;
+}
+
+/* Fix focus rings on interactive elements */
+.leaflet-container *:focus {
+    outline: none !important;
+}
+
+/* Ensure popup has proper shadow, no white borders */
+.leaflet-popup-content-wrapper {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+    border: none !important;
+}
+--------------------------------------------------------------------------------
+
+File: frontend/styles_v3.1.css (around line 1050)
+
+
+================================================================================
+LESSON 2: AUTOMATIC LAYER DISCOVERY FOR GEO-AI ANALYTICS
+================================================================================
+Date: 2026-01-26
+Issue: Adding new layers required manual updates to iSEE Analytics function
+
+PROBLEM:
+- Each new layer type (land cover, vegetation, etc.) required manually adding
+  the layer name to the iSEE Analytics function
+- Not scalable for 20+ layers
+- Easy to forget and causes analytics to miss layers
+
+SOLUTION - AUTOMATIC LAYER DISCOVERY:
+--------------------------------------------------------------------------------
+All layers are registered with regionLockState when loaded:
+
+    regionLockState.addLayer(layerName, leafletLayer, layerType)
+
+Layer types supported:
+- 'nightlight'     - Nightlight/radiance data
+- 'roads'          - Road infrastructure
+- 'population'     - Population distribution
+- 'landcover'      - Land cover classification
+- 'vegetation'     - Vegetation indices (NDVI, EVI, etc.)
+- 'socioeconomic'  - MPI, poverty, economic data
+- 'infrastructure' - Other infrastructure
+- 'other'          - Any other type
+
+iSEE Analytics automatically discovers ALL layers from regionLockState:
+
+    const layerRefs = {
+        // Auto-discovered layers
+        dynamicLayers: dynamicLayers,           // All layers by safe key
+        layersByType: layersByType,             // Layers grouped by type
+        loadedLayersList: regionLockState.loadedLayers,  // Raw list
+
+        // Legacy support still works
+        ...legacyRefs
+    };
+--------------------------------------------------------------------------------
+
+HOW TO ADD A NEW LAYER TYPE:
+1. Create the layer loading code (drag-drop handler, etc.)
+2. Register with regionLockState:
+
+       regionLockState.addLayer('Land Cover 2024 - Bakool', landCoverLayer, 'landcover');
+
+3. That's it! iSEE Analytics will automatically include it.
+
+HOW TO ACCESS LAYERS IN iSEE ANALYTICS MODULE (isee_analytics.js):
+--------------------------------------------------------------------------------
+// Access all layers of a specific type:
+const nightlightLayers = layerRefs.layersByType.nightlight;
+const roadsLayers = layerRefs.layersByType.roads;
+const landcoverLayers = layerRefs.layersByType.landcover;
+
+// Access a specific layer by name:
+const layer = layerRefs.dynamicLayers['land_cover_2024___bakool'];
+
+// Iterate all loaded layers:
+layerRefs.loadedLayersList.forEach(layer => {
+    console.log(layer.name, layer.type, layer.layer);
+});
+--------------------------------------------------------------------------------
+
+Files affected:
+- frontend/script_v3.1.js (triggerISEEAnalyticsImpl function)
+- modules/isee_analytics.js (runISEEAnalytics function)
+
+
+================================================================================
+LESSON 3: SCOPE ISSUES WITH LAYER REFERENCES
+================================================================================
+Date: 2026-01-26
+Issue: Functions defined outside setTimeout couldn't access layer variables
+
+PROBLEM:
+- triggerISEEAnalytics was defined at outer scope
+- Layer variables (detailedNLBakool2022, activeRoadsOSMLayer, etc.) are inside setTimeout
+- Function couldn't access layer references, passed empty {}
+
+SOLUTION - DEFERRED IMPLEMENTATION PATTERN:
+--------------------------------------------------------------------------------
+// At outer scope - create placeholder
+var triggerISEEAnalyticsImpl = null;
+
+function triggerISEEAnalytics(regionName, regionLayer) {
+    if (triggerISEEAnalyticsImpl) {
+        triggerISEEAnalyticsImpl(regionName, regionLayer);
+    } else {
+        alert('Please wait for dashboard to fully load');
+    }
+}
+
+// Inside setTimeout where layer variables exist
+setTimeout(() => {
+    // Now we have access to all layer variables
+    triggerISEEAnalyticsImpl = function(regionName, regionLayer) {
+        // Full implementation with access to:
+        // - detailedNLBakool2022, detailedNLBakool2023
+        // - activeRoadsOSMLayer, clippedRoadsLayer
+        // - mpiLayer, populationLayer
+        // - etc.
+    };
+}, 100);
+--------------------------------------------------------------------------------
+
+USE THIS PATTERN WHEN:
+- You need a function accessible globally (e.g., from context menus)
+- But the function needs access to variables defined in setTimeout/async blocks
+
+
+================================================================================
+LESSON 4: DUPLICATE LAYER PREVENTION
+================================================================================
+Date: 2026-01-26
+Issue: Users could accidentally load the same layer twice
+
+SOLUTION:
+--------------------------------------------------------------------------------
+Before loading any layer, check if it already exists:
+
+    const layerName = `Roads OSM - ${regionName}`;
+    if (regionLockState.hasLayer(layerName)) {
+        L.popup({...})
+            .setContent(`Layer already loaded for ${regionName}`)
+            .openOn(map);
+        return;  // Don't load again
+    }
+
+    // Proceed with loading...
+    regionLockState.addLayer(layerName, newLayer, 'roads');
+--------------------------------------------------------------------------------
+
+Apply this pattern to ALL drag-drop handlers.
+
+
+================================================================================
+LESSON 5: DATE FORMAT CONSISTENCY (HDX API / File System)
+================================================================================
+Date: 2026-01-26
+Issue: Date format mismatch between API responses and folder names
+
+PROBLEM:
+- HDX API returns dates as: 2024-07-23 (ISO format with dashes)
+- Folder names use: 2024_07_23 (underscores)
+- Comparison failed, versions showed as "not installed"
+
+SOLUTION:
+--------------------------------------------------------------------------------
+In check_osm_version.py:
+
+def get_date_part(date_str):
+    """Extract YYYY_MM_DD from ISO datetime (underscore format for folder names)"""
+    if 'T' in date_str:
+        return date_str.split('T')[0].replace('-', '_')
+    return date_str.replace('-', '_')
+--------------------------------------------------------------------------------
+
+ALWAYS convert dates to underscore format when comparing with folder names.
+
+
+================================================================================
+FUTURE LESSONS TO ADD:
+================================================================================
+- Add new lessons here as they are discovered
+- Include: Date, Issue, Root Cause, Solution, Files Affected
+
+
+================================================================================
+END OF DOCUMENT
+================================================================================
