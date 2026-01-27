@@ -400,7 +400,7 @@
         
         console.log('✓ Nightlight points loaded with purple-yellow gradient');
 
-        mpiLayer.addTo(map);
+        // mpiLayer not added by default - user must check it
         // nightlightLayer not added by default - user must check it
 
         const detailedNLBakool2022 = L.layerGroup();
@@ -1564,7 +1564,7 @@
                         </label>
                     </div>
 
-                    <label><input type="checkbox" id="mpiToggle" checked> Multidimensional Poverty Index, Ref. Y. 2022</label>
+                    <label><input type="checkbox" id="mpiToggle"> Multidimensional Poverty Index, Ref. Y. 2022</label>
                     <label><input type="checkbox" id="nightlightToggle"> 💡 Nightlight Points</label>
                     <div style="margin-left: 20px; border-left: 2px solid #fbbf24; padding-left: 10px;">
                         <label style="font-size: 0.9em;"><input type="checkbox" id="nightlightOverviewToggle"> Overview (1,571)</label>
@@ -4723,94 +4723,141 @@
             div.style.right = isMobile ? 'auto' : '0px';
             div.style.transition = 'max-height 0.3s ease';
 
-            let html = `
-                <div class="legend-header" style="color: #10b981; font-weight: bold; margin-bottom: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; white-space: nowrap; overflow: hidden;">
-                    <span style="overflow: hidden; text-overflow: ellipsis;">🎨 Symbology</span>
-                    <span class="legend-toggle-icon" style="font-size: 1.2em; flex-shrink: 0;">▶</span>
-                </div>
-                <div class="legend-content">
-                    <div style="margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid #334155;">
-                        <div style="color: #0ea5e9; font-weight: bold; margin-bottom: 6px; font-size: 0.9em;">📊 MPI Gradient</div>
-                        <div style="font-size: 0.75em; margin-bottom: 8px; color: #94a3b8;">
-                            <div style="display: flex; align-items: center; margin: 8px 0;">
-                                <div style="width: 200px; height: 20px; background: linear-gradient(to right, #047857, #22c55e, #84cc16, #eab308, #f59e0b, #f97316, #dc2626, #b91c1c, #991b1b, #7f1d1d); border-radius: 4px;"></div>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; width: 200px;">
-                                <span style="color: #047857;">●</span>
-                                <span>Better (Low MPI)</span>
-                                <span>Worse (High MPI)</span>
-                                <span style="color: #7f1d1d;">●</span>
-                            </div>
-                        </div>
-                    </div>`;
-
+            // Build MPI region list HTML
+            let mpiRegionsHtml = '';
             const sorted = [...regions].sort((a, b) => b.mpi - a.mpi);
             sorted.forEach(r => {
-                html += `<div class="legend-item">
+                mpiRegionsHtml += `<div class="legend-item">
                     <div class="legend-color" style="background: ${getMPIColor(r.mpi)};"></div>
                     <div class="legend-label">${r.name}</div>
                     <div class="legend-value">${r.mpi}</div>
                 </div>`;
             });
 
-            html += `
-                <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid #334155;">
-                    <div style="color: #f59e0b; font-weight: bold; margin-bottom: 6px; font-size: 0.9em;">💡 Nightlight Intensity</div>
-                    <div style="font-size: 0.75em; margin-bottom: 8px; color: #94a3b8;">
-                        <div style="display: flex; align-items: center; margin: 8px 0;">
-                            <div class="gradient-bar"></div>
+            let html = `
+                <div class="legend-header" style="color: #10b981; font-weight: bold; margin-bottom: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; white-space: nowrap; overflow: hidden;">
+                    <span style="overflow: hidden; text-overflow: ellipsis;">🎨 Symbology</span>
+                    <span class="legend-toggle-icon" style="font-size: 1.2em; flex-shrink: 0;">▶</span>
+                </div>
+                <div class="legend-content">
+                    <!-- ========== MPI SECTION (Collapsible) ========== -->
+                    <div class="symbology-section" data-section="mpi" style="margin-bottom: 8px; border-bottom: 1px solid #334155; padding-bottom: 8px;">
+                        <div class="symbology-section-header" style="color: #0ea5e9; font-weight: bold; font-size: 0.9em; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 4px 0;">
+                            <span>📊 MPI Gradient</span>
+                            <span class="section-toggle" style="font-size: 0.9em; transition: transform 0.2s;">▶</span>
                         </div>
-                        <div style="display: flex; justify-content: space-between; width: 200px;">
-                            <span>Low Light</span>
-                            <span>High Light</span>
+                        <div class="symbology-section-content" style="display: none; padding-top: 8px;">
+                            <div style="font-size: 0.75em; margin-bottom: 8px; color: #94a3b8;">
+                                <div style="display: flex; justify-content: space-between; width: 200px; margin-bottom: 2px;">
+                                    <span style="color: #047857; font-weight: bold; font-size: 1.1em;">0</span>
+                                    <span style="color: #7f1d1d; font-weight: bold; font-size: 1.1em;">100</span>
+                                </div>
+                                <div style="display: flex; align-items: center; margin: 4px 0;">
+                                    <div style="width: 200px; height: 20px; background: linear-gradient(to right, #047857, #22c55e, #84cc16, #eab308, #f59e0b, #f97316, #dc2626, #b91c1c, #991b1b, #7f1d1d); border-radius: 4px;"></div>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; width: 200px;">
+                                    <span style="color: #047857;">●</span>
+                                    <span>Better (Low MPI)</span>
+                                    <span>Worse (High MPI)</span>
+                                    <span style="color: #7f1d1d;">●</span>
+                                </div>
+                            </div>
+                            <div class="mpi-regions-list" style="max-height: 200px; overflow-y: auto;">
+                                ${mpiRegionsHtml}
+                            </div>
                         </div>
                     </div>
-                    <div style="font-size: 0.7em; line-height: 1.6; margin-top: 8px;">
-                        <div><span style="color: #1e1b4b;">●</span> 0.0-0.7: Very low</div>
-                        <div><span style="color: #7c3aed;">●</span> 0.7-2.0: Low</div>
-                        <div><span style="color: #e879f9;">●</span> 2.0-4.0: Medium</div>
-                        <div><span style="color: #fb923c;">●</span> 4.0-5.5: High</div>
-                        <div><span style="color: #fde047;">●</span> 5.5+: Very high</div>
+
+                    <!-- ========== NIGHTLIGHT SECTION (Collapsible) ========== -->
+                    <div class="symbology-section" data-section="nightlight" style="margin-bottom: 8px; border-bottom: 1px solid #334155; padding-bottom: 8px;">
+                        <div class="symbology-section-header" style="color: #f59e0b; font-weight: bold; font-size: 0.9em; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 4px 0;">
+                            <span>💡 Nightlight Intensity</span>
+                            <span class="section-toggle" style="font-size: 0.9em; transition: transform 0.2s;">▶</span>
+                        </div>
+                        <div class="symbology-section-content" style="display: none; padding-top: 8px;">
+                            <div style="font-size: 0.7em; margin-bottom: 8px; color: #94a3b8; font-style: italic;">
+                                See Symbology Standardization Method (<span style="color: #a855f7; cursor: pointer; text-decoration: underline;" onclick="SSMModule.show('nightlight')">SSM</span>)
+                            </div>
+                            <div style="font-size: 0.75em; margin-bottom: 8px; color: #94a3b8;">
+                                <div style="display: flex; justify-content: space-between; width: 200px; margin-bottom: 2px;">
+                                    <span style="color: #ffffff; font-weight: bold; font-size: 1.1em;">&lt;0.1</span>
+                                    <span style="color: #ffffff; font-weight: bold; font-size: 1.1em;">&gt;100</span>
+                                </div>
+                                <div style="display: flex; align-items: center; margin: 4px 0;">
+                                    <div class="gradient-bar"></div>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; width: 200px;">
+                                    <span>Low Light</span>
+                                    <span>High Light</span>
+                                </div>
+                            </div>
+                            <div style="font-size: 0.7em; line-height: 1.6; margin-top: 8px;">
+                                <div><span style="color: #1e1b4b;">●</span> &lt;0.1: Very low</div>
+                                <div><span style="color: #4c1d95;">●</span> 0.1 - 2: Low</div>
+                                <div><span style="color: #7c3aed;">●</span> 2 - 4: Rural</div>
+                                <div><span style="color: #a78bfa;">●</span> 4 - 6: Low Urban</div>
+                                <div><span style="color: #e879f9;">●</span> 6 - 10: Urban</div>
+                                <div><span style="color: #fb923c;">●</span> 10 - 50: High Urban</div>
+                                <div><span style="color: #fde047;">●</span> 50 - 100: Commercial/Industrial</div>
+                                <div><span style="color: #fef9c3;">●</span> &gt;100: Major Industrial (e.g., Refineries)</div>
+                            </div>
+                            <div style="font-size: 0.6em; color: #64748b; margin-top: 10px; padding-top: 8px; border-top: 1px dashed #334155; line-height: 1.5;">
+                                <strong style="color: #94a3b8;">Unit:</strong> NanoWatts/sr/cm² reflecting a unit of radiance, where NanoWatts is the measure of radiant power (energy per second). One nanowatt is 10⁻⁹ watts, indicating a very small amount of light; per Steradian (sr) where a steradian is the SI unit for a 3D solid angle (the "cone" of light) it measures how spread out the light is as it radiates from the source; and per Square Centimetre cm² represents the unit area of the surface being measured (the light source).
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid #334155;">
-                    <div style="color: #f97316; font-weight: bold; margin-bottom: 6px; font-size: 0.9em;">🛣️ Roads</div>
-                    <div style="font-size: 0.7em; margin-bottom: 8px; color: #94a3b8; font-style: italic;">
-                        See Concept, Source and Methods for details
+
+                    <!-- ========== ROADS SECTION (Collapsible) ========== -->
+                    <div class="symbology-section" data-section="roads" style="margin-bottom: 8px; border-bottom: 1px solid #334155; padding-bottom: 8px;">
+                        <div class="symbology-section-header" style="color: #f97316; font-weight: bold; font-size: 0.9em; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 4px 0;">
+                            <span>🛣️ Roads</span>
+                            <span class="section-toggle" style="font-size: 0.9em; transition: transform 0.2s;">▶</span>
+                        </div>
+                        <div class="symbology-section-content" style="display: none; padding-top: 8px;">
+                            <div style="font-size: 0.7em; margin-bottom: 8px; color: #94a3b8; font-style: italic;">
+                                See Symbology Standardization Method (<span id="ssmLink" style="color: #60a5fa; cursor: pointer; text-decoration: underline;" onclick="SSMModule.show('roads')">SSM</span>)
+                            </div>
+                            <div style="font-size: 0.7em; line-height: 1.8; margin-top: 8px;">
+                                <div><span style="color: #7c2d12; font-weight: bold;">━━━━━━━━━━━━━━━━</span> Trunk</div>
+                                <div><span style="color: #dc2626; font-weight: bold;">━━━━━━━━━━━━━━━━</span> Primary</div>
+                                <div><span style="color: #f97316; font-weight: bold;">━━━━━━━━━━━━━━━━</span> Secondary</div>
+                                <div><span style="color: #fbbf24; font-weight: bold;">━━━━━━━━━━━━━━━━</span> Tertiary</div>
+                                <div><span style="color: #60a5fa; font-weight: bold;">━━━━━━━━━━━━━━━━</span> Residential</div>
+                                <div><span style="color: #cbd5e1; font-weight: bold;">━━━━━━━━━━━━━━━━</span> Service</div>
+                                <div><span style="color: #94a3b8; font-weight: bold;">━━━━━━━━━━━━━━━━</span> Unclassified</div>
+                                <div><span style="color: #78716c; font-weight: bold;">━━ ━━ ━━ ━━ ━━ ━━ ━━</span> Track</div>
+                                <div><span style="color: #a8a29e; font-weight: bold;">━━ ━━ ━━ ━━ ━━ ━━ ━━</span> Path</div>
+                                <div><span style="color: #a8a29e; font-weight: bold;">━━ ━━ ━━ ━━ ━━ ━━ ━━</span> Footway</div>
+                                <div><span style="color: #d4d4d8; font-weight: bold;">━━ ━━ ━━ ━━ ━━ ━━ ━━</span> Pedestrian</div>
+                                <div><span style="color: #d4d4d8; font-weight: bold;">━━ ━━ ━━ ━━ ━━ ━━ ━━</span> Steps</div>
+                                <div><span style="color: #fca5a5; font-weight: bold;">━━ ━━ ━━ ━━ ━━ ━━ ━━</span> Construction</div>
+                            </div>
+                        </div>
                     </div>
-                    <div style="font-size: 0.7em; line-height: 1.8; margin-top: 8px;">
-                        <div><span style="color: #7c2d12; font-weight: bold;">━━━━━━━━━━━━━━━━</span> Trunk</div>
-                        <div><span style="color: #dc2626; font-weight: bold;">━━━━━━━━━━━━━━━━</span> Primary</div>
-                        <div><span style="color: #f97316; font-weight: bold;">━━━━━━━━━━━━━━━━</span> Secondary</div>
-                        <div><span style="color: #fbbf24; font-weight: bold;">━━━━━━━━━━━━━━━━</span> Tertiary</div>
-                        <div><span style="color: #60a5fa; font-weight: bold;">━━━━━━━━━━━━━━━━</span> Residential</div>
-                        <div><span style="color: #cbd5e1; font-weight: bold;">━━━━━━━━━━━━━━━━</span> Service</div>
-                        <div><span style="color: #94a3b8; font-weight: bold;">━━━━━━━━━━━━━━━━</span> Unclassified</div>
-                        <div><span style="color: #78716c; font-weight: bold;">━━ ━━ ━━ ━━ ━━ ━━ ━━</span> Track</div>
-                        <div><span style="color: #a8a29e; font-weight: bold;">━━ ━━ ━━ ━━ ━━ ━━ ━━</span> Path</div>
-                        <div><span style="color: #a8a29e; font-weight: bold;">━━ ━━ ━━ ━━ ━━ ━━ ━━</span> Footway</div>
-                        <div><span style="color: #d4d4d8; font-weight: bold;">━━ ━━ ━━ ━━ ━━ ━━ ━━</span> Pedestrian</div>
-                        <div><span style="color: #d4d4d8; font-weight: bold;">━━ ━━ ━━ ━━ ━━ ━━ ━━</span> Steps</div>
-                        <div><span style="color: #fca5a5; font-weight: bold;">━━ ━━ ━━ ━━ ━━ ━━ ━━</span> Construction</div>
+
+                    <!-- ========== POPULATION SECTION (Collapsible) ========== -->
+                    <div class="symbology-section" data-section="population" style="margin-bottom: 0;">
+                        <div class="symbology-section-header" style="color: #EC407A; font-weight: bold; font-size: 0.9em; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 4px 0;">
+                            <span>👶 Population F 0-12 months</span>
+                            <span class="section-toggle" style="font-size: 0.9em; transition: transform 0.2s;">▶</span>
+                        </div>
+                        <div class="symbology-section-content" style="display: none; padding-top: 8px;">
+                            <div style="font-size: 0.7em; line-height: 1.8; margin-top: 8px;">
+                                <div><span style="color: #F48FB1; font-size: 1.3em;">●</span> 1-25 (number of infants) - 96.3%</div>
+                                <div><span style="color: #EC407A; font-size: 1.4em;">●</span> 25-50 (number of infants) - 1.8%</div>
+                                <div><span style="color: #AD1457; font-size: 1.5em;">●</span> 50+ (number of infants) - 1.9%</div>
+                            </div>
+                            <div style="font-size: 0.65em; color: #64748b; margin-top: 8px; line-height: 1.4;">
+                                Bakool: 5,362 cells | Lower Shebelle: 11,116 cells<br>
+                                500m grid, pop ≥1 only
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid #334155;">
-                    <div style="color: #EC407A; font-weight: bold; margin-bottom: 6px; font-size: 0.9em;">👶 Population F 0-12 months (3 classes)</div>
-                    <div style="font-size: 0.7em; line-height: 1.8; margin-top: 8px;">
-                        <div><span style="color: #F48FB1; font-size: 1.3em;">●</span> 1-25 (number of infants) - 96.3%</div>
-                        <div><span style="color: #EC407A; font-size: 1.4em;">●</span> 25-50 (number of infants) - 1.8%</div>
-                        <div><span style="color: #AD1457; font-size: 1.5em;">●</span> 50+ (number of infants) - 1.9%</div>
-                    </div>
-                    <div style="font-size: 0.65em; color: #64748b; margin-top: 8px; line-height: 1.4;">
-                        Bakool: 5,362 cells | Lower Shebelle: 11,116 cells<br>
-                        500m grid, pop ≥1 only
-                    </div>
-                </div>
                 </div>
             `;
             div.innerHTML = html;
 
-            // Add click handler for collapsible header
+            // Add click handler for collapsible main header
             const legendHeader = div.querySelector('.legend-header');
             const legendContent = div.querySelector('.legend-content');
 
@@ -4826,6 +4873,47 @@
                 });
             }
 
+            // ========================================
+            // COLLAPSIBLE SYMBOLOGY SECTIONS
+            // ========================================
+            // Add click handlers for each collapsible section
+            const sectionHeaders = div.querySelectorAll('.symbology-section-header');
+            sectionHeaders.forEach(header => {
+                header.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    e.preventDefault();
+
+                    const section = this.parentElement;
+                    const content = section.querySelector('.symbology-section-content');
+                    const toggle = this.querySelector('.section-toggle');
+
+                    if (content && toggle) {
+                        const isExpanded = content.style.display !== 'none';
+
+                        if (isExpanded) {
+                            // Collapse
+                            content.style.display = 'none';
+                            toggle.textContent = '▶';
+                            toggle.style.transform = 'rotate(0deg)';
+                        } else {
+                            // Expand
+                            content.style.display = 'block';
+                            toggle.textContent = '▼';
+                            toggle.style.transform = 'rotate(0deg)';
+                        }
+                    }
+                });
+
+                // Add hover effect
+                header.addEventListener('mouseenter', function() {
+                    this.style.backgroundColor = 'rgba(255,255,255,0.05)';
+                    this.style.borderRadius = '4px';
+                });
+                header.addEventListener('mouseleave', function() {
+                    this.style.backgroundColor = 'transparent';
+                });
+            });
+
             // Disable click propagation only on content, not header
             if (legendContent) {
                 L.DomEvent.disableClickPropagation(legendContent);
@@ -4835,6 +4923,13 @@
             return div;
         };
         legend.addTo(map);
+
+        // ========================================
+        // SSM MODULE - Now loaded from modules/ssm-module.js
+        // Usage: SSMModule.show('roads') or SSMModule.show('nightlight')
+        // To add new methodologies: SSMModule.register('id', config)
+        // See modules/ssm-module.js for full API documentation
+        // ========================================
 
         // ========================================
         // MEASURING TOOL

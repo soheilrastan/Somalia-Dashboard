@@ -1,16 +1,18 @@
 @echo off
 REM ======================================================================
-REM   Somalia Dashboard v3.1 - Bulletproof Silent Launcher
+REM   Somalia Dashboard v3.2 - Bulletproof Silent Launcher
 REM   Geo-Insights Lab, ESCWA, United Nations
 REM ======================================================================
 REM   This script is called by the HTML launcher via URL protocol.
 REM   It runs silently in the background and:
-REM     1. Terminates previous sessions (port 8000 & 5000)
-REM     2. Clears Python cache (__pycache__, .pyc)
-REM     3. Validates and frees network ports (aggressive)
-REM     4. Installs missing dependencies (Flask, etc.)
-REM     5. Starts Dashboard Server (port 8000)
-REM     6. Starts Update/API Server (port 5000)
+REM     1. Checks if already running (lock file mechanism)
+REM     2. Checks if servers already running (quick start)
+REM     3. Terminates previous sessions (port 8000 & 5000)
+REM     4. Clears Python cache (__pycache__, .pyc)
+REM     5. Validates and frees network ports (aggressive)
+REM     6. Installs missing dependencies (Flask, etc.)
+REM     7. Starts Dashboard Server (port 8000)
+REM     8. Starts Update/API Server (port 5000)
 REM ======================================================================
 
 REM Change to script directory
@@ -18,7 +20,44 @@ cd /d "%~dp0"
 
 REM Log file for troubleshooting
 set LOGFILE=launcher.log
-echo [%DATE% %TIME%] ====== LAUNCHER STARTED ====== >> %LOGFILE%
+set LOCKFILE=launcher.lock
+
+REM ======================================================================
+REM   PHASE 0: LOCK FILE CHECK (Prevent Multiple Instances)
+REM ======================================================================
+
+REM Check if lock file exists and is recent (less than 60 seconds old)
+if exist "%LOCKFILE%" (
+    REM Get lock file age - if another instance is running, exit quietly
+    for %%F in (%LOCKFILE%) do set LOCKAGE=%%~tF
+    echo [%DATE% %TIME%] BLOCKED: Another launcher instance is running >> %LOGFILE%
+    goto :EXIT_QUIET
+)
+
+REM Create lock file to prevent other instances
+echo %DATE% %TIME% > %LOCKFILE%
+echo [%DATE% %TIME%] ====== LAUNCHER STARTED (Lock acquired) ====== >> %LOGFILE%
+
+REM ======================================================================
+REM   PHASE 0.5: QUICK START CHECK (Servers Already Running?)
+REM ======================================================================
+echo [%DATE% %TIME%] Checking if servers already running... >> %LOGFILE%
+
+set SERVERS_RUNNING=0
+netstat -ano 2>nul | findstr ":8000.*LISTENING" >nul 2>&1
+if not errorlevel 1 (
+    netstat -ano 2>nul | findstr ":5000.*LISTENING" >nul 2>&1
+    if not errorlevel 1 (
+        set SERVERS_RUNNING=1
+    )
+)
+
+if "%SERVERS_RUNNING%"=="1" (
+    echo [%DATE% %TIME%] QUICK START: Both servers already running! >> %LOGFILE%
+    echo [%DATE% %TIME%] ====== LAUNCHER COMPLETE (Quick Start) ====== >> %LOGFILE%
+    del /Q %LOCKFILE% >nul 2>&1
+    goto :EXIT_QUIET
+)
 
 REM ======================================================================
 REM   PHASE 1: TERMINATE ALL PYTHON PROCESSES (Nuclear Option)
@@ -197,5 +236,9 @@ REM ======================================================================
 echo [%DATE% %TIME%] ====== LAUNCHER COMPLETE ====== >> %LOGFILE%
 echo. >> %LOGFILE%
 
+REM Release lock file
+del /Q %LOCKFILE% >nul 2>&1
+
+:EXIT_QUIET
 REM Exit silently
 exit

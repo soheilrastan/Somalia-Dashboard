@@ -895,6 +895,153 @@ Files affected: frontend/script_v3.1.js (future refactor)
 
 
 ================================================================================
+LESSON 23: CONFIRMATION CHECKBOX FOR UNDETECTABLE USER ACTIONS
+================================================================================
+Date: 2026-01-27
+Issue: Cannot programmatically detect when user completes external OS actions
+
+PROBLEM:
+- Protocol installation wizard downloads a .reg file
+- User must complete 6 steps in Windows (double-click, Run, Yes, Yes, OK)
+- JavaScript cannot detect Windows dialogs or registry changes
+- Users could click "Verify" before actually completing installation
+- Led to failed verifications and user confusion
+
+ROOT CAUSE:
+- Browser sandboxing prevents access to OS-level events
+- No API to detect Windows UAC dialogs, registry editor, or file execution
+- Relying on user to click "Verify" at the right time is unreliable
+
+SOLUTION - CONFIRMATION CHECKBOX PATTERN:
+--------------------------------------------------------------------------------
+Instead of:
+1. Download button (enabled)
+2. Verify button (enabled immediately after download)
+   → User clicks too early, verification fails
+
+Use:
+1. Download button (blinking green - active)
+2. After download: Show confirmation checkbox
+3. Checkbox: "I completed all 6 steps and clicked OK on the success message"
+4. Verify button stays DISABLED (yellow) until checkbox is checked
+5. When checkbox checked: Verify button becomes ENABLED (blinking green)
+--------------------------------------------------------------------------------
+
+IMPLEMENTATION:
+--------------------------------------------------------------------------------
+<!-- HTML: Hidden by default, shown after download -->
+<div class="confirm-checkbox-container" id="confirmCheckboxContainer" style="display: none;">
+    <label class="confirm-checkbox-label">
+        <input type="checkbox" id="confirmOkClicked" onchange="onConfirmCheckboxChange()">
+        <span class="checkmark"></span>
+        <span class="confirm-text">I completed all 6 steps and clicked <strong>OK</strong></span>
+    </label>
+</div>
+
+<!-- Button starts disabled -->
+<button class="modal-btn success waiting-yellow disabled" id="verifyBtn">
+    Verify Installation
+</button>
+
+// JavaScript: Toggle button state based on checkbox
+function onConfirmCheckboxChange() {
+    const checkbox = document.getElementById('confirmOkClicked');
+    const verifyBtn = document.getElementById('verifyBtn');
+
+    if (checkbox.checked) {
+        // User confirmed - enable with visual emphasis
+        verifyBtn.classList.remove('disabled', 'waiting-yellow');
+        verifyBtn.classList.add('blink-green');
+        updateStatus('success', 'Ready to verify!');
+    } else {
+        // User unchecked - disable again
+        verifyBtn.classList.remove('blink-green');
+        verifyBtn.classList.add('disabled', 'waiting-yellow');
+        updateStatus('loading', 'Waiting for you to complete steps...');
+    }
+}
+
+// In wizardDownload() - show checkbox, keep verify disabled
+document.getElementById('confirmCheckboxContainer').style.display = 'block';
+// verifyBtn stays disabled until checkbox checked
+
+// In resetWizardUI() - hide and reset checkbox
+document.getElementById('confirmCheckboxContainer').style.display = 'none';
+document.getElementById('confirmOkClicked').checked = false;
+--------------------------------------------------------------------------------
+
+CSS STYLING FOR CUSTOM CHECKBOX:
+--------------------------------------------------------------------------------
+.confirm-checkbox-container {
+    margin-top: 15px;
+    padding: 12px 15px;
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    border-radius: 8px;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.confirm-checkbox-label input[type="checkbox"] {
+    display: none;  /* Hide native checkbox */
+}
+
+.confirm-checkbox-label .checkmark {
+    width: 22px;
+    height: 22px;
+    border: 2px solid rgba(34, 197, 94, 0.5);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.confirm-checkbox-label input:checked + .checkmark {
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+}
+
+.confirm-checkbox-label input:checked + .checkmark::after {
+    content: '✓';
+    color: white;
+}
+--------------------------------------------------------------------------------
+
+UI/UX BEST PRACTICES FROM THIS PATTERN:
+1. BUTTON STATE FLOW: Use color progression to guide user
+   - Blinking Green = "Click me now" (active action)
+   - Yellow = "Waiting/Not ready" (pending state)
+   - Disabled + Faded = "Can't click yet" (locked state)
+
+2. PROGRESSIVE DISCLOSURE: Don't show all options at once
+   - Hide confirmation checkbox until download completes
+   - Reduces cognitive load
+
+3. EXPLICIT USER CONFIRMATION: When you can't detect, ask!
+   - Checkbox forces user to acknowledge completion
+   - Reduces support tickets from premature clicks
+
+4. VISUAL FEEDBACK HIERARCHY:
+   - Blinking animation = highest priority action
+   - Solid color = secondary action
+   - Faded/disabled = not available
+
+5. REVERSIBLE STATE: Allow user to uncheck
+   - If user realizes they didn't complete steps
+   - Button returns to disabled state
+
+WHEN TO USE THIS PATTERN:
+- User must complete external actions (file downloads, OS dialogs, external apps)
+- Actions cannot be detected via JavaScript/browser APIs
+- Wrong timing leads to errors or confusion
+- Examples:
+  - Protocol/software installation
+  - File processing in external apps
+  - Email verification flows
+  - Multi-step approval workflows
+
+Files affected: launcher/🚀_Geo_Insights_Dashboard_Launch.html
+
+
+================================================================================
 FUTURE LESSONS TO ADD:
 ================================================================================
 - Add new lessons here as they are discovered

@@ -650,6 +650,391 @@
             font-family: monospace;
             color: #fbbf24;
         }
+
+        /* ============================================
+           ENHANCED PROTOCOL SETUP WIZARD STYLES
+           ============================================ */
+
+        .setup-modal {
+            max-width: 550px;
+            min-width: 480px;
+        }
+
+        /* Progress bar container */
+        .setup-progress-container {
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+        }
+
+        .setup-progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .setup-progress-title {
+            color: #60a5fa;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        .setup-progress-percent {
+            color: #22c55e;
+            font-size: 1.1em;
+            font-weight: bold;
+            font-family: monospace;
+        }
+
+        /* Progress bar */
+        .setup-progress-bar {
+            height: 8px;
+            background: rgba(71, 85, 105, 0.5);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .setup-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6 0%, #22c55e 100%);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+            width: 0%;
+        }
+
+        /* Current status message */
+        .setup-status-message {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 6px;
+            color: #93c5fd;
+            font-size: 0.85em;
+            min-height: 44px;
+        }
+
+        .setup-status-message.waiting {
+            background: rgba(245, 158, 11, 0.1);
+            border-color: rgba(245, 158, 11, 0.3);
+            color: #fbbf24;
+        }
+
+        .setup-status-message.success {
+            background: rgba(34, 197, 94, 0.1);
+            border-color: rgba(34, 197, 94, 0.3);
+            color: #4ade80;
+        }
+
+        .setup-status-message.error {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.3);
+            color: #f87171;
+        }
+
+        .setup-status-icon {
+            font-size: 1.2em;
+            flex-shrink: 0;
+        }
+
+        .setup-status-icon.spinning {
+            animation: spin 1s linear infinite;
+        }
+
+        /* Step indicators in wizard */
+        .setup-wizard-steps {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding: 0 10px;
+        }
+
+        .wizard-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            position: relative;
+        }
+
+        .wizard-step:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: 55%;
+            width: 90%;
+            height: 2px;
+            background: rgba(71, 85, 105, 0.5);
+            z-index: 0;
+        }
+
+        .wizard-step.completed:not(:last-child)::after {
+            background: #22c55e;
+        }
+
+        .wizard-step.active:not(:last-child)::after {
+            background: linear-gradient(90deg, #22c55e 0%, rgba(71, 85, 105, 0.5) 50%);
+        }
+
+        .wizard-step-num {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85em;
+            font-weight: bold;
+            background: rgba(71, 85, 105, 0.5);
+            color: #64748b;
+            z-index: 1;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .wizard-step.active .wizard-step-num {
+            background: #3b82f6;
+            color: white;
+            border-color: #60a5fa;
+            box-shadow: 0 0 12px rgba(59, 130, 246, 0.5);
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+
+        .wizard-step.completed .wizard-step-num {
+            background: #22c55e;
+            color: white;
+        }
+
+        .wizard-step.waiting .wizard-step-num {
+            background: #f59e0b;
+            color: white;
+            border-color: #fbbf24;
+            animation: pulse-glow-yellow 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 12px rgba(59, 130, 246, 0.5); }
+            50% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.8); }
+        }
+
+        @keyframes pulse-glow-yellow {
+            0%, 100% { box-shadow: 0 0 12px rgba(245, 158, 11, 0.5); }
+            50% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.8); }
+        }
+
+        .wizard-step-label {
+            margin-top: 8px;
+            font-size: 0.7em;
+            color: #64748b;
+            text-align: center;
+            max-width: 80px;
+        }
+
+        .wizard-step.active .wizard-step-label,
+        .wizard-step.completed .wizard-step-label {
+            color: #94a3b8;
+        }
+
+        .wizard-step.waiting .wizard-step-label {
+            color: #fbbf24;
+            font-weight: 600;
+        }
+
+        /* Button states */
+        .modal-btn.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        /* Cancel button - light red */
+        .modal-btn.secondary.cancel-red {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.4);
+        }
+
+        .modal-btn.secondary.cancel-red:hover {
+            background: rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+        }
+
+        /* Download button - blinking green (active state) */
+        .modal-btn.primary.blink-green {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            animation: button-blink-green 1s ease-in-out infinite;
+        }
+
+        @keyframes button-blink-green {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4);
+            }
+            50% {
+                transform: scale(1.02);
+                box-shadow: 0 0 20px 4px rgba(34, 197, 94, 0.6);
+            }
+        }
+
+        /* Download button - light yellow (completed state) */
+        .modal-btn.primary.completed-yellow {
+            background: rgba(245, 158, 11, 0.3);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.5);
+            animation: none;
+        }
+
+        .modal-btn.primary.completed-yellow:hover {
+            background: rgba(245, 158, 11, 0.4);
+        }
+
+        /* Verify button - light yellow (waiting state) */
+        .modal-btn.success.waiting-yellow {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.4);
+            animation: none;
+        }
+
+        /* Verify button turns green on hover when ready (not disabled) */
+        .modal-btn.success.waiting-yellow:not(.disabled):hover {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            color: white;
+            border-color: #22c55e;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4);
+        }
+
+        /* Verify button - blinking green (ready state) */
+        .modal-btn.success.blink-green {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            color: white;
+            animation: button-blink-green 1s ease-in-out infinite;
+        }
+
+        /* Legacy highlight class - keep for compatibility */
+        .modal-btn.highlight {
+            animation: button-blink-green 1s ease-in-out infinite;
+        }
+
+        /* Action needed indicator */
+        .action-needed {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: rgba(245, 158, 11, 0.2);
+            border: 1px solid rgba(245, 158, 11, 0.4);
+            border-radius: 4px;
+            color: #fbbf24;
+            font-size: 0.75em;
+            font-weight: 600;
+            margin-left: 8px;
+            animation: blink-soft 1.5s ease-in-out infinite;
+        }
+
+        @keyframes blink-soft {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        /* Confirmation Checkbox Styles */
+        .confirm-checkbox-container {
+            margin-top: 15px;
+            padding: 12px 15px;
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            border-radius: 8px;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .confirm-checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            color: #94a3b8;
+            font-size: 0.9em;
+            user-select: none;
+        }
+
+        .confirm-checkbox-label input[type="checkbox"] {
+            display: none;
+        }
+
+        .confirm-checkbox-label .checkmark {
+            width: 22px;
+            height: 22px;
+            border: 2px solid rgba(34, 197, 94, 0.5);
+            border-radius: 4px;
+            background: rgba(30, 41, 59, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .confirm-checkbox-label:hover .checkmark {
+            border-color: #22c55e;
+            background: rgba(34, 197, 94, 0.1);
+        }
+
+        .confirm-checkbox-label input[type="checkbox"]:checked + .checkmark {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            border-color: #22c55e;
+        }
+
+        .confirm-checkbox-label input[type="checkbox"]:checked + .checkmark::after {
+            content: '✓';
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .confirm-checkbox-label .confirm-text {
+            line-height: 1.4;
+        }
+
+        .confirm-checkbox-label .confirm-text strong {
+            color: #22c55e;
+        }
+
+        /* Instructions panel */
+        .setup-instructions {
+            text-align: left;
+            padding: 12px 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 6px;
+            margin-top: 15px;
+            border-left: 3px solid #3b82f6;
+        }
+
+        .setup-instructions.highlight-instruction {
+            border-left-color: #f59e0b;
+            background: rgba(245, 158, 11, 0.05);
+        }
+
+        .setup-instructions p {
+            color: #94a3b8;
+            font-size: 0.8em;
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        .setup-instructions strong {
+            color: #e2e8f0;
+        }
     </style>
 </head>
 <body>
@@ -827,36 +1212,72 @@
         </div>
     </div>
 
-    <!-- Setup Modal (for reset/reactivation flow) -->
+    <!-- Setup Modal (for reset/reactivation flow) - ENHANCED WIZARD -->
     <div class="setup-modal-overlay" id="setupModal">
         <div class="setup-modal">
-            <h3>Protocol Status Reset</h3>
-            <p style="color: #94a3b8; font-size: 0.85em; margin-bottom: 10px;">
-                The URL protocol verification has been cleared.<br>
-                Follow these steps to re-activate:
-            </p>
-            <div class="step-list">
-                <div class="step-item">
-                    <span class="step-num">1</span>
-                    <span>Click <strong>"Install Protocol"</strong> to download the configuration file</span>
+            <h3 id="setupModalTitle">Protocol Installation Wizard</h3>
+
+            <!-- Wizard Step Indicators -->
+            <div class="setup-wizard-steps">
+                <div class="wizard-step active" id="wizardStep1">
+                    <div class="wizard-step-num">1</div>
+                    <div class="wizard-step-label">Download</div>
                 </div>
-                <div class="step-item">
-                    <span class="step-num">2</span>
-                    <span>Double-click the downloaded <code>update_protocol.reg</code> file</span>
+                <div class="wizard-step" id="wizardStep2">
+                    <div class="wizard-step-num">2</div>
+                    <div class="wizard-step-label">Install</div>
                 </div>
-                <div class="step-item">
-                    <span class="step-num">3</span>
-                    <span>Click <strong>Run</strong>, <strong>Yes</strong>, <strong>OK</strong> each time Windows asks</span>
+                <div class="wizard-step" id="wizardStep3">
+                    <div class="wizard-step-num">3</div>
+                    <div class="wizard-step-label">Verify</div>
                 </div>
-                <div class="step-item">
-                    <span class="step-num">4</span>
-                    <span>Click <strong>"Verify Installation"</strong> to confirm it worked</span>
+                <div class="wizard-step" id="wizardStep4">
+                    <div class="wizard-step-num">4</div>
+                    <div class="wizard-step-label">Complete</div>
                 </div>
             </div>
+
+            <!-- Progress Bar -->
+            <div class="setup-progress-container">
+                <div class="setup-progress-header">
+                    <span class="setup-progress-title" id="progressStepTitle">Step 1: Download Configuration</span>
+                    <span class="setup-progress-percent" id="progressPercent">0%</span>
+                </div>
+                <div class="setup-progress-bar">
+                    <div class="setup-progress-fill" id="progressFill"></div>
+                </div>
+                <div class="setup-status-message" id="statusMessage">
+                    <span class="setup-status-icon">&#9432;</span>
+                    <span id="statusText">Click "Download Protocol" to begin installation</span>
+                </div>
+            </div>
+
+            <!-- Dynamic Instructions -->
+            <div class="setup-instructions" id="setupInstructions">
+                <p id="instructionText">
+                    This wizard will guide you through installing the URL protocol handler.
+                    This enables <strong>one-click dashboard launching</strong>.
+                </p>
+            </div>
+
+            <!-- Confirmation Checkbox (appears after download) -->
+            <div class="confirm-checkbox-container" id="confirmCheckboxContainer" style="display: none;">
+                <label class="confirm-checkbox-label">
+                    <input type="checkbox" id="confirmOkClicked" onchange="onConfirmCheckboxChange()">
+                    <span class="checkmark"></span>
+                    <span class="confirm-text">I completed all 6 steps and clicked <strong>OK</strong> on the success message</span>
+                </label>
+            </div>
+
+            <!-- Buttons -->
             <div class="modal-buttons">
-                <button class="modal-btn secondary" onclick="closeSetupModal()">Cancel</button>
-                <button class="modal-btn primary" onclick="downloadRegFix()">Install Protocol</button>
-                <button class="modal-btn success" onclick="verifySetupComplete()">Verify Installation</button>
+                <button class="modal-btn secondary cancel-red" id="cancelBtn" onclick="closeSetupModal()">Cancel</button>
+                <button class="modal-btn primary blink-green" id="downloadBtn" onclick="wizardDownload()">
+                    <span id="downloadBtnText">Download Protocol</span>
+                </button>
+                <button class="modal-btn success waiting-yellow disabled" id="verifyBtn" onclick="wizardVerify()">
+                    <span id="verifyBtnText">Verify Installation</span>
+                </button>
             </div>
         </div>
     </div>
@@ -1140,10 +1561,17 @@
         // Flag to prevent multiple starts
         let startTriggered = false;
         let protocolTriggered = false;
+        let lastTriggerTime = 0;
+        const MIN_TRIGGER_INTERVAL = 10000; // 10 seconds minimum between triggers
 
         function triggerServerStart() {
-            if (protocolTriggered) return;
+            const now = Date.now();
+            if (protocolTriggered && (now - lastTriggerTime) < MIN_TRIGGER_INTERVAL) {
+                console.log('[Launcher] Blocking rapid re-trigger (last: ' + (now - lastTriggerTime) + 'ms ago)');
+                return;
+            }
             protocolTriggered = true;
+            lastTriggerTime = now;
 
             // =====================================================
             // BULLETPROOF URL PROTOCOL TRIGGER
@@ -1180,8 +1608,13 @@
         }
 
         async function start() {
-            if (startTriggered) return;
+            const now = Date.now();
+            if (startTriggered && (now - lastTriggerTime) < MIN_TRIGGER_INTERVAL) {
+                console.log('[Launcher] Blocking rapid re-click (last: ' + (now - lastTriggerTime) + 'ms ago)');
+                return;
+            }
             startTriggered = true;
+            lastTriggerTime = now;
 
             // Add loading state
             document.querySelector('.launcher').classList.add('loading');
@@ -1278,6 +1711,17 @@
             updateProtocolStatus('registered', 'URL Protocol: Active');
         }
 
+        // =====================================================
+        // ENHANCED PROTOCOL INSTALLATION WIZARD
+        // =====================================================
+
+        let wizardState = {
+            currentStep: 1,
+            downloadComplete: false,
+            installationStarted: false,
+            verificationStarted: false
+        };
+
         // Reset protocol status for testing/demo purposes
         function resetProtocol() {
             // Clear localStorage verification
@@ -1286,8 +1730,109 @@
             // Update UI to show deactivated state
             updateProtocolStatus('deactivated', 'Protocol Status: DEACTIVATED');
 
+            // Reset wizard state
+            wizardState = {
+                currentStep: 1,
+                downloadComplete: false,
+                installationStarted: false,
+                verificationStarted: false
+            };
+
+            // Reset wizard UI
+            resetWizardUI();
+
             // Show the setup modal with instructions
             document.getElementById('setupModal').classList.add('visible');
+        }
+
+        function resetWizardUI() {
+            // Reset step indicators
+            for (let i = 1; i <= 4; i++) {
+                const step = document.getElementById('wizardStep' + i);
+                step.classList.remove('active', 'completed', 'waiting');
+            }
+            document.getElementById('wizardStep1').classList.add('active');
+
+            // Reset progress bar
+            document.getElementById('progressFill').style.width = '0%';
+            document.getElementById('progressPercent').textContent = '0%';
+            document.getElementById('progressStepTitle').textContent = 'Step 1: Download Configuration';
+
+            // Reset status message
+            updateWizardStatus('info', 'Click "Download Protocol" to begin installation');
+
+            // Reset instructions
+            document.getElementById('instructionText').innerHTML =
+                'This wizard will guide you through installing the URL protocol handler. ' +
+                'This enables <strong>one-click dashboard launching</strong>.';
+            document.getElementById('setupInstructions').classList.remove('highlight-instruction');
+
+            // Reset buttons to initial state
+            const downloadBtn = document.getElementById('downloadBtn');
+            const verifyBtn = document.getElementById('verifyBtn');
+
+            // Download: blinking green (active)
+            downloadBtn.classList.remove('disabled', 'completed-yellow');
+            downloadBtn.classList.add('blink-green');
+            document.getElementById('downloadBtnText').textContent = 'Download Protocol';
+
+            // Verify: light yellow, DISABLED, not blinking (waiting for download + confirmation)
+            verifyBtn.classList.remove('blink-green', 'highlight');
+            verifyBtn.classList.add('waiting-yellow', 'disabled');
+            document.getElementById('verifyBtnText').textContent = 'Verify Installation';
+
+            // Reset and hide confirmation checkbox
+            document.getElementById('confirmCheckboxContainer').style.display = 'none';
+            document.getElementById('confirmOkClicked').checked = false;
+        }
+
+        function updateWizardStatus(type, message) {
+            const statusMsg = document.getElementById('statusMessage');
+            const statusText = document.getElementById('statusText');
+            const statusIcon = statusMsg.querySelector('.setup-status-icon');
+
+            statusMsg.className = 'setup-status-message';
+            statusIcon.classList.remove('spinning');
+
+            switch (type) {
+                case 'info':
+                    statusIcon.innerHTML = '&#9432;';
+                    break;
+                case 'loading':
+                    statusIcon.innerHTML = '&#8635;';
+                    statusIcon.classList.add('spinning');
+                    break;
+                case 'waiting':
+                    statusMsg.classList.add('waiting');
+                    statusIcon.innerHTML = '&#9888;';
+                    break;
+                case 'success':
+                    statusMsg.classList.add('success');
+                    statusIcon.innerHTML = '&#10003;';
+                    break;
+                case 'error':
+                    statusMsg.classList.add('error');
+                    statusIcon.innerHTML = '&#10007;';
+                    break;
+            }
+
+            statusText.textContent = message;
+        }
+
+        function setWizardStep(stepNum, state) {
+            const step = document.getElementById('wizardStep' + stepNum);
+            step.classList.remove('active', 'completed', 'waiting');
+            if (state) {
+                step.classList.add(state);
+            }
+        }
+
+        async function updateProgress(percent, title) {
+            document.getElementById('progressFill').style.width = percent + '%';
+            document.getElementById('progressPercent').textContent = percent + '%';
+            if (title) {
+                document.getElementById('progressStepTitle').textContent = title;
+            }
         }
 
         // Close the setup modal
@@ -1297,13 +1842,20 @@
             location.reload();
         }
 
-        // Download the registry fix file
-        function downloadRegFix() {
+        // WIZARD STEP 1: Download Protocol File
+        async function wizardDownload() {
+            if (wizardState.downloadComplete) return;
+
+            // Start download animation
+            updateWizardStatus('loading', 'Preparing configuration file...');
+            await updateProgress(5, 'Step 1: Downloading Configuration');
+
+            await sleep(500);
+            await updateProgress(10);
+
             // Get the current page URL and extract the folder path
             const currentUrl = window.location.href;
             const folderUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/'));
-
-            // Download the .reg update file
             const regFixUrl = folderUrl + '/update_protocol.reg';
 
             // Create a download link
@@ -1311,44 +1863,236 @@
             link.href = regFixUrl;
             link.download = 'update_protocol.reg';
             document.body.appendChild(link);
+
+            updateWizardStatus('loading', 'Downloading update_protocol.reg...');
+            await updateProgress(15);
+
             link.click();
             document.body.removeChild(link);
+
+            await sleep(800);
+            await updateProgress(20);
+
+            // Mark step 1 complete
+            wizardState.downloadComplete = true;
+            setWizardStep(1, 'completed');
+            setWizardStep(2, 'waiting');
+
+            // Update to step 2: waiting for user action
+            await updateProgress(25, 'Step 2: Install Protocol (Your Action Required)');
+
+            updateWizardStatus('waiting', 'ACTION NEEDED: Double-click the downloaded file');
+
+            // Update instructions with all 5 steps
+            document.getElementById('instructionText').innerHTML =
+                '<strong style="color: #fbbf24;">Your action required:</strong><br><br>' +
+                '<table style="width: 100%; font-size: 0.95em; line-height: 1.8;">' +
+                '<tr><td style="width: 24px; color: #60a5fa; font-weight: bold;">1.</td><td>Find <code>update_protocol.reg</code> in your Downloads folder</td></tr>' +
+                '<tr><td style="color: #60a5fa; font-weight: bold;">2.</td><td><strong>Double-click</strong> the file to run it</td></tr>' +
+                '<tr><td style="color: #60a5fa; font-weight: bold;">3.</td><td>Click <strong style="color: #22c55e;">Run</strong> when Windows Security asks</td></tr>' +
+                '<tr><td style="color: #60a5fa; font-weight: bold;">4.</td><td>Click <strong style="color: #22c55e;">Yes</strong> on User Account Control (UAC)</td></tr>' +
+                '<tr><td style="color: #60a5fa; font-weight: bold;">5.</td><td>Click <strong style="color: #22c55e;">Yes</strong> to confirm registry change</td></tr>' +
+                '<tr><td style="color: #60a5fa; font-weight: bold;">6.</td><td>Click <strong style="color: #22c55e;">OK</strong> on success message</td></tr>' +
+                '</table><br>' +
+                '<em style="color: #fbbf24;">After completing all steps, check the box below to enable verification</em>';
+            document.getElementById('setupInstructions').classList.add('highlight-instruction');
+
+            // Update button states:
+            // Download: light yellow (completed) - no longer blinking
+            const downloadBtn = document.getElementById('downloadBtn');
+            downloadBtn.classList.remove('blink-green');
+            downloadBtn.classList.add('completed-yellow', 'disabled');
+            document.getElementById('downloadBtnText').textContent = '✓ Downloaded';
+
+            // Verify: STAYS DISABLED AND YELLOW until user confirms they clicked OK
+            // User must check the confirmation checkbox to enable the Verify button
+            const verifyBtn = document.getElementById('verifyBtn');
+            // Keep disabled and waiting-yellow - don't enable until checkbox is checked
+            // verifyBtn.classList.remove('disabled'); // REMOVED - keep disabled
+
+            // Show the confirmation checkbox
+            document.getElementById('confirmCheckboxContainer').style.display = 'block';
+            document.getElementById('confirmOkClicked').checked = false;
+
+            // Start a timer to remind user
+            wizardState.installationStarted = true;
+            startWaitingAnimation();
         }
 
-        // Verify setup is complete by checking if servers can start
-        async function verifySetupComplete() {
-            // Close modal
-            document.getElementById('setupModal').classList.remove('visible');
+        // Called when user checks the confirmation checkbox
+        function onConfirmCheckboxChange() {
+            const checkbox = document.getElementById('confirmOkClicked');
+            const verifyBtn = document.getElementById('verifyBtn');
 
-            // Update status to checking
-            updateProtocolStatus('checking', 'Verifying protocol registration...');
+            if (checkbox.checked) {
+                // User confirmed they clicked OK - enable Verify with blinking green
+                verifyBtn.classList.remove('disabled', 'waiting-yellow');
+                verifyBtn.classList.add('blink-green');
+
+                // Update status
+                updateWizardStatus('success', 'Ready to verify! Click the green button below');
+
+                // Update instructions
+                document.getElementById('instructionText').innerHTML =
+                    '<span style="color: #22c55e; font-weight: bold;">✓ Great!</span> ' +
+                    'Now click <strong style="color: #22c55e;">Verify Installation</strong> to confirm everything is working.';
+            } else {
+                // User unchecked - disable Verify and make it yellow again
+                verifyBtn.classList.remove('blink-green');
+                verifyBtn.classList.add('disabled', 'waiting-yellow');
+
+                // Restore waiting status
+                updateWizardStatus('loading', 'Waiting for you to complete installation steps...');
+            }
+        }
+
+        let waitingAnimationInterval = null;
+        let waitingDots = 0;
+
+        function startWaitingAnimation() {
+            if (waitingAnimationInterval) clearInterval(waitingAnimationInterval);
+
+            waitingAnimationInterval = setInterval(() => {
+                if (!wizardState.installationStarted || wizardState.verificationStarted) {
+                    clearInterval(waitingAnimationInterval);
+                    return;
+                }
+
+                waitingDots = (waitingDots + 1) % 4;
+                const dots = '.'.repeat(waitingDots);
+                document.getElementById('statusText').textContent =
+                    'Waiting for you to install the protocol' + dots;
+            }, 600);
+        }
+
+        // WIZARD STEP 3: Verify Installation
+        async function wizardVerify() {
+            if (wizardState.verificationStarted) return;
+            wizardState.verificationStarted = true;
+
+            // Stop waiting animation
+            if (waitingAnimationInterval) clearInterval(waitingAnimationInterval);
+
+            // Hide the confirmation checkbox
+            document.getElementById('confirmCheckboxContainer').style.display = 'none';
+
+            // Mark step 2 complete
+            setWizardStep(2, 'completed');
+            setWizardStep(3, 'active');
+
+            // Update UI
+            document.getElementById('verifyBtn').classList.remove('highlight', 'blink-green');
+            document.getElementById('verifyBtn').classList.add('disabled');
+            document.getElementById('verifyBtnText').textContent = 'Verifying...';
+
+            await updateProgress(30, 'Step 3: Verifying Installation');
+            updateWizardStatus('loading', 'Initializing verification process...');
+
+            await sleep(500);
+            await updateProgress(35);
+
+            updateWizardStatus('loading', 'Triggering URL protocol handler...');
+            await updateProgress(40);
 
             // Try to trigger the protocol
             triggerServerStart();
 
-            // Wait a moment then check if servers started
-            await sleep(4000);
+            await sleep(500);
+            await updateProgress(45);
 
-            const serversRunning = await checkDashboardServer();
+            updateWizardStatus('loading', 'Waiting for server response...');
+            await updateProgress(50);
+
+            // Poll for servers starting
+            let attempts = 0;
+            const maxAttempts = 15;
+            let serversRunning = false;
+
+            while (attempts < maxAttempts && !serversRunning) {
+                await sleep(500);
+                attempts++;
+
+                const progress = 50 + Math.round((attempts / maxAttempts) * 35);
+                await updateProgress(progress);
+
+                updateWizardStatus('loading', `Checking server status... (${attempts}/${maxAttempts})`);
+
+                serversRunning = await checkDashboardServer();
+            }
+
+            await updateProgress(90);
 
             if (serversRunning) {
-                // Success! Protocol is working
+                // SUCCESS!
+                setWizardStep(3, 'completed');
+                setWizardStep(4, 'completed');
+
+                await updateProgress(95, 'Step 4: Installation Complete!');
+                updateWizardStatus('success', 'Protocol installed successfully!');
+
+                await sleep(500);
+                await updateProgress(100);
+
+                // Update instructions with success message
+                document.getElementById('instructionText').innerHTML =
+                    '<span style="color: #22c55e; font-size: 1.1em;">&#10003; Installation Complete!</span><br><br>' +
+                    'The URL protocol handler is now active. You can use the <strong>"Launch Dashboard"</strong> ' +
+                    'button for one-click startup from now on.<br><br>' +
+                    '<em>This window will close automatically...</em>';
+                document.getElementById('setupInstructions').classList.remove('highlight-instruction');
+
+                // Mark as verified in localStorage
                 localStorage.setItem('somalia-protocol-verified', 'true');
                 updateProtocolStatus('registered', 'URL Protocol: Active (verified!)');
 
-                // Update button to green
+                // Update main button
                 document.querySelector('.btn-text').textContent = 'Open Dashboard';
                 document.querySelector('.start-btn').style.background = 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)';
 
-                alert('Success! URL Protocol is now active.\n\nYou can now use the "Open Dashboard" button!');
+                // Close modal after delay
+                await sleep(3000);
+                document.getElementById('setupModal').classList.remove('visible');
+
             } else {
-                // Protocol may not be registered yet
+                // FAILED - allow retry
+                setWizardStep(3, 'waiting');
+
+                await updateProgress(85, 'Verification Failed - Retry?');
+                updateWizardStatus('error', 'Servers did not start. Protocol may not be installed.');
+
+                // Update instructions
+                document.getElementById('instructionText').innerHTML =
+                    '<span style="color: #f87171;">&#10007; Verification Failed</span><br><br>' +
+                    'The servers did not start. Please ensure you completed all steps:<br>' +
+                    '<table style="width: 100%; font-size: 0.9em; line-height: 1.6; margin: 8px 0;">' +
+                    '<tr><td style="width: 20px;">1.</td><td>Double-clicked the <code>update_protocol.reg</code> file</td></tr>' +
+                    '<tr><td>2.</td><td>Clicked <strong>Run</strong> on Windows Security</td></tr>' +
+                    '<tr><td>3.</td><td>Clicked <strong>Yes</strong> on UAC prompt</td></tr>' +
+                    '<tr><td>4.</td><td>Clicked <strong>Yes</strong> to confirm registry change</td></tr>' +
+                    '<tr><td>5.</td><td>Clicked <strong>OK</strong> on success message</td></tr>' +
+                    '</table>' +
+                    'Click <strong>"Retry Download"</strong> to try again.';
+                document.getElementById('setupInstructions').classList.add('highlight-instruction');
+
+                // Reset buttons for retry
+                wizardState.downloadComplete = false;
+                wizardState.verificationStarted = false;
+                setWizardStep(1, 'active');
+                setWizardStep(2, null);
+
+                document.getElementById('downloadBtn').classList.remove('disabled');
+                document.getElementById('downloadBtnText').textContent = 'Retry Download';
+                document.getElementById('verifyBtn').classList.add('disabled');
+                document.getElementById('verifyBtnText').textContent = 'Verify Installation';
+
                 updateProtocolStatus('not-registered',
                     'URL Protocol: Not detected - <span class="setup-link" onclick="resetProtocol()">Try again</span>');
-
-                alert('Protocol not detected.\n\nMake sure you ran setup_one_click.bat and try again.');
             }
         }
+
+        // Keep the old function names as aliases for backward compatibility
+        function downloadRegFix() { wizardDownload(); }
+        async function verifySetupComplete() { await wizardVerify(); }
 
         // Check servers on page load
         window.addEventListener('load', async function() {
