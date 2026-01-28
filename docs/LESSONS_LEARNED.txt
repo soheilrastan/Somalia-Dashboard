@@ -1403,6 +1403,322 @@ Files affected: tools/process_worldpop.py
 
 
 ================================================================================
+LESSON 27: PROJECT CLEANUP - REMOVING OLD VERSIONS AND DUPLICATES
+================================================================================
+Date: 2026-01-28
+Issue: Project folder cluttered with old versions, backups, and test files
+
+PROBLEM:
+- Multiple old version files (index_old.html, script_v2.8.js, v2.8_backup/)
+- Backup files (.backup extension) scattered throughout
+- Test HTML files (test_haversine.html, test_roads_loading.html, etc.)
+- Duplicate launcher files (START_HERE.html, launch_dashboard.html)
+- Duplicate data files (roads_by_region/ in root AND data_warehouse/)
+- Large unused data files (Roads_json.json at 640MB)
+- Cache directories (__pycache__/)
+
+ROOT CAUSE:
+- Iterative development without periodic cleanup
+- Fear of deleting "might need later" files
+- No gitignore for generated files
+- Copy-paste development creating duplicates
+
+SOLUTION - SYSTEMATIC CLEANUP:
+--------------------------------------------------------------------------------
+1. IDENTIFY file categories to remove:
+   - *.backup files
+   - *_old.*, *_v2.8.* (old versions)
+   - test_*.html (test files)
+   - Duplicate folders (compare data_warehouse/ vs root/)
+   - __pycache__/, *.pyc
+   - *.log (can be regenerated)
+
+2. CHECK REFERENCES before deleting:
+   # Search for files that might reference what you're deleting
+   grep -r "filename" --include="*.html" --include="*.js"
+
+3. DELETE in order (safest first):
+   rm -f *.backup                    # Backups (always safe)
+   rm -rf __pycache__/               # Cache (regenerates)
+   rm -f test_*.html                 # Test files
+   rm -rf v2.8_backup/               # Old version backup
+   rm -f *_old.* *_v2.8.*            # Old version files
+   # Then carefully: duplicates, large unused files
+
+4. VERIFY app still works after each category
+--------------------------------------------------------------------------------
+
+FILES REMOVED IN THIS CLEANUP:
+--------------------------------------------------------------------------------
+# Backup files
+- data.js.backup
+- data_warehouse/roads/roads_by_region/*.backup (all regions)
+- *.geojson.backup (root)
+
+# Old versions
+- index_old.html, index_v2.8.html
+- script_v2.8.js, styles_v2.8.css, script.js, styles.css
+- v2.8_backup/ folder
+
+# Test files
+- test_haversine.html, test_l1_clip.html, test_roads_length.html
+- test_roads_loading.html, test_simple.html
+
+# Duplicate launchers
+- index_auto_launcher.html, launch_dashboard.html
+- START_HERE.html, START_HERE_CLICK_ME.html, START.txt
+
+# Large unused data
+- Roads_json.json (~640MB)
+- bakool_nightlight_polygons_*.geojson (~200MB)
+- bakool_viirs_*.geojson (~95MB)
+- roads_by_region/ (duplicate of data_warehouse/roads/roads_by_region/)
+
+# Misc
+- nul, favicon.txt, fix_registry.reg, run_hidden.vbs
+- extract_viirs_bakool_colab.ipynb, launcher.log, launcher.py
+- layer_manager.js, isee_analytics.js (duplicates in modules/)
+- requirements.txt, __pycache__/
+--------------------------------------------------------------------------------
+
+RESULT:
+- Before: ~933 MB, cluttered structure
+- After: ~77 KB root + organized subfolders
+- Removed ~3.7 million lines of duplicate/old data
+
+PREVENTION - ADD TO .gitignore:
+--------------------------------------------------------------------------------
+# Add these to prevent future clutter
+*.backup
+__pycache__/
+*.pyc
+*.log
+*.tmp
+test_*.html
+*_old.*
+--------------------------------------------------------------------------------
+
+Files affected: Entire project structure
+
+
+================================================================================
+LESSON 28: GITHUB PAGES DEPLOYMENT - NO GIT LFS
+================================================================================
+Date: 2026-01-28
+Issue: Considering Git LFS for large files, but deploying to GitHub Pages
+
+PROBLEM:
+- Project has 52 files over 10MB (roads, population, nightlight data)
+- Git LFS seems like the "right" solution for large files
+- BUT: GitHub Pages does NOT serve Git LFS files correctly
+- LFS returns pointer files instead of actual data
+- Dashboard would completely break
+
+ROOT CAUSE:
+- Git LFS stores large files separately, returns pointers in repo
+- GitHub Pages serves files directly from repo, doesn't resolve pointers
+- No way to make GitHub Pages work with LFS
+
+SOLUTION - DON'T USE LFS WITH GITHUB PAGES:
+--------------------------------------------------------------------------------
+GitHub file limits (without LFS):
+- Warning at 50 MB
+- Hard limit at 100 MB per file
+- 5 GB total repository size
+
+Our largest files (~72 MB) are within limits, so:
+1. Keep files in regular Git (no LFS)
+2. Optimize files to stay under 100 MB (see Lesson 7)
+3. Accept the warnings during push
+4. If files grow larger, use external hosting (CDN, cloud storage)
+--------------------------------------------------------------------------------
+
+ALTERNATIVES FOR TRULY LARGE FILES:
+--------------------------------------------------------------------------------
+1. GitHub Releases - upload as release assets (2 GB limit per file)
+2. jsDelivr CDN - serves from GitHub, 50 MB limit
+3. Cloudflare R2 - free tier, fast, requires setup
+4. AWS S3 + CloudFront - scalable, costs money
+5. Self-hosted backend - full control
+--------------------------------------------------------------------------------
+
+IF YOU ACCIDENTALLY ADDED LFS AND NEED TO REMOVE:
+--------------------------------------------------------------------------------
+git lfs untrack "*.geojson"
+git rm --cached path/to/large/files
+git add path/to/large/files
+git commit -m "Remove LFS tracking for GitHub Pages compatibility"
+git push
+--------------------------------------------------------------------------------
+
+Files affected: All large GeoJSON/TIF files in data_warehouse/
+
+
+================================================================================
+LESSON 29: GITHUB PAGES SETUP - .nojekyll FILE
+================================================================================
+Date: 2026-01-28
+Issue: GitHub Pages may not serve files correctly without configuration
+
+PROBLEM:
+- GitHub Pages uses Jekyll by default
+- Jekyll ignores files/folders starting with underscore (_)
+- Jekyll may process/modify certain files
+- Can cause issues with JavaScript modules, data files
+
+SOLUTION - ADD .nojekyll FILE:
+--------------------------------------------------------------------------------
+# Create empty file in repository root
+touch .nojekyll
+
+# Or on Windows
+echo. > .nojekyll
+
+# Commit and push
+git add .nojekyll
+git commit -m "Add .nojekyll for GitHub Pages"
+git push
+--------------------------------------------------------------------------------
+
+WHAT .nojekyll DOES:
+- Tells GitHub Pages to skip Jekyll processing
+- Serves files exactly as they are
+- Files starting with _ are served normally
+- No processing/modification of content
+
+GITHUB PAGES SETUP STEPS:
+--------------------------------------------------------------------------------
+1. Go to repository Settings → Pages
+2. Source: Deploy from a branch
+3. Branch: main (or master)
+4. Folder: / (root) or /docs
+5. Save
+
+Dashboard URL will be:
+https://<username>.github.io/<repo-name>/frontend/index_v3.1.html
+--------------------------------------------------------------------------------
+
+Files affected: .nojekyll (new file in root)
+
+
+================================================================================
+LESSON 30: LAZY DATA LOADING ARCHITECTURE
+================================================================================
+Date: 2026-01-28
+Issue: Initial page load slow due to large data files
+
+PROBLEM:
+- Some dashboards load ALL data at startup
+- Users wait for data they might never use
+- Wastes bandwidth, especially on mobile
+- Poor user experience
+
+CURRENT ARCHITECTURE (ALREADY OPTIMIZED):
+--------------------------------------------------------------------------------
+LOADS AT STARTUP (small, essential):
+- data.js (~16 KB) - L1 boundaries for region selection
+- bakool_nightlight_polygons_2022.js (~2.4 KB)
+- bakool_nightlight_polygons_2023.js (~15 KB)
+- Leaflet, CSS, core scripts
+
+LOADS ON-DEMAND (large, when needed):
+- Roads data (10-40 MB per region) - loaded when dropped
+- Population data (5-20 MB per region) - loaded when dropped
+- Other layers - loaded when user requests
+
+This is the RIGHT architecture!
+--------------------------------------------------------------------------------
+
+DATA-LOADER MODULE FOR FUTURE LAYERS:
+--------------------------------------------------------------------------------
+// modules/data-loader.js
+const DataLoader = (function() {
+    const cache = new Map();
+
+    async function loadGeoJSON(url, cacheKey) {
+        if (cache.has(cacheKey)) return cache.get(cacheKey);
+
+        const response = await fetch(url);
+        const data = await response.json();
+        cache.set(cacheKey, data);
+        return data;
+    }
+
+    async function loadRoads(regionName, folder) {
+        const cacheKey = `roads_${folder}_${regionName}`;
+        const url = `../data_warehouse/roads/${folder}/${regionName}_roads.geojson`;
+        return loadGeoJSON(url, cacheKey);
+    }
+
+    function clearCache(cacheKey) {
+        if (cacheKey) cache.delete(cacheKey);
+        else cache.clear();
+    }
+
+    return { loadGeoJSON, loadRoads, clearCache };
+})();
+--------------------------------------------------------------------------------
+
+BEST PRACTICES:
+1. Load minimal data at startup (boundaries, config)
+2. Load detailed data only when user selects region/layer
+3. Cache loaded data to avoid re-downloading
+4. Show loading indicators during fetch
+5. Preload anticipated data in background (optional)
+
+Files affected: modules/data-loader.js, frontend/index_v3.1.html
+
+
+================================================================================
+LESSON 31: MOVING FILES AND UPDATING REFERENCES
+================================================================================
+Date: 2026-01-28
+Issue: Moving index.html from launcher/ to root requires path updates
+
+PROBLEM:
+- index.html in launcher/ folder
+- Referenced images with ../frontend/adp_logo.png
+- Moving to root changes relative paths
+
+SOLUTION - UPDATE ALL RELATIVE PATHS:
+--------------------------------------------------------------------------------
+Before (in launcher/index.html):
+    <img src="../frontend/adp_logo.png">
+    fetch(folderUrl + '/update_protocol.reg')
+
+After (in root/index.html):
+    <img src="frontend/adp_logo.png">
+    fetch(folderUrl + '/launcher/update_protocol.reg')
+
+Pattern:
+- ../ paths become ./ or direct paths
+- Sibling folder paths need updating
+- Keep files that aren't moved in their original locations
+--------------------------------------------------------------------------------
+
+CHECKLIST WHEN MOVING FILES:
+--------------------------------------------------------------------------------
+1. Search for references to the file being moved:
+   grep -r "launcher/index.html" --include="*.html" --include="*.js" --include="*.bat"
+
+2. Search for paths INSIDE the file:
+   grep -E "(src=|href=|fetch\(|import |require\()" launcher/index.html
+
+3. Update paths based on new location:
+   - ../ becomes direct path if moving to root
+   - ./ becomes subfolder/ if moving from root
+
+4. Test all functionality:
+   - Images loading
+   - Script includes
+   - Fetch/AJAX requests
+   - Link navigation
+--------------------------------------------------------------------------------
+
+Files affected: index.html (moved from launcher/ to root)
+
+
+================================================================================
 FUTURE LESSONS TO ADD:
 ================================================================================
 - Add new lessons here as they are discovered
