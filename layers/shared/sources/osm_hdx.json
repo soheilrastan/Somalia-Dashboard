@@ -1,0 +1,48 @@
+{
+  "_comment": "SHARED DATA SOURCE CONTAINER - All OSM/HDX layers point here",
+
+  "provider": {
+    "name": "Humanitarian OpenStreetMap Team (HOT)",
+    "organization": "Humanitarian Data Exchange (HDX)",
+    "website": "https://data.humdata.org",
+    "logo": "assets/logos/hdx_logo.png"
+  },
+
+  "dataset": {
+    "id": "hotosm_som_roads",
+    "title": "Somalia Roads (OpenStreetMap Export)",
+    "url": "https://data.humdata.org/dataset/hotosm_som_roads",
+    "api_endpoint": "https://data.humdata.org/api/3/action/package_show?id=hotosm_som_roads",
+    "license": "Open Database License (ODbL)",
+    "license_url": "https://opendatacommons.org/licenses/odbl/"
+  },
+
+  "update_frequency": "Weekly",
+  "geographic_coverage": "Somalia",
+  "coordinate_system": "WGS84 (EPSG:4326)",
+
+  "formats_available": [
+    {
+      "type": "GeoJSON",
+      "description": "Lightweight, web-ready format",
+      "recommended": true
+    },
+    {
+      "type": "Geopackage",
+      "description": "Full-featured spatial database format",
+      "recommended": false
+    },
+    {
+      "type": "Shapefile",
+      "description": "Legacy GIS format",
+      "recommended": false
+    }
+  ],
+
+  "attribution": {
+    "text": "Data: OpenStreetMap contributors, HOT Export Tool",
+    "html": "Data: <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors, <a href='https://export.hotosm.org'>HOT Export Tool</a>"
+  },
+
+  "citation": "Humanitarian OpenStreetMap Team. Somalia Roads. HDX. [Date accessed]."
+}

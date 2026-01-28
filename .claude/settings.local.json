@@ -10,7 +10,14 @@
       "Bash(git revert:*)",
       "Bash(git config:*)",
       "Bash(git reset:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(python -c:*)",
+      "Bash(findstr:*)",
+      "Bash(python -m pip:*)",
+      "Bash(python tools/download_worldpop.py:*)",
+      "Bash(python tools/process_worldpop.py:*)",
+      "Bash(more:*)",
+      "Bash(powershell -Command \"Get-ChildItem -Path ''data_warehouse\\\\population\\\\worldpop_1km\\\\by_year'' -Recurse -File | Group-Object Directory | ForEach-Object { $_Name + '': '' + $_Count + '' files'' }\")"
     ]
   }
 }

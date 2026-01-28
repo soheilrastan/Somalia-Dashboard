@@ -1,0 +1,68 @@
+{
+  "_comment": "SHARED SYMBOLOGY CONTAINER - All road layers point here",
+
+  "road_types": {
+    "primary": {
+      "color": "#e74c3c",
+      "weight": 3,
+      "opacity": 0.9,
+      "dashArray": null,
+      "label": "Primary Roads"
+    },
+    "secondary": {
+      "color": "#f39c12",
+      "weight": 2.5,
+      "opacity": 0.85,
+      "dashArray": null,
+      "label": "Secondary Roads"
+    },
+    "tertiary": {
+      "color": "#3498db",
+      "weight": 2,
+      "opacity": 0.8,
+      "dashArray": null,
+      "label": "Tertiary Roads"
+    },
+    "residential": {
+      "color": "#95a5a6",
+      "weight": 1.5,
+      "opacity": 0.7,
+      "dashArray": null,
+      "label": "Residential Roads"
+    },
+    "track": {
+      "color": "#8b4513",
+      "weight": 1.5,
+      "opacity": 0.7,
+      "dashArray": "5, 5",
+      "label": "Tracks"
+    },
+    "path": {
+      "color": "#27ae60",
+      "weight": 1,
+      "opacity": 0.6,
+      "dashArray": "3, 3",
+      "label": "Paths"
+    },
+    "default": {
+      "color": "#7f8c8d",
+      "weight": 1,
+      "opacity": 0.6,
+      "dashArray": null,
+      "label": "Other Roads"
+    }
+  },
+
+  "legend": {
+    "title": "Road Classification",
+    "position": "bottomright",
+    "show_counts": true
+  },
+
+  "interactions": {
+    "highlight_on_hover": true,
+    "highlight_color": "#ffff00",
+    "highlight_weight": 5,
+    "popup_on_click": true
+  }
+}

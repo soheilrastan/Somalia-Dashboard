@@ -1042,6 +1042,367 @@ Files affected: launcher/🚀_Geo_Insights_Dashboard_Launch.html
 
 
 ================================================================================
+LESSON 24: CENTRALIZED SPATIAL CLIPPING MODULE (L1Clip)
+================================================================================
+Date: 2026-01-28
+Issue: Inline clipping code duplicated across multiple layers
+
+PROBLEM:
+- Each data layer (roads, population, nightlight) had its own clipping logic
+- ~50-100 lines of point-in-polygon code duplicated per layer
+- Different implementations = inconsistent behavior
+- Adding new layers required copying clipping code
+- Hard to maintain and update
+
+ROOT CAUSE:
+- Initial development focused on getting individual layers working
+- No upfront architecture for spatial operations
+- "Quick fixes" became permanent code
+
+SOLUTION - CENTRALIZED L1Clip MODULE:
+--------------------------------------------------------------------------------
+// modules/l1-clip.js - Single source of truth for L1 clipping
+
+var L1Clip = (function() {
+    let regionIndex = {};  // { regionName: GeoJSON feature }
+
+    // Initialize once with Somalia L1 boundaries
+    async function init() {
+        const response = await fetch('layers/boundaries/adm1/somalia_adm1_boundaries.geojson');
+        const data = await response.json();
+
+        for (const feature of data.features) {
+            regionIndex[feature.properties.name] = feature;
+        }
+    }
+
+    // Check if point is in region (ray casting algorithm)
+    function isPointInRegion(regionName, point) {
+        const region = regionIndex[regionName];
+        return pointInGeometry([point.lng, point.lat], region.geometry);
+    }
+
+    // Filter GeoJSON by region
+    function filterByRegion(regionName, geojson) {
+        const region = regionIndex[regionName];
+        return {
+            type: 'FeatureCollection',
+            features: geojson.features.filter(f =>
+                featureIntersectsRegion(f, region.geometry)
+            ),
+            metadata: {
+                region: regionName,
+                originalCount: geojson.features.length,
+                filteredCount: filteredFeatures.length
+            }
+        };
+    }
+
+    return { init, isPointInRegion, filterByRegion, ... };
+})();
+
+// Usage in any layer - ONE LINE:
+const bakoolRoads = L1Clip.filterByRegion('Bakool', roadsData);
+--------------------------------------------------------------------------------
+
+BENEFITS:
+1. **Consistency**: Same algorithm used everywhere
+2. **Maintainability**: Fix bug once, fixed everywhere
+3. **Scalability**: 100 layers = 100 one-liners, not 100 × 100 lines
+4. **Testability**: Single module to test
+5. **Performance**: Can optimize one place for all layers
+
+SUPPORTED GEOMETRY TYPES:
+- Point: checks if inside region
+- MultiPoint: checks if ANY point inside
+- LineString: checks endpoints + midpoints
+- MultiLineString: checks ANY line
+- Polygon: checks centroid + vertices
+- MultiPolygon: checks ANY polygon
+
+API REFERENCE:
+--------------------------------------------------------------------------------
+// Initialize (call once)
+await L1Clip.init();
+
+// Point operations
+L1Clip.isPointInRegion('Bakool', {lat: 4.0, lng: 44.0});  // boolean
+L1Clip.getRegionForPoint([lat, lng]);  // 'Bakool' or null
+
+// Data filtering
+const filtered = L1Clip.filterByRegion('Bakool', geojsonData);
+
+// Region info
+L1Clip.getRegionNames();        // ['Awdal', 'Bakool', ...]
+L1Clip.getRegionBounds('Bakool');  // L.latLngBounds
+L1Clip.getRegionFeature('Bakool'); // GeoJSON Feature
+--------------------------------------------------------------------------------
+
+MIGRATION PATTERN:
+1. Create centralized module with all spatial logic
+2. Test with simple data (random points)
+3. Migrate one layer at a time
+4. Remove inline code after confirming module works
+5. Update all layers to use module
+
+Files: modules/l1-clip.js, docs/L1_CLIP_MODULE.md, test_l1_clip.html
+
+
+================================================================================
+LESSON 25: PYTHON GEOSPATIAL STACK FOR RASTER-TO-VECTOR PROCESSING
+================================================================================
+Date: 2026-01-28
+Issue: Need to process GeoTIFF raster files (e.g., WorldPop) into GeoJSON
+
+PROBLEM:
+- Population data from WorldPop is in GeoTIFF raster format
+- Dashboard needs GeoJSON vector format for Leaflet display
+- Pipeline needed: Download → Convert (raster to vector) → Clip by L1
+
+SOLUTION - PYTHON GEOSPATIAL STACK:
+--------------------------------------------------------------------------------
+Required packages for full geospatial processing:
+
+INSTALLED (as of 2026-01-28):
+┌─────────────────┬──────────────┬─────────────────────────────────────────────┐
+│ Package         │ Version      │ Purpose                                      │
+├─────────────────┼──────────────┼─────────────────────────────────────────────┤
+│ Python          │ 3.14.2       │ Runtime                                      │
+│ rasterio        │ 1.5.0        │ Read/write GeoTIFF raster files              │
+│ shapely         │ 2.1.2        │ Create/manipulate geometries (polygons)      │
+│ geopandas       │ 1.1.2        │ Spatial operations, clipping, GeoJSON I/O    │
+│ pyproj          │ 3.7.2        │ Coordinate reference system transformations  │
+│ numpy           │ 2.4.0        │ Array operations for raster data             │
+│ pandas          │ 2.3.3        │ Data manipulation (geopandas dependency)     │
+│ pyogrio         │ 0.12.1       │ Fast GeoJSON/GeoPackage I/O (geopandas dep)  │
+│ earthengine-api │ 1.7.4        │ Google Earth Engine access (optional)        │
+└─────────────────┴──────────────┴─────────────────────────────────────────────┘
+
+NOT INSTALLED (usually not needed):
+- GDAL (osgeo) - rasterio provides similar functionality, simpler to install
+
+INSTALLATION COMMANDS:
+--------------------------------------------------------------------------------
+# Install all at once (run if setting up new environment)
+python -m pip install rasterio shapely geopandas pyproj numpy
+
+# Individual package install
+python -m pip install rasterio
+
+# Check what's installed
+python -m pip list
+--------------------------------------------------------------------------------
+
+USAGE PATTERNS:
+--------------------------------------------------------------------------------
+# 1. Read GeoTIFF raster
+import rasterio
+with rasterio.open('population.tif') as src:
+    data = src.read(1)  # Read first band
+    transform = src.transform
+    crs = src.crs
+
+# 2. Create grid polygons from raster
+import shapely
+from shapely.geometry import box
+import numpy as np
+
+rows, cols = data.shape
+polygons = []
+values = []
+
+for row in range(rows):
+    for col in range(cols):
+        if data[row, col] > 0:  # Skip nodata
+            # Get pixel bounds
+            x1, y1 = rasterio.transform.xy(transform, row, col, offset='ul')
+            x2, y2 = rasterio.transform.xy(transform, row+1, col+1, offset='ul')
+            polygon = box(min(x1,x2), min(y1,y2), max(x1,x2), max(y1,y2))
+            polygons.append(polygon)
+            values.append(data[row, col])
+
+# 3. Create GeoDataFrame and clip
+import geopandas as gpd
+
+gdf = gpd.GeoDataFrame({'population': values, 'geometry': polygons}, crs=crs)
+
+# Load region boundary
+region = gpd.read_file('bakool_boundary.geojson')
+
+# Clip to region
+clipped = gpd.clip(gdf, region)
+
+# 4. Save as GeoJSON
+clipped.to_file('bakool_population.geojson', driver='GeoJSON')
+--------------------------------------------------------------------------------
+
+COORDINATE SYSTEMS:
+- WorldPop data: EPSG:4326 (WGS84 lat/lng)
+- Somalia L1 boundaries: EPSG:4326
+- No reprojection needed for these datasets
+
+PIPELINE STRUCTURE FOR WORLDPOP:
+--------------------------------------------------------------------------------
+data_warehouse/
+└── population/
+    └── worldpop_1km/
+        ├── raw/                    # Original GeoTIFFs
+        │   ├── som_ppp_2015.tif
+        │   ├── som_ppp_2020.tif
+        │   ├── som_ppp_2025.tif
+        │   └── som_ppp_2030.tif
+        ├── vector/                 # Full Somalia GeoJSON
+        │   ├── somalia_pop_2015.geojson
+        │   └── ...
+        └── by_region/              # Pre-clipped by L1
+            ├── 2015/
+            │   ├── Bakool_pop_2015.geojson
+            │   ├── Bay_pop_2015.geojson
+            │   └── ...
+            ├── 2020/
+            └── ...
+--------------------------------------------------------------------------------
+
+PROCESSING SCRIPT PATTERN:
+--------------------------------------------------------------------------------
+import rasterio
+import geopandas as gpd
+from shapely.geometry import box
+import numpy as np
+import os
+
+def raster_to_vector(tif_path, output_path, nodata_value=0):
+    """Convert GeoTIFF to GeoJSON grid polygons"""
+    with rasterio.open(tif_path) as src:
+        data = src.read(1)
+        transform = src.transform
+        crs = src.crs
+
+    polygons = []
+    values = []
+    rows, cols = data.shape
+
+    for row in range(rows):
+        for col in range(cols):
+            val = data[row, col]
+            if val > nodata_value:
+                x1, y1 = rasterio.transform.xy(transform, row, col, offset='ul')
+                x2, y2 = rasterio.transform.xy(transform, row+1, col+1, offset='ul')
+                polygons.append(box(min(x1,x2), min(y1,y2), max(x1,x2), max(y1,y2)))
+                values.append(float(val))
+
+    gdf = gpd.GeoDataFrame({'population': values, 'geometry': polygons}, crs=crs)
+    gdf.to_file(output_path, driver='GeoJSON')
+    return len(gdf)
+
+def clip_by_regions(input_geojson, boundaries_geojson, output_dir):
+    """Clip GeoJSON by each L1 region"""
+    data = gpd.read_file(input_geojson)
+    regions = gpd.read_file(boundaries_geojson)
+
+    for _, region in regions.iterrows():
+        name = region['name'].replace(' ', '_')
+        clipped = gpd.clip(data, region.geometry)
+        if len(clipped) > 0:
+            output_path = os.path.join(output_dir, f'{name}_population.geojson')
+            clipped.to_file(output_path, driver='GeoJSON')
+            print(f'{name}: {len(clipped)} cells')
+--------------------------------------------------------------------------------
+
+PERFORMANCE NOTES:
+- 1km resolution = ~600,000 cells for Somalia (sparse, most are 0)
+- After filtering nodata: typically 10,000-50,000 valid cells
+- Processing time: ~30-60 seconds per year
+- Output size: ~5-20 MB per region (depends on population density)
+
+TROUBLESHOOTING:
+- "ModuleNotFoundError: No module named 'rasterio'"
+  → Run: python -m pip install rasterio
+
+- "PROJ: proj_create_from_database: Cannot find proj.db"
+  → Set PROJ_LIB environment variable or reinstall pyproj
+
+- Large file processing slow
+  → Use chunked reading with rasterio.open().read(window=...)
+
+Files affected: tools/process_worldpop.py, tools/download_worldpop.py
+
+
+================================================================================
+LESSON 26: RASTER-TO-VECTOR OPTIMIZATION - FILTER NODATA/ZERO CELLS
+================================================================================
+Date: 2026-01-28
+Issue: Converting full raster to vector creates massive files with useless data
+
+PROBLEM:
+- WorldPop 1km raster for Somalia: 2,050,389 total cells
+- Only 230,273 cells (11.2%) have actual population data
+- NoData cells: 1,819,795 (88.8%) - ocean, outside country
+- Zero cells: 321 (0.0%) - uninhabited land
+- Converting ALL cells would create 2M+ polygon GeoJSON (~500+ MB)
+- Dashboard would be extremely slow loading/rendering
+
+ROOT CAUSE:
+- Raster format uses fixed grid covering bounding box of country
+- Grid includes ocean (NoData) and uninhabited areas (zero population)
+- Naive conversion creates polygons for every cell regardless of value
+
+SOLUTION - FILTER DURING CONVERSION:
+--------------------------------------------------------------------------------
+# In raster_to_vector(), ONLY convert cells with population > threshold
+
+# 1. Identify nodata value from raster metadata
+with rasterio.open(tif_path) as src:
+    data = src.read(1)
+    nodata = src.nodata  # e.g., -99999.0
+
+# 2. Create mask for valid cells ONLY
+nodata_mask = (data == nodata) | np.isnan(data)
+valid_mask = (~nodata_mask) & (data > MIN_POPULATION)
+
+# 3. Get indices of valid cells only
+valid_rows, valid_cols = np.where(valid_mask)
+
+# 4. Only create polygons for valid cells
+for row, col in zip(valid_rows, valid_cols):
+    # Create polygon...
+    polygons.append(...)
+    populations.append(data[row, col])
+--------------------------------------------------------------------------------
+
+RESULTS:
+- Before optimization: 2,050,389 polygons
+- After optimization:    230,273 polygons
+- Reduction: 88.8%
+- File size: ~500 MB → ~50 MB (estimated)
+
+CONFIGURATION OPTIONS:
+--------------------------------------------------------------------------------
+# In process_worldpop.py:
+
+MIN_POPULATION = 0.0   # Include any cell with population > 0
+# MIN_POPULATION = 1.0   # Skip cells with fractional population < 1
+# MIN_POPULATION = 10.0  # Only include cells with 10+ people (aggressive)
+--------------------------------------------------------------------------------
+
+APPLY THIS PATTERN TO ALL RASTER-TO-VECTOR CONVERSIONS:
+1. Identify nodata value from raster metadata
+2. Create boolean mask: valid = (not nodata) AND (value > threshold)
+3. Use np.where(valid_mask) to get indices of valid cells only
+4. Only iterate over valid cells
+
+DATA TYPE NOTE:
+- Downloaded data is Total Population (Constrained) - adjusted to UN estimates
+- File naming: som_pop_YYYY_CN_1km_R2025A_UA_v1.tif
+  - CN = Constrained
+  - UA = Urban/Rural Adjusted
+  - v1 = Version 1
+- NOT age/sex disaggregated (that would be separate dataset)
+
+Files affected: tools/process_worldpop.py
+
+
+================================================================================
 FUTURE LESSONS TO ADD:
 ================================================================================
 - Add new lessons here as they are discovered

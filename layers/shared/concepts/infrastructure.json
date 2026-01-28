@@ -1,0 +1,55 @@
+{
+  "_comment": "SHARED CONCEPT CONTAINER - Defines thematic context for infrastructure layers",
+
+  "thematic": "Infrastructure",
+  "title": "Infrastructure Analysis Framework",
+
+  "concept": {
+    "definition": "Physical and organizational structures needed for the operation of a society, including transportation networks, utilities, and public facilities.",
+    "relevance": "Infrastructure assessment is critical for humanitarian response planning, development programming, and understanding accessibility patterns."
+  },
+
+  "sub_themes": {
+    "transportation": {
+      "description": "Road networks, paths, and mobility infrastructure",
+      "layers": ["osm_roads"],
+      "indicators": ["road_density", "road_accessibility", "connectivity_index"]
+    },
+    "utilities": {
+      "description": "Power, water, and communication infrastructure",
+      "layers": ["power_lines", "water_points"],
+      "indicators": ["coverage", "access_distance"]
+    },
+    "facilities": {
+      "description": "Health, education, and public service facilities",
+      "layers": ["health_facilities", "schools"],
+      "indicators": ["facility_density", "catchment_coverage"]
+    }
+  },
+
+  "analysis_questions": [
+    "What is the road accessibility of different regions?",
+    "Which areas have limited infrastructure coverage?",
+    "How does infrastructure correlate with population distribution?",
+    "What are the key transportation corridors?"
+  ],
+
+  "related_thematics": [
+    "Population & Demographics",
+    "Humanitarian Access",
+    "Economic Activity"
+  ],
+
+  "sdg_alignment": [
+    {
+      "goal": "SDG 9",
+      "title": "Industry, Innovation and Infrastructure",
+      "target": "9.1 Develop quality, reliable, sustainable and resilient infrastructure"
+    },
+    {
+      "goal": "SDG 11",
+      "title": "Sustainable Cities and Communities",
+      "target": "11.2 Provide access to safe, affordable, accessible transport systems"
+    }
+  ]
+}

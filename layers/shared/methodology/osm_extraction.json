@@ -1,0 +1,59 @@
+{
+  "_comment": "SHARED METHODOLOGY CONTAINER - Documents data processing approach",
+
+  "title": "OpenStreetMap Data Extraction Methodology",
+  "version": "1.0",
+
+  "overview": {
+    "description": "This methodology describes how OSM data is extracted, processed, and integrated into the dashboard.",
+    "applicable_layers": ["osm_roads", "osm_buildings", "osm_waterways", "osm_places"]
+  },
+
+  "extraction_process": {
+    "step_1": {
+      "name": "Download from HDX",
+      "description": "Data is downloaded from Humanitarian Data Exchange using the HOT Export Tool exports",
+      "tool": "download_roads_version.py",
+      "output": "ZIP archive containing GeoJSON or Geopackage"
+    },
+    "step_2": {
+      "name": "Format Conversion",
+      "description": "If Geopackage format, convert to GeoJSON for web compatibility",
+      "tool": "pyogrio/geopandas",
+      "output": "GeoJSON file"
+    },
+    "step_3": {
+      "name": "Regional Splitting",
+      "description": "Split national dataset by 18 administrative regions using spatial intersection",
+      "tool": "geopandas spatial join",
+      "boundaries": "layers/boundaries/adm1/somalia_adm1_boundaries.geojson",
+      "output": "18 regional GeoJSON files"
+    },
+    "step_4": {
+      "name": "JavaScript Wrapper",
+      "description": "Create .js files with GeoJSON as JavaScript variables for direct browser loading",
+      "output": "{region}_roads.js files"
+    }
+  },
+
+  "quality_checks": [
+    "Verify CRS is WGS84 (EPSG:4326)",
+    "Check for null geometries",
+    "Validate feature counts match source",
+    "Verify regional coverage completeness"
+  ],
+
+  "version_management": {
+    "description": "Version tracking via HDX API and local .version.json files",
+    "check_script": "check_osm_version.py",
+    "update_script": "download_roads_version.py"
+  },
+
+  "limitations": [
+    "OSM data completeness varies by region",
+    "Rural areas may have less detailed mapping",
+    "Road classifications may be inconsistent"
+  ],
+
+  "update_frequency": "Monthly recommended, weekly available"
+}

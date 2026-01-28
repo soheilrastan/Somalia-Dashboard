@@ -1,0 +1,85 @@
+{
+  "_comment": "MODULAR ARCHITECTURE: This config POINTS to shared containers - NO code duplication per layer",
+  "_reminder": "Each layer links to: Symbology, Data Sources, Methodology, Concept containers. Optimize by pointing to thematics.",
+
+  "layer": {
+    "id": "osm_roads",
+    "name": "OSM Roads Network",
+    "thematic": "Infrastructure",
+    "enabled": true
+  },
+
+  "versions": [
+    {
+      "id": "roads_l0_test",
+      "name": "L0: Bakool Roads (Test)",
+      "level": "L0",
+      "folder": "roads_by_region",
+      "color": "#F48FB1",
+      "toggle_id": "roadsToggle",
+      "description": "Proof of concept - 2 regions only"
+    },
+    {
+      "id": "roads_2023",
+      "name": "Roads 2023",
+      "level": "L1",
+      "folder": "roads_by_region",
+      "color": "#F48FB1",
+      "toggle_id": "roadsOSMToggle",
+      "description": "Original OSM export (18 regions)"
+    },
+    {
+      "id": "roads_2024",
+      "name": "Roads 2024 (July)",
+      "level": "L1",
+      "folder": "roads_by_region_2024_07_23",
+      "color": "#fbbf24",
+      "toggle_id": "roads2024Toggle",
+      "description": "HDX Geopackage - 2024-07-23"
+    },
+    {
+      "id": "roads_latest",
+      "name": "Roads Latest",
+      "level": "L1",
+      "folder": "roads_by_region_latest",
+      "color": "#22c55e",
+      "toggle_id": "roadsOSMLatestToggle",
+      "description": "Auto-updated via HDX API"
+    }
+  ],
+
+  "data": {
+    "type": "geojson",
+    "pattern": "{region}_roads.geojson",
+    "regions": [
+      "Awdal", "Bakool", "Banadir", "Bari", "Bay", "Galgaduud",
+      "Gedo", "Hiiraan", "Lower_Juba", "Lower_Shebelle", "Middle_Juba",
+      "Middle_Shebelle", "Mudug", "Nugaal", "Sanaag", "Sool", "Togdheer", "Woqooyi_Galbeed"
+    ]
+  },
+
+  "version_check": {
+    "api_url": "https://data.humdata.org/api/3/action/package_show?id=hotosm_som_roads",
+    "metadata_file": ".version.json"
+  },
+
+  "links": {
+    "symbology": "../shared/symbology/roads.json",
+    "sources": "../shared/sources/osm_hdx.json",
+    "methodology": "../shared/methodology/osm_extraction.json",
+    "concept": "../shared/concepts/infrastructure.json",
+    "module_ddr": "../shared/modules/ddr.js"
+  },
+
+  "ui": {
+    "panel_section": "Roads Infrastructure (OSM/HDX)",
+    "icon": "road",
+    "info_popup": true
+  },
+
+  "interactions": {
+    "drag_drop": true,
+    "right_click_menu": true,
+    "drop_target": "all_regions"
+  }
+}

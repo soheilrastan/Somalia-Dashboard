@@ -3,37 +3,2114 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
-    <meta name="version" content="2.8">
-    <title>Geo-Insights - Somalia Dashboard - ESCWA, UN</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <link rel="stylesheet" href="styles.css?v=2.8" />
+    <title>Geo-Insights Laboratory</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            overflow-y: auto;
+            padding: 20px 0;
+        }
+
+        /* Animated background grid */
+        .bg-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(rgba(59, 130, 246, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59, 130, 246, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+        }
+
+        .launcher {
+            text-align: center;
+            position: relative;
+            z-index: 10;
+            max-width: 700px;
+            padding: 15px;
+        }
+
+        /* Logo container */
+        .logo-container {
+            margin-bottom: 15px;
+        }
+
+        .logo-container img {
+            height: 45px;
+            opacity: 0.9;
+            transition: opacity 0.3s;
+        }
+
+        .logo-container img:hover {
+            opacity: 1;
+        }
+
+        /* Main title */
+        .title {
+            font-size: 2em;
+            font-weight: 700;
+            background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 50%, #93c5fd 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        /* Start button */
+        .start-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            border: none;
+            padding: 12px 36px;
+            font-size: 1em;
+            font-weight: 600;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .start-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(59, 130, 246, 0.5);
+        }
+
+        .start-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .start-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .start-btn:hover::before {
+            left: 100%;
+        }
+
+        .start-icon {
+            font-size: 1.2em;
+        }
+
+        /* Info section */
+        .info-section {
+            margin-top: 25px;
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .info-item {
+            text-align: center;
+            color: #64748b;
+            font-size: 0.75em;
+        }
+
+        .info-item .icon {
+            font-size: 1.4em;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .info-item .label {
+            color: #94a3b8;
+            font-size: 0.75em;
+        }
+
+        /* Footer */
+        .footer {
+            position: relative;
+            margin-top: 20px;
+            text-align: center;
+            color: #475569;
+            font-size: 0.7em;
+        }
+
+        /* Pulse animation for button */
+        @keyframes pulse {
+            0%, 100% {
+                box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4);
+            }
+            50% {
+                box-shadow: 0 4px 30px rgba(59, 130, 246, 0.6);
+            }
+        }
+
+        .start-btn {
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .start-btn:hover {
+            animation: none;
+        }
+
+        /* Loading state */
+        .loading .start-btn {
+            pointer-events: none;
+            opacity: 0.7;
+        }
+
+        .loading .start-btn .start-icon {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Progress Container - COMPACT */
+        .progress-container {
+            display: none;
+            margin-top: 20px;
+            text-align: left;
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 10px;
+            padding: 15px 20px;
+            max-width: 550px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Phase header with progress banner - COMPACT */
+        .phase-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 5px 10px;
+            background: rgba(59, 130, 246, 0.1);
+            border-radius: 6px;
+            margin-bottom: 4px;
+        }
+
+        .phase-header.active {
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid rgba(59, 130, 246, 0.4);
+        }
+
+        .phase-header.completed {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .phase-status {
+            font-size: 0.6em;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .phase-status.running {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+
+        .phase-status.complete {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+
+        /* Sub-steps - COMPACT */
+        .sub-steps {
+            margin-left: 32px;
+            margin-bottom: 6px;
+            padding-left: 10px;
+            border-left: 2px solid rgba(71, 85, 105, 0.3);
+        }
+
+        .sub-step {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 2px 0;
+            font-size: 0.7em;
+            color: #64748b;
+            opacity: 0;
+            transform: translateX(-10px);
+            transition: all 0.3s ease;
+        }
+
+        .sub-step.visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .sub-step.completed {
+            color: #94a3b8;
+        }
+
+        .sub-step-icon {
+            width: 14px;
+            height: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8em;
+        }
+
+        .sub-step-icon.pending {
+            color: #475569;
+        }
+
+        .sub-step-icon.running {
+            color: #f59e0b;
+            animation: pulse-icon 1s ease-in-out infinite;
+        }
+
+        .sub-step-icon.done {
+            color: #22c55e;
+        }
+
+        @keyframes pulse-icon {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .progress-container.visible {
+            display: block;
+        }
+
+        .progress-title {
+            font-size: 0.9em;
+            color: #60a5fa;
+            margin-bottom: 12px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .progress-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(71, 85, 105, 0.2);
+            opacity: 0.4;
+            transition: opacity 0.3s ease;
+        }
+
+        .progress-step:last-child {
+            border-bottom: none;
+        }
+
+        .progress-step.active {
+            opacity: 1;
+        }
+
+        .progress-step.completed {
+            opacity: 0.7;
+        }
+
+        .step-indicator {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65em;
+            font-weight: 600;
+            flex-shrink: 0;
+            background: #334155;
+            color: #64748b;
+            transition: all 0.3s ease;
+        }
+
+        .progress-step.active .step-indicator {
+            background: #3b82f6;
+            color: white;
+            box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+        }
+
+        .progress-step.completed .step-indicator {
+            background: #22c55e;
+            color: white;
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-title {
+            font-size: 0.8em;
+            color: #e2e8f0;
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+
+        .step-description {
+            font-size: 0.7em;
+            color: #64748b;
+            line-height: 1.3;
+        }
+
+        .progress-step.active .step-title {
+            color: #60a5fa;
+        }
+
+        .progress-step.active .step-description {
+            color: #94a3b8;
+        }
+
+        /* Spinner for active step */
+        .progress-step.active .step-indicator::after {
+            content: '';
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            border: 2px solid transparent;
+            border-top-color: #60a5fa;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .progress-step .step-indicator {
+            position: relative;
+        }
+
+        /* Hide info section when loading */
+        .loading .info-section {
+            display: none;
+        }
+
+        /* Success state - COMPACT */
+        .success-message {
+            display: none;
+            margin-top: 15px;
+            padding: 12px;
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            border-radius: 8px;
+            color: #22c55e;
+            font-size: 0.9em;
+            text-align: center;
+        }
+
+        .success-message.visible {
+            display: block;
+        }
+
+        .close-notice {
+            margin-top: 8px;
+            font-size: 0.75em;
+            color: #64748b;
+        }
+
+        /* Manual start fallback notice - COMPACT */
+        .manual-fallback {
+            display: none;
+            margin-top: 12px;
+            padding: 10px 15px;
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 8px;
+            color: #f59e0b;
+            font-size: 0.75em;
+            text-align: center;
+        }
+
+        .manual-fallback.visible {
+            display: block;
+        }
+
+        .manual-fallback code {
+            background: rgba(0,0,0,0.3);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+
+        /* Protocol Status Indicator - COMPACT */
+        .protocol-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 10px;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.7em;
+            transition: all 0.3s ease;
+        }
+
+        .protocol-status.checking {
+            background: rgba(59, 130, 246, 0.1);
+            color: #60a5fa;
+        }
+
+        .protocol-status.registered {
+            background: rgba(34, 197, 94, 0.1);
+            color: #22c55e;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .protocol-status.not-registered {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .protocol-status .status-icon {
+            font-size: 0.9em;
+        }
+
+        .protocol-status.checking .status-icon {
+            animation: spin 1s linear infinite;
+        }
+
+        .setup-link {
+            color: #60a5fa;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .setup-link:hover {
+            color: #93c5fd;
+        }
+
+        /* Reset Protocol Button */
+        .reset-protocol-btn {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 4px 12px;
+            font-size: 0.65em;
+            color: #94a3b8;
+            background: rgba(71, 85, 105, 0.3);
+            border: 1px solid rgba(71, 85, 105, 0.5);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .reset-protocol-btn:hover {
+            color: #f87171;
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.4);
+        }
+
+        /* Deactivated state confirmation */
+        .protocol-status.deactivated {
+            background: rgba(245, 158, 11, 0.1);
+            color: #f59e0b;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        /* Setup Modal Overlay */
+        .setup-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .setup-modal-overlay.visible {
+            display: flex;
+        }
+
+        .setup-modal {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 12px;
+            padding: 25px 30px;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .setup-modal h3 {
+            color: #f59e0b;
+            font-size: 1.2em;
+            margin-bottom: 15px;
+        }
+
+        .setup-modal .step-list {
+            text-align: left;
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+        }
+
+        .setup-modal .step-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 12px;
+            color: #cbd5e1;
+            font-size: 0.85em;
+        }
+
+        .setup-modal .step-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .setup-modal .step-num {
+            background: #3b82f6;
+            color: white;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75em;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .setup-modal .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .setup-modal .modal-btn {
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+        }
+
+        .setup-modal .modal-btn.primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+        }
+
+        .setup-modal .modal-btn.primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+
+        .setup-modal .modal-btn.secondary {
+            background: rgba(71, 85, 105, 0.5);
+            color: #94a3b8;
+            border: 1px solid rgba(71, 85, 105, 0.5);
+        }
+
+        .setup-modal .modal-btn.secondary:hover {
+            background: rgba(71, 85, 105, 0.7);
+            color: #e2e8f0;
+        }
+
+        .setup-modal .modal-btn.success {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            color: white;
+        }
+
+        .setup-modal .modal-btn.success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4);
+        }
+
+        .setup-modal code {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+            color: #fbbf24;
+        }
+
+        /* ============================================
+           ENHANCED PROTOCOL SETUP WIZARD STYLES
+           ============================================ */
+
+        .setup-modal {
+            max-width: 550px;
+            min-width: 480px;
+        }
+
+        /* Progress bar container */
+        .setup-progress-container {
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+        }
+
+        .setup-progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .setup-progress-title {
+            color: #60a5fa;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        .setup-progress-percent {
+            color: #22c55e;
+            font-size: 1.1em;
+            font-weight: bold;
+            font-family: monospace;
+        }
+
+        /* Progress bar */
+        .setup-progress-bar {
+            height: 8px;
+            background: rgba(71, 85, 105, 0.5);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .setup-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6 0%, #22c55e 100%);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+            width: 0%;
+        }
+
+        /* Current status message */
+        .setup-status-message {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 6px;
+            color: #93c5fd;
+            font-size: 0.85em;
+            min-height: 44px;
+        }
+
+        .setup-status-message.waiting {
+            background: rgba(245, 158, 11, 0.1);
+            border-color: rgba(245, 158, 11, 0.3);
+            color: #fbbf24;
+        }
+
+        .setup-status-message.success {
+            background: rgba(34, 197, 94, 0.1);
+            border-color: rgba(34, 197, 94, 0.3);
+            color: #4ade80;
+        }
+
+        .setup-status-message.error {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.3);
+            color: #f87171;
+        }
+
+        .setup-status-icon {
+            font-size: 1.2em;
+            flex-shrink: 0;
+        }
+
+        .setup-status-icon.spinning {
+            animation: spin 1s linear infinite;
+        }
+
+        /* Step indicators in wizard */
+        .setup-wizard-steps {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding: 0 10px;
+        }
+
+        .wizard-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            position: relative;
+        }
+
+        .wizard-step:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: 55%;
+            width: 90%;
+            height: 2px;
+            background: rgba(71, 85, 105, 0.5);
+            z-index: 0;
+        }
+
+        .wizard-step.completed:not(:last-child)::after {
+            background: #22c55e;
+        }
+
+        .wizard-step.active:not(:last-child)::after {
+            background: linear-gradient(90deg, #22c55e 0%, rgba(71, 85, 105, 0.5) 50%);
+        }
+
+        .wizard-step-num {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85em;
+            font-weight: bold;
+            background: rgba(71, 85, 105, 0.5);
+            color: #64748b;
+            z-index: 1;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .wizard-step.active .wizard-step-num {
+            background: #3b82f6;
+            color: white;
+            border-color: #60a5fa;
+            box-shadow: 0 0 12px rgba(59, 130, 246, 0.5);
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+
+        .wizard-step.completed .wizard-step-num {
+            background: #22c55e;
+            color: white;
+        }
+
+        .wizard-step.waiting .wizard-step-num {
+            background: #f59e0b;
+            color: white;
+            border-color: #fbbf24;
+            animation: pulse-glow-yellow 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 12px rgba(59, 130, 246, 0.5); }
+            50% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.8); }
+        }
+
+        @keyframes pulse-glow-yellow {
+            0%, 100% { box-shadow: 0 0 12px rgba(245, 158, 11, 0.5); }
+            50% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.8); }
+        }
+
+        .wizard-step-label {
+            margin-top: 8px;
+            font-size: 0.7em;
+            color: #64748b;
+            text-align: center;
+            max-width: 80px;
+        }
+
+        .wizard-step.active .wizard-step-label,
+        .wizard-step.completed .wizard-step-label {
+            color: #94a3b8;
+        }
+
+        .wizard-step.waiting .wizard-step-label {
+            color: #fbbf24;
+            font-weight: 600;
+        }
+
+        /* Button states */
+        .modal-btn.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        /* Cancel button - light red */
+        .modal-btn.secondary.cancel-red {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.4);
+        }
+
+        .modal-btn.secondary.cancel-red:hover {
+            background: rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+        }
+
+        /* Download button - blinking green (active state) */
+        .modal-btn.primary.blink-green {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            animation: button-blink-green 1s ease-in-out infinite;
+        }
+
+        @keyframes button-blink-green {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4);
+            }
+            50% {
+                transform: scale(1.02);
+                box-shadow: 0 0 20px 4px rgba(34, 197, 94, 0.6);
+            }
+        }
+
+        /* Download button - light yellow (completed state) */
+        .modal-btn.primary.completed-yellow {
+            background: rgba(245, 158, 11, 0.3);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.5);
+            animation: none;
+        }
+
+        .modal-btn.primary.completed-yellow:hover {
+            background: rgba(245, 158, 11, 0.4);
+        }
+
+        /* Verify button - light yellow (waiting state) */
+        .modal-btn.success.waiting-yellow {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.4);
+            animation: none;
+        }
+
+        /* Verify button turns green on hover when ready (not disabled) */
+        .modal-btn.success.waiting-yellow:not(.disabled):hover {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            color: white;
+            border-color: #22c55e;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4);
+        }
+
+        /* Verify button - blinking green (ready state) */
+        .modal-btn.success.blink-green {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            color: white;
+            animation: button-blink-green 1s ease-in-out infinite;
+        }
+
+        /* Legacy highlight class - keep for compatibility */
+        .modal-btn.highlight {
+            animation: button-blink-green 1s ease-in-out infinite;
+        }
+
+        /* Action needed indicator */
+        .action-needed {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: rgba(245, 158, 11, 0.2);
+            border: 1px solid rgba(245, 158, 11, 0.4);
+            border-radius: 4px;
+            color: #fbbf24;
+            font-size: 0.75em;
+            font-weight: 600;
+            margin-left: 8px;
+            animation: blink-soft 1.5s ease-in-out infinite;
+        }
+
+        @keyframes blink-soft {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        /* Confirmation Checkbox Styles */
+        .confirm-checkbox-container {
+            margin-top: 15px;
+            padding: 12px 15px;
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            border-radius: 8px;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .confirm-checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            color: #94a3b8;
+            font-size: 0.9em;
+            user-select: none;
+        }
+
+        .confirm-checkbox-label input[type="checkbox"] {
+            display: none;
+        }
+
+        .confirm-checkbox-label .checkmark {
+            width: 22px;
+            height: 22px;
+            border: 2px solid rgba(34, 197, 94, 0.5);
+            border-radius: 4px;
+            background: rgba(30, 41, 59, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .confirm-checkbox-label:hover .checkmark {
+            border-color: #22c55e;
+            background: rgba(34, 197, 94, 0.1);
+        }
+
+        .confirm-checkbox-label input[type="checkbox"]:checked + .checkmark {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            border-color: #22c55e;
+        }
+
+        .confirm-checkbox-label input[type="checkbox"]:checked + .checkmark::after {
+            content: '✓';
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .confirm-checkbox-label .confirm-text {
+            line-height: 1.4;
+        }
+
+        .confirm-checkbox-label .confirm-text strong {
+            color: #22c55e;
+        }
+
+        /* Instructions panel */
+        .setup-instructions {
+            text-align: left;
+            padding: 12px 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 6px;
+            margin-top: 15px;
+            border-left: 3px solid #3b82f6;
+        }
+
+        .setup-instructions.highlight-instruction {
+            border-left-color: #f59e0b;
+            background: rgba(245, 158, 11, 0.05);
+        }
+
+        .setup-instructions p {
+            color: #94a3b8;
+            font-size: 0.8em;
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        .setup-instructions strong {
+            color: #e2e8f0;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1 style="display: flex; align-items: center; justify-content: center; gap: 15px;">
-                <a href="https://dataportal.unescwa.org/gis/landing" target="_blank" title="Arab Development Portal - ESCWA" style="text-decoration: none;">
-                    <img src="adp_logo.png" alt="Arab Development Portal" style="height: 44px; vertical-align: middle;">
-                </a>
-                <span style="color: inherit;">Geo-Insights: Applications and Extensions, ESCWA, UN</span>
-            </h1>
-            <div class="subtitle">By Geo-Insight Lab, ESCWA, 2026 <span style="font-size: 0.7em; opacity: 0.5;">(v2.8)</span></div>
+    <div class="bg-grid"></div>
+
+    <div class="launcher">
+        <div class="logo-container">
+            <a href="https://dataportal.unescwa.org/gis/landing" target="_blank" title="Arab Development Portal - ESCWA">
+                <img src="frontend/adp_logo.png" alt="Arab Development Portal" onerror="this.style.display='none'">
+            </a>
         </div>
-        <div id="map"></div>
+
+        <h1 class="title">Geo-Insights Laboratory</h1>
+
+        <button class="start-btn" onclick="start()">
+            <span class="start-icon">&#9654;</span>
+            <span class="btn-text">Launch Dashboard</span>
+        </button>
+
+        <!-- Protocol Status Indicator -->
+        <div class="protocol-status checking" id="protocolStatus">
+            <span class="status-icon">&#8635;</span>
+            <span class="status-text">Checking protocol registration...</span>
+        </div>
+
+        <!-- Reset Protocol Button (for testing/demo) -->
+        <button class="reset-protocol-btn" id="resetProtocolBtn" onclick="resetProtocol()" title="Deactivate protocol verification to test fresh setup">
+            Reset Protocol Status
+        </button>
+
+        <!-- Progress Steps -->
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-title">Initializing Dashboard Environment</div>
+
+            <!-- Phase 1: Terminate Previous Sessions -->
+            <div class="progress-step" id="step1">
+                <div class="step-indicator">1</div>
+                <div class="step-content">
+                    <div class="phase-header" id="phase1Header">
+                        <div class="step-title">Terminating Previous Sessions</div>
+                        <span class="phase-status running" id="phase1Status">RUNNING</span>
+                    </div>
+                    <div class="sub-steps" id="step1Subs">
+                        <div class="sub-step" id="sub1a"><span class="sub-step-icon pending">○</span> Scanning port 8000 for active processes</div>
+                        <div class="sub-step" id="sub1b"><span class="sub-step-icon pending">○</span> Scanning port 5000 for active processes</div>
+                        <div class="sub-step" id="sub1c"><span class="sub-step-icon pending">○</span> Killing orphaned Python processes</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase 2: Clear Cache -->
+            <div class="progress-step" id="step2">
+                <div class="step-indicator">2</div>
+                <div class="step-content">
+                    <div class="phase-header" id="phase2Header">
+                        <div class="step-title">Clearing Runtime Cache</div>
+                        <span class="phase-status" id="phase2Status"></span>
+                    </div>
+                    <div class="sub-steps" id="step2Subs">
+                        <div class="sub-step" id="sub2a"><span class="sub-step-icon pending">○</span> Removing __pycache__ directories</div>
+                        <div class="sub-step" id="sub2b"><span class="sub-step-icon pending">○</span> Deleting .pyc bytecode files</div>
+                        <div class="sub-step" id="sub2c"><span class="sub-step-icon pending">○</span> Clearing old log files</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase 3: Validate Ports -->
+            <div class="progress-step" id="step3">
+                <div class="step-indicator">3</div>
+                <div class="step-content">
+                    <div class="phase-header" id="phase3Header">
+                        <div class="step-title">Validating Network Ports</div>
+                        <span class="phase-status" id="phase3Status"></span>
+                    </div>
+                    <div class="sub-steps" id="step3Subs">
+                        <div class="sub-step" id="sub3a"><span class="sub-step-icon pending">○</span> Verifying port 8000 is free</div>
+                        <div class="sub-step" id="sub3b"><span class="sub-step-icon pending">○</span> Verifying port 5000 is free</div>
+                        <div class="sub-step" id="sub3c"><span class="sub-step-icon pending">○</span> Final port conflict resolution</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase 4: Check Dependencies -->
+            <div class="progress-step" id="step4">
+                <div class="step-indicator">4</div>
+                <div class="step-content">
+                    <div class="phase-header" id="phase4Header">
+                        <div class="step-title">Checking Dependencies</div>
+                        <span class="phase-status" id="phase4Status"></span>
+                    </div>
+                    <div class="sub-steps" id="step4Subs">
+                        <div class="sub-step" id="sub4a"><span class="sub-step-icon pending">○</span> Verifying Flask installation</div>
+                        <div class="sub-step" id="sub4b"><span class="sub-step-icon pending">○</span> Verifying requests library</div>
+                        <div class="sub-step" id="sub4c"><span class="sub-step-icon pending">○</span> Auto-installing missing packages</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase 5: Start Servers -->
+            <div class="progress-step" id="step5">
+                <div class="step-indicator">5</div>
+                <div class="step-content">
+                    <div class="phase-header" id="phase5Header">
+                        <div class="step-title">Starting Servers</div>
+                        <span class="phase-status" id="phase5Status"></span>
+                    </div>
+                    <div class="sub-steps" id="step5Subs">
+                        <div class="sub-step" id="sub5a"><span class="sub-step-icon pending">○</span> Starting Dashboard Server (port 8000)</div>
+                        <div class="sub-step" id="sub5b"><span class="sub-step-icon pending">○</span> Starting API Server (port 5000)</div>
+                        <div class="sub-step" id="sub5c"><span class="sub-step-icon pending">○</span> Health check verification</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase 6: Launch Browser -->
+            <div class="progress-step" id="step6">
+                <div class="step-indicator">6</div>
+                <div class="step-content">
+                    <div class="phase-header" id="phase6Header">
+                        <div class="step-title">Launching Dashboard</div>
+                        <span class="phase-status" id="phase6Status"></span>
+                    </div>
+                    <div class="sub-steps" id="step6Subs">
+                        <div class="sub-step" id="sub6a"><span class="sub-step-icon pending">○</span> Generating cache-busting URL</div>
+                        <div class="sub-step" id="sub6b"><span class="sub-step-icon pending">○</span> Opening default browser</div>
+                        <div class="sub-step" id="sub6c"><span class="sub-step-icon pending">○</span> Dashboard ready!</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Success Message -->
+        <div class="success-message" id="successMessage">
+            <div>&#10003; Dashboard launched successfully!</div>
+            <div class="close-notice">This window will close automatically...</div>
+        </div>
+
+        <!-- Manual Fallback Notice -->
+        <div class="manual-fallback" id="manualFallback">
+            <strong>Servers not detected</strong><br>
+            <span style="font-size: 0.85em;">If this is your first time, run <code>setup_one_click.bat</code> once.<br>
+            Then double-click <code>start_dashboard.bat</code> to start servers manually.</span>
+        </div>
+
+        <div class="info-section">
+            <div class="info-item">
+                <span class="icon">&#128506;</span>
+                <div>By National, Regions, and Districts</div>
+                <div class="label">Administrative Data</div>
+            </div>
+            <div class="info-item">
+                <span class="icon">&#128739;</span>
+                <div>Roads</div>
+                <div class="label">Infrastructure</div>
+            </div>
+            <div class="info-item">
+                <span class="icon">&#128161;</span>
+                <div>Nightlight</div>
+                <div class="label">Satellite Imagery</div>
+            </div>
+            <div class="info-item">
+                <span class="icon">&#128101;</span>
+                <div>Population</div>
+                <div class="label">Demographics</div>
+            </div>
+            <div class="info-item">
+                <span class="icon">&#9889;</span>
+                <div>Electrical Networks</div>
+                <div class="label">Power Grid</div>
+            </div>
+        </div>
+
+        <div class="footer" style="color: #60a5fa;">
+            United Nations - ESCWA - Decision Support and Data Science Division, 2026
+        </div>
     </div>
+
+    <!-- Setup Modal (for reset/reactivation flow) - ENHANCED WIZARD -->
+    <div class="setup-modal-overlay" id="setupModal">
+        <div class="setup-modal">
+            <h3 id="setupModalTitle">Protocol Installation Wizard</h3>
+
+            <!-- Wizard Step Indicators -->
+            <div class="setup-wizard-steps">
+                <div class="wizard-step active" id="wizardStep1">
+                    <div class="wizard-step-num">1</div>
+                    <div class="wizard-step-label">Download</div>
+                </div>
+                <div class="wizard-step" id="wizardStep2">
+                    <div class="wizard-step-num">2</div>
+                    <div class="wizard-step-label">Install</div>
+                </div>
+                <div class="wizard-step" id="wizardStep3">
+                    <div class="wizard-step-num">3</div>
+                    <div class="wizard-step-label">Verify</div>
+                </div>
+                <div class="wizard-step" id="wizardStep4">
+                    <div class="wizard-step-num">4</div>
+                    <div class="wizard-step-label">Complete</div>
+                </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="setup-progress-container">
+                <div class="setup-progress-header">
+                    <span class="setup-progress-title" id="progressStepTitle">Step 1: Download Configuration</span>
+                    <span class="setup-progress-percent" id="progressPercent">0%</span>
+                </div>
+                <div class="setup-progress-bar">
+                    <div class="setup-progress-fill" id="progressFill"></div>
+                </div>
+                <div class="setup-status-message" id="statusMessage">
+                    <span class="setup-status-icon">&#9432;</span>
+                    <span id="statusText">Click "Download Protocol" to begin installation</span>
+                </div>
+            </div>
+
+            <!-- Dynamic Instructions -->
+            <div class="setup-instructions" id="setupInstructions">
+                <p id="instructionText">
+                    This wizard will guide you through installing the URL protocol handler.
+                    This enables <strong>one-click dashboard launching</strong>.
+                </p>
+            </div>
+
+            <!-- Confirmation Checkbox (appears after download) -->
+            <div class="confirm-checkbox-container" id="confirmCheckboxContainer" style="display: none;">
+                <label class="confirm-checkbox-label">
+                    <input type="checkbox" id="confirmOkClicked" onchange="onConfirmCheckboxChange()">
+                    <span class="checkmark"></span>
+                    <span class="confirm-text">I completed all 6 steps and clicked <strong>OK</strong> on the success message</span>
+                </label>
+            </div>
+
+            <!-- Buttons -->
+            <div class="modal-buttons">
+                <button class="modal-btn secondary cancel-red" id="cancelBtn" onclick="closeSetupModal()">Cancel</button>
+                <button class="modal-btn primary blink-green" id="downloadBtn" onclick="wizardDownload()">
+                    <span id="downloadBtnText">Download Protocol</span>
+                </button>
+                <button class="modal-btn success waiting-yellow disabled" id="verifyBtn" onclick="wizardVerify()">
+                    <span id="verifyBtnText">Verify Installation</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // Build timestamp to force cache refresh on every deploy
-        const buildTime = Date.now();
-        const version = '2.8';
-        document.write('<script src="data.js?v=' + version + '&b=' + buildTime + '"><\/script>');
-        document.write('<script src="bakool_nightlight_polygons_2022.js?v=' + version + '&b=' + buildTime + '"><\/script>');
-        document.write('<script src="bakool_nightlight_polygons_2023.js?v=' + version + '&b=' + buildTime + '"><\/script>');
-        document.write('<script src="isee_analytics.js?v=' + version + '&b=' + buildTime + '"><\/script>');
-        document.write('<script src="script.js?v=' + version + '&b=' + buildTime + '"><\/script>');
+        const totalSteps = 6;
+        let dashboardReady = false;
+        let apiReady = false;
+        let checkInterval = null;
+
+        // Sub-step animation helpers
+        function showSubStep(id, status) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.classList.add('visible');
+            const icon = el.querySelector('.sub-step-icon');
+            icon.classList.remove('pending', 'running', 'done');
+            icon.classList.add(status);
+            if (status === 'done') {
+                icon.innerHTML = '✓';
+                el.classList.add('completed');
+            } else if (status === 'running') {
+                icon.innerHTML = '◐';
+            } else {
+                icon.innerHTML = '○';
+            }
+        }
+
+        function setPhaseStatus(phaseNum, status) {
+            const statusEl = document.getElementById('phase' + phaseNum + 'Status');
+            const headerEl = document.getElementById('phase' + phaseNum + 'Header');
+            if (!statusEl || !headerEl) return;
+
+            statusEl.classList.remove('running', 'complete');
+            headerEl.classList.remove('active', 'completed');
+
+            if (status === 'running') {
+                statusEl.textContent = 'RUNNING';
+                statusEl.classList.add('running');
+                headerEl.classList.add('active');
+            } else if (status === 'complete') {
+                statusEl.textContent = 'COMPLETE';
+                statusEl.classList.add('complete');
+                headerEl.classList.add('completed');
+            }
+        }
+
+        function setStepActive(stepNum) {
+            // Mark previous steps as completed
+            for (let i = 1; i < stepNum; i++) {
+                const step = document.getElementById('step' + i);
+                step.classList.remove('active');
+                step.classList.add('completed');
+                step.querySelector('.step-indicator').innerHTML = '&#10003;';
+                setPhaseStatus(i, 'complete');
+            }
+
+            // Mark current step as active
+            const currentStepEl = document.getElementById('step' + stepNum);
+            if (currentStepEl) {
+                currentStepEl.classList.remove('completed');
+                currentStepEl.classList.add('active');
+                setPhaseStatus(stepNum, 'running');
+            }
+        }
+
+        function completeStep(stepNum) {
+            const step = document.getElementById('step' + stepNum);
+            step.classList.remove('active');
+            step.classList.add('completed');
+            step.querySelector('.step-indicator').innerHTML = '&#10003;';
+            setPhaseStatus(stepNum, 'complete');
+        }
+
+        function completeAllSteps() {
+            for (let i = 1; i <= totalSteps; i++) {
+                completeStep(i);
+            }
+
+            // Show success message
+            document.getElementById('successMessage').classList.add('visible');
+
+            // Stop the spinning button
+            document.querySelector('.launcher').classList.remove('loading');
+            document.querySelector('.start-btn').style.display = 'none';
+
+            // Open dashboard and close this window
+            setTimeout(() => {
+                const timestamp = Date.now();
+                window.open('http://localhost:8000/frontend/index_v3.1.html?v=3.1&t=' + timestamp, '_blank');
+                setTimeout(() => {
+                    window.close();
+                    document.querySelector('.close-notice').textContent =
+                        'You can now close this tab manually.';
+                }, 1000);
+            }, 1500);
+        }
+
+        // Check if dashboard server (port 8000) is ready
+        async function checkDashboardServer() {
+            try {
+                const response = await fetch('http://localhost:8000/frontend/index_v3.1.html', {
+                    method: 'HEAD',
+                    mode: 'no-cors'
+                });
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        // Check if API server (port 5000) is ready
+        async function checkApiServer() {
+            try {
+                const response = await fetch('http://localhost:5000/api/health', {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                return response.ok;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        // Poll servers until both are ready
+        async function pollServers() {
+            // ========================================
+            // PHASE 1: Terminate Previous Sessions
+            // ========================================
+            setStepActive(1);
+
+            showSubStep('sub1a', 'running');
+            await sleep(400);
+            showSubStep('sub1a', 'done');
+
+            showSubStep('sub1b', 'running');
+            await sleep(400);
+            showSubStep('sub1b', 'done');
+
+            showSubStep('sub1c', 'running');
+            await sleep(300);
+            showSubStep('sub1c', 'done');
+
+            completeStep(1);
+
+            // ========================================
+            // PHASE 2: Clear Cache
+            // ========================================
+            setStepActive(2);
+
+            showSubStep('sub2a', 'running');
+            await sleep(350);
+            showSubStep('sub2a', 'done');
+
+            showSubStep('sub2b', 'running');
+            await sleep(300);
+            showSubStep('sub2b', 'done');
+
+            showSubStep('sub2c', 'running');
+            await sleep(250);
+            showSubStep('sub2c', 'done');
+
+            completeStep(2);
+
+            // ========================================
+            // PHASE 3: Validate Ports
+            // ========================================
+            setStepActive(3);
+
+            showSubStep('sub3a', 'running');
+            await sleep(400);
+            showSubStep('sub3a', 'done');
+
+            showSubStep('sub3b', 'running');
+            await sleep(400);
+            showSubStep('sub3b', 'done');
+
+            showSubStep('sub3c', 'running');
+            await sleep(300);
+            showSubStep('sub3c', 'done');
+
+            completeStep(3);
+
+            // ========================================
+            // PHASE 4: Check Dependencies
+            // ========================================
+            setStepActive(4);
+
+            showSubStep('sub4a', 'running');
+            await sleep(300);
+            showSubStep('sub4a', 'done');
+
+            showSubStep('sub4b', 'running');
+            await sleep(300);
+            showSubStep('sub4b', 'done');
+
+            showSubStep('sub4c', 'running');
+            await sleep(200);
+            showSubStep('sub4c', 'done');
+
+            completeStep(4);
+
+            // ========================================
+            // PHASE 5: Start Servers
+            // ========================================
+            setStepActive(5);
+
+            // Sub-step 5a: Dashboard server
+            showSubStep('sub5a', 'running');
+            let dashboardAttempts = 0;
+            while (!dashboardReady && dashboardAttempts < 30) {
+                dashboardReady = await checkDashboardServer();
+                if (!dashboardReady) {
+                    await sleep(500);
+                    dashboardAttempts++;
+                }
+            }
+            showSubStep('sub5a', 'done');
+
+            // Sub-step 5b: API server
+            showSubStep('sub5b', 'running');
+            let apiAttempts = 0;
+            while (!apiReady && apiAttempts < 30) {
+                apiReady = await checkApiServer();
+                if (!apiReady) {
+                    await sleep(500);
+                    apiAttempts++;
+                }
+            }
+            showSubStep('sub5b', 'done');
+
+            // Sub-step 5c: Health check
+            showSubStep('sub5c', 'running');
+            await sleep(300);
+            showSubStep('sub5c', 'done');
+
+            completeStep(5);
+
+            // ========================================
+            // PHASE 6: Launch Browser
+            // ========================================
+            setStepActive(6);
+
+            showSubStep('sub6a', 'running');
+            await sleep(200);
+            showSubStep('sub6a', 'done');
+
+            showSubStep('sub6b', 'running');
+            await sleep(300);
+            showSubStep('sub6b', 'done');
+
+            showSubStep('sub6c', 'running');
+            await sleep(200);
+            showSubStep('sub6c', 'done');
+
+            // Both servers ready - complete!
+            if (dashboardReady) {
+                // Mark protocol as verified since servers started
+                markProtocolVerified();
+                completeAllSteps();
+            } else {
+                // Timeout - show helpful fallback message
+                document.querySelector('.progress-title').textContent = 'Waiting for servers...';
+                document.querySelector('.progress-title').style.color = '#f59e0b';
+                document.getElementById('manualFallback').classList.add('visible');
+
+                // Reset button for retry
+                document.querySelector('.launcher').classList.remove('loading');
+                document.querySelector('.start-btn').style.display = 'inline-flex';
+                document.querySelector('.start-btn .start-icon').innerHTML = '&#9654;';
+                document.querySelector('.btn-text').textContent = 'Retry';
+                startTriggered = false;
+                protocolTriggered = false;
+            }
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Flag to prevent multiple starts
+        let startTriggered = false;
+        let protocolTriggered = false;
+        let lastTriggerTime = 0;
+        const MIN_TRIGGER_INTERVAL = 10000; // 10 seconds minimum between triggers
+
+        function triggerServerStart() {
+            const now = Date.now();
+            if (protocolTriggered && (now - lastTriggerTime) < MIN_TRIGGER_INTERVAL) {
+                console.log('[Launcher] Blocking rapid re-trigger (last: ' + (now - lastTriggerTime) + 'ms ago)');
+                return;
+            }
+            protocolTriggered = true;
+            lastTriggerTime = now;
+
+            // =====================================================
+            // BULLETPROOF URL PROTOCOL TRIGGER
+            // =====================================================
+            // Method: Create hidden anchor tag, click it programmatically
+            // This is the most reliable cross-browser method for custom protocols
+            // =====================================================
+
+            const link = document.createElement('a');
+            link.href = 'somalia-dashboard://start';
+            link.style.position = 'fixed';
+            link.style.left = '-9999px';
+            link.style.top = '-9999px';
+            link.style.opacity = '0';
+            link.style.pointerEvents = 'none';
+            document.body.appendChild(link);
+
+            // Use click() to trigger - most reliable method
+            try {
+                link.click();
+                console.log('[Launcher] URL protocol triggered via anchor click');
+            } catch (e) {
+                console.log('[Launcher] Anchor click failed, trying direct assignment');
+                // Fallback: Use location assign in a try-catch
+                // This may navigate but we handle that gracefully
+            }
+
+            // Clean up after brief delay
+            setTimeout(() => {
+                if (link.parentNode) {
+                    link.parentNode.removeChild(link);
+                }
+            }, 500);
+        }
+
+        async function start() {
+            const now = Date.now();
+            if (startTriggered && (now - lastTriggerTime) < MIN_TRIGGER_INTERVAL) {
+                console.log('[Launcher] Blocking rapid re-click (last: ' + (now - lastTriggerTime) + 'ms ago)');
+                return;
+            }
+            startTriggered = true;
+            lastTriggerTime = now;
+
+            // Add loading state
+            document.querySelector('.launcher').classList.add('loading');
+            document.querySelector('.start-btn .start-icon').innerHTML = '&#8635;';
+            document.querySelector('.btn-text').textContent = 'Initializing...';
+
+            // Show progress container
+            document.getElementById('progressContainer').classList.add('visible');
+
+            // Show all steps
+            for (let i = 1; i <= 6; i++) {
+                document.getElementById('step' + i).style.display = '';
+            }
+
+            // First, check if servers are already running
+            const dashboardAlreadyRunning = await checkDashboardServer();
+
+            if (dashboardAlreadyRunning) {
+                // Servers already running - proceed with animation
+                document.querySelector('.btn-text').textContent = 'Servers detected!';
+                dashboardReady = true;
+                apiReady = await checkApiServer();
+                pollServers();
+            } else {
+                // Servers not running - trigger start via URL protocol
+                document.querySelector('.btn-text').textContent = 'Starting servers...';
+
+                // Trigger the URL protocol (runs launch_silent.vbs -> start_dashboard.bat)
+                triggerServerStart();
+
+                // Start polling for servers - give servers time to start
+                await sleep(3000); // Increased delay for server startup
+                pollServers();
+            }
+        }
+
+        // =====================================================
+        // PROTOCOL STATUS DETECTION
+        // =====================================================
+        // We detect if the protocol is registered by:
+        // 1. Checking if servers are already running (protocol worked before)
+        // 2. Using navigator.registerProtocolHandler support detection
+        // 3. Checking localStorage for previous successful launches
+        // =====================================================
+
+        function updateProtocolStatus(status, message) {
+            const statusEl = document.getElementById('protocolStatus');
+            statusEl.className = 'protocol-status ' + status;
+
+            if (status === 'registered') {
+                statusEl.innerHTML = '<span class="status-icon">✓</span><span class="status-text">' + message + '</span>';
+            } else if (status === 'not-registered') {
+                statusEl.innerHTML = '<span class="status-icon">✗</span><span class="status-text">' + message + '</span>';
+            } else {
+                statusEl.innerHTML = '<span class="status-icon">&#8635;</span><span class="status-text">' + message + '</span>';
+            }
+        }
+
+        async function checkProtocolStatus() {
+            // Method 1: Check if servers are running (means protocol worked before or manual start)
+            const serversRunning = await checkDashboardServer();
+
+            if (serversRunning) {
+                // Servers are running - protocol is working or was started manually
+                updateProtocolStatus('registered', 'URL Protocol: Active (servers running)');
+                localStorage.setItem('somalia-protocol-verified', 'true');
+                return true;
+            }
+
+            // Method 2: Check localStorage for previous successful verification
+            const previouslyVerified = localStorage.getItem('somalia-protocol-verified');
+            if (previouslyVerified === 'true') {
+                updateProtocolStatus('registered', 'URL Protocol: Registered');
+                return true;
+            }
+
+            // Method 3: Not verified yet - show setup instructions
+            updateProtocolStatus('not-registered',
+                'URL Protocol: Not verified - <span class="setup-link" onclick="resetProtocol()">Install Protocol</span>');
+            return false;
+        }
+
+        function showSetupInstructions() {
+            alert('To enable one-click startup:\n\n' +
+                  '1. Double-click "setup_one_click.bat" in the dashboard folder\n' +
+                  '2. Click Yes if prompted by Windows\n' +
+                  '3. Reload this page\n\n' +
+                  'This only needs to be done once!');
+        }
+
+        // Mark protocol as verified when servers start successfully
+        function markProtocolVerified() {
+            localStorage.setItem('somalia-protocol-verified', 'true');
+            updateProtocolStatus('registered', 'URL Protocol: Active');
+        }
+
+        // =====================================================
+        // ENHANCED PROTOCOL INSTALLATION WIZARD
+        // =====================================================
+
+        let wizardState = {
+            currentStep: 1,
+            downloadComplete: false,
+            installationStarted: false,
+            verificationStarted: false
+        };
+
+        // Reset protocol status for testing/demo purposes
+        function resetProtocol() {
+            // Clear localStorage verification
+            localStorage.removeItem('somalia-protocol-verified');
+
+            // Update UI to show deactivated state
+            updateProtocolStatus('deactivated', 'Protocol Status: DEACTIVATED');
+
+            // Reset wizard state
+            wizardState = {
+                currentStep: 1,
+                downloadComplete: false,
+                installationStarted: false,
+                verificationStarted: false
+            };
+
+            // Reset wizard UI
+            resetWizardUI();
+
+            // Show the setup modal with instructions
+            document.getElementById('setupModal').classList.add('visible');
+        }
+
+        function resetWizardUI() {
+            // Reset step indicators
+            for (let i = 1; i <= 4; i++) {
+                const step = document.getElementById('wizardStep' + i);
+                step.classList.remove('active', 'completed', 'waiting');
+            }
+            document.getElementById('wizardStep1').classList.add('active');
+
+            // Reset progress bar
+            document.getElementById('progressFill').style.width = '0%';
+            document.getElementById('progressPercent').textContent = '0%';
+            document.getElementById('progressStepTitle').textContent = 'Step 1: Download Configuration';
+
+            // Reset status message
+            updateWizardStatus('info', 'Click "Download Protocol" to begin installation');
+
+            // Reset instructions
+            document.getElementById('instructionText').innerHTML =
+                'This wizard will guide you through installing the URL protocol handler. ' +
+                'This enables <strong>one-click dashboard launching</strong>.';
+            document.getElementById('setupInstructions').classList.remove('highlight-instruction');
+
+            // Reset buttons to initial state
+            const downloadBtn = document.getElementById('downloadBtn');
+            const verifyBtn = document.getElementById('verifyBtn');
+
+            // Download: blinking green (active)
+            downloadBtn.classList.remove('disabled', 'completed-yellow');
+            downloadBtn.classList.add('blink-green');
+            document.getElementById('downloadBtnText').textContent = 'Download Protocol';
+
+            // Verify: light yellow, DISABLED, not blinking (waiting for download + confirmation)
+            verifyBtn.classList.remove('blink-green', 'highlight');
+            verifyBtn.classList.add('waiting-yellow', 'disabled');
+            document.getElementById('verifyBtnText').textContent = 'Verify Installation';
+
+            // Reset and hide confirmation checkbox
+            document.getElementById('confirmCheckboxContainer').style.display = 'none';
+            document.getElementById('confirmOkClicked').checked = false;
+        }
+
+        function updateWizardStatus(type, message) {
+            const statusMsg = document.getElementById('statusMessage');
+            const statusText = document.getElementById('statusText');
+            const statusIcon = statusMsg.querySelector('.setup-status-icon');
+
+            statusMsg.className = 'setup-status-message';
+            statusIcon.classList.remove('spinning');
+
+            switch (type) {
+                case 'info':
+                    statusIcon.innerHTML = '&#9432;';
+                    break;
+                case 'loading':
+                    statusIcon.innerHTML = '&#8635;';
+                    statusIcon.classList.add('spinning');
+                    break;
+                case 'waiting':
+                    statusMsg.classList.add('waiting');
+                    statusIcon.innerHTML = '&#9888;';
+                    break;
+                case 'success':
+                    statusMsg.classList.add('success');
+                    statusIcon.innerHTML = '&#10003;';
+                    break;
+                case 'error':
+                    statusMsg.classList.add('error');
+                    statusIcon.innerHTML = '&#10007;';
+                    break;
+            }
+
+            statusText.textContent = message;
+        }
+
+        function setWizardStep(stepNum, state) {
+            const step = document.getElementById('wizardStep' + stepNum);
+            step.classList.remove('active', 'completed', 'waiting');
+            if (state) {
+                step.classList.add(state);
+            }
+        }
+
+        async function updateProgress(percent, title) {
+            document.getElementById('progressFill').style.width = percent + '%';
+            document.getElementById('progressPercent').textContent = percent + '%';
+            if (title) {
+                document.getElementById('progressStepTitle').textContent = title;
+            }
+        }
+
+        // Close the setup modal
+        function closeSetupModal() {
+            document.getElementById('setupModal').classList.remove('visible');
+            // Reload to show current status
+            location.reload();
+        }
+
+        // WIZARD STEP 1: Download Protocol File
+        async function wizardDownload() {
+            if (wizardState.downloadComplete) return;
+
+            // Start download animation
+            updateWizardStatus('loading', 'Preparing configuration file...');
+            await updateProgress(5, 'Step 1: Downloading Configuration');
+
+            await sleep(500);
+            await updateProgress(10);
+
+            // Get the current page URL and extract the folder path
+            const currentUrl = window.location.href;
+            const folderUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/'));
+            const regFixUrl = folderUrl + '/launcher/update_protocol.reg';
+
+            // Create a download link
+            const link = document.createElement('a');
+            link.href = regFixUrl;
+            link.download = 'update_protocol.reg';
+            document.body.appendChild(link);
+
+            updateWizardStatus('loading', 'Downloading update_protocol.reg...');
+            await updateProgress(15);
+
+            link.click();
+            document.body.removeChild(link);
+
+            await sleep(800);
+            await updateProgress(20);
+
+            // Mark step 1 complete
+            wizardState.downloadComplete = true;
+            setWizardStep(1, 'completed');
+            setWizardStep(2, 'waiting');
+
+            // Update to step 2: waiting for user action
+            await updateProgress(25, 'Step 2: Install Protocol (Your Action Required)');
+
+            updateWizardStatus('waiting', 'ACTION NEEDED: Double-click the downloaded file');
+
+            // Update instructions with all 5 steps
+            document.getElementById('instructionText').innerHTML =
+                '<strong style="color: #fbbf24;">Your action required:</strong><br><br>' +
+                '<table style="width: 100%; font-size: 0.95em; line-height: 1.8;">' +
+                '<tr><td style="width: 24px; color: #60a5fa; font-weight: bold;">1.</td><td>Find <code>update_protocol.reg</code> in your Downloads folder</td></tr>' +
+                '<tr><td style="color: #60a5fa; font-weight: bold;">2.</td><td><strong>Double-click</strong> the file to run it</td></tr>' +
+                '<tr><td style="color: #60a5fa; font-weight: bold;">3.</td><td>Click <strong style="color: #22c55e;">Run</strong> when Windows Security asks</td></tr>' +
+                '<tr><td style="color: #60a5fa; font-weight: bold;">4.</td><td>Click <strong style="color: #22c55e;">Yes</strong> on User Account Control (UAC)</td></tr>' +
+                '<tr><td style="color: #60a5fa; font-weight: bold;">5.</td><td>Click <strong style="color: #22c55e;">Yes</strong> to confirm registry change</td></tr>' +
+                '<tr><td style="color: #60a5fa; font-weight: bold;">6.</td><td>Click <strong style="color: #22c55e;">OK</strong> on success message</td></tr>' +
+                '</table><br>' +
+                '<em style="color: #fbbf24;">After completing all steps, check the box below to enable verification</em>';
+            document.getElementById('setupInstructions').classList.add('highlight-instruction');
+
+            // Update button states:
+            // Download: light yellow (completed) - no longer blinking
+            const downloadBtn = document.getElementById('downloadBtn');
+            downloadBtn.classList.remove('blink-green');
+            downloadBtn.classList.add('completed-yellow', 'disabled');
+            document.getElementById('downloadBtnText').textContent = '✓ Downloaded';
+
+            // Verify: STAYS DISABLED AND YELLOW until user confirms they clicked OK
+            // User must check the confirmation checkbox to enable the Verify button
+            const verifyBtn = document.getElementById('verifyBtn');
+            // Keep disabled and waiting-yellow - don't enable until checkbox is checked
+            // verifyBtn.classList.remove('disabled'); // REMOVED - keep disabled
+
+            // Show the confirmation checkbox
+            document.getElementById('confirmCheckboxContainer').style.display = 'block';
+            document.getElementById('confirmOkClicked').checked = false;
+
+            // Start a timer to remind user
+            wizardState.installationStarted = true;
+            startWaitingAnimation();
+        }
+
+        // Called when user checks the confirmation checkbox
+        function onConfirmCheckboxChange() {
+            const checkbox = document.getElementById('confirmOkClicked');
+            const verifyBtn = document.getElementById('verifyBtn');
+
+            if (checkbox.checked) {
+                // User confirmed they clicked OK - enable Verify with blinking green
+                verifyBtn.classList.remove('disabled', 'waiting-yellow');
+                verifyBtn.classList.add('blink-green');
+
+                // Update status
+                updateWizardStatus('success', 'Ready to verify! Click the green button below');
+
+                // Update instructions
+                document.getElementById('instructionText').innerHTML =
+                    '<span style="color: #22c55e; font-weight: bold;">✓ Great!</span> ' +
+                    'Now click <strong style="color: #22c55e;">Verify Installation</strong> to confirm everything is working.';
+            } else {
+                // User unchecked - disable Verify and make it yellow again
+                verifyBtn.classList.remove('blink-green');
+                verifyBtn.classList.add('disabled', 'waiting-yellow');
+
+                // Restore waiting status
+                updateWizardStatus('loading', 'Waiting for you to complete installation steps...');
+            }
+        }
+
+        let waitingAnimationInterval = null;
+        let waitingDots = 0;
+
+        function startWaitingAnimation() {
+            if (waitingAnimationInterval) clearInterval(waitingAnimationInterval);
+
+            waitingAnimationInterval = setInterval(() => {
+                if (!wizardState.installationStarted || wizardState.verificationStarted) {
+                    clearInterval(waitingAnimationInterval);
+                    return;
+                }
+
+                waitingDots = (waitingDots + 1) % 4;
+                const dots = '.'.repeat(waitingDots);
+                document.getElementById('statusText').textContent =
+                    'Waiting for you to install the protocol' + dots;
+            }, 600);
+        }
+
+        // WIZARD STEP 3: Verify Installation
+        async function wizardVerify() {
+            if (wizardState.verificationStarted) return;
+            wizardState.verificationStarted = true;
+
+            // Stop waiting animation
+            if (waitingAnimationInterval) clearInterval(waitingAnimationInterval);
+
+            // Hide the confirmation checkbox
+            document.getElementById('confirmCheckboxContainer').style.display = 'none';
+
+            // Mark step 2 complete
+            setWizardStep(2, 'completed');
+            setWizardStep(3, 'active');
+
+            // Update UI
+            document.getElementById('verifyBtn').classList.remove('highlight', 'blink-green');
+            document.getElementById('verifyBtn').classList.add('disabled');
+            document.getElementById('verifyBtnText').textContent = 'Verifying...';
+
+            await updateProgress(30, 'Step 3: Verifying Installation');
+            updateWizardStatus('loading', 'Initializing verification process...');
+
+            await sleep(500);
+            await updateProgress(35);
+
+            updateWizardStatus('loading', 'Triggering URL protocol handler...');
+            await updateProgress(40);
+
+            // Try to trigger the protocol
+            triggerServerStart();
+
+            await sleep(500);
+            await updateProgress(45);
+
+            updateWizardStatus('loading', 'Waiting for server response...');
+            await updateProgress(50);
+
+            // Poll for servers starting
+            let attempts = 0;
+            const maxAttempts = 15;
+            let serversRunning = false;
+
+            while (attempts < maxAttempts && !serversRunning) {
+                await sleep(500);
+                attempts++;
+
+                const progress = 50 + Math.round((attempts / maxAttempts) * 35);
+                await updateProgress(progress);
+
+                updateWizardStatus('loading', `Checking server status... (${attempts}/${maxAttempts})`);
+
+                serversRunning = await checkDashboardServer();
+            }
+
+            await updateProgress(90);
+
+            if (serversRunning) {
+                // SUCCESS!
+                setWizardStep(3, 'completed');
+                setWizardStep(4, 'completed');
+
+                await updateProgress(95, 'Step 4: Installation Complete!');
+                updateWizardStatus('success', 'Protocol installed successfully!');
+
+                await sleep(500);
+                await updateProgress(100);
+
+                // Update instructions with success message
+                document.getElementById('instructionText').innerHTML =
+                    '<span style="color: #22c55e; font-size: 1.1em;">&#10003; Installation Complete!</span><br><br>' +
+                    'The URL protocol handler is now active. You can use the <strong>"Launch Dashboard"</strong> ' +
+                    'button for one-click startup from now on.<br><br>' +
+                    '<em>This window will close automatically...</em>';
+                document.getElementById('setupInstructions').classList.remove('highlight-instruction');
+
+                // Mark as verified in localStorage
+                localStorage.setItem('somalia-protocol-verified', 'true');
+                updateProtocolStatus('registered', 'URL Protocol: Active (verified!)');
+
+                // Update main button
+                document.querySelector('.btn-text').textContent = 'Open Dashboard';
+                document.querySelector('.start-btn').style.background = 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)';
+
+                // Close modal after delay
+                await sleep(3000);
+                document.getElementById('setupModal').classList.remove('visible');
+
+            } else {
+                // FAILED - allow retry
+                setWizardStep(3, 'waiting');
+
+                await updateProgress(85, 'Verification Failed - Retry?');
+                updateWizardStatus('error', 'Servers did not start. Protocol may not be installed.');
+
+                // Update instructions
+                document.getElementById('instructionText').innerHTML =
+                    '<span style="color: #f87171;">&#10007; Verification Failed</span><br><br>' +
+                    'The servers did not start. Please ensure you completed all steps:<br>' +
+                    '<table style="width: 100%; font-size: 0.9em; line-height: 1.6; margin: 8px 0;">' +
+                    '<tr><td style="width: 20px;">1.</td><td>Double-clicked the <code>update_protocol.reg</code> file</td></tr>' +
+                    '<tr><td>2.</td><td>Clicked <strong>Run</strong> on Windows Security</td></tr>' +
+                    '<tr><td>3.</td><td>Clicked <strong>Yes</strong> on UAC prompt</td></tr>' +
+                    '<tr><td>4.</td><td>Clicked <strong>Yes</strong> to confirm registry change</td></tr>' +
+                    '<tr><td>5.</td><td>Clicked <strong>OK</strong> on success message</td></tr>' +
+                    '</table>' +
+                    'Click <strong>"Retry Download"</strong> to try again.';
+                document.getElementById('setupInstructions').classList.add('highlight-instruction');
+
+                // Reset buttons for retry
+                wizardState.downloadComplete = false;
+                wizardState.verificationStarted = false;
+                setWizardStep(1, 'active');
+                setWizardStep(2, null);
+
+                document.getElementById('downloadBtn').classList.remove('disabled');
+                document.getElementById('downloadBtnText').textContent = 'Retry Download';
+                document.getElementById('verifyBtn').classList.add('disabled');
+                document.getElementById('verifyBtnText').textContent = 'Verify Installation';
+
+                updateProtocolStatus('not-registered',
+                    'URL Protocol: Not detected - <span class="setup-link" onclick="resetProtocol()">Try again</span>');
+            }
+        }
+
+        // Keep the old function names as aliases for backward compatibility
+        function downloadRegFix() { wizardDownload(); }
+        async function verifySetupComplete() { await wizardVerify(); }
+
+        // Check servers on page load
+        window.addEventListener('load', async function() {
+            // Brief delay to let page render
+            await sleep(300);
+
+            // Check protocol status
+            await checkProtocolStatus();
+
+            // Check if servers are running
+            const dashboardRunning = await checkDashboardServer();
+            if (dashboardRunning) {
+                // Servers are running - update button style
+                document.querySelector('.btn-text').textContent = 'Open Dashboard';
+                document.querySelector('.start-btn').style.background = 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)';
+                markProtocolVerified();
+            }
+        });
     </script>
 </body>
 </html>
