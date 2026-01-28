@@ -30,6 +30,7 @@
     <script>
         // Cache-busting for modules
         const moduleTime = Date.now();
+        document.write('<script src="../modules/data-loader.js?v=3.1&t=' + moduleTime + '"><\/script>');
         document.write('<script src="../modules/ddr.js?v=3.1&t=' + moduleTime + '"><\/script>');
         document.write('<script src="../modules/layer-registry.js?v=3.1&t=' + moduleTime + '"><\/script>');
         document.write('<script src="../modules/road-symbology.js?v=3.1&t=' + moduleTime + '"><\/script>');
