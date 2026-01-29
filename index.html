@@ -849,7 +849,14 @@
         .modal-btn.disabled {
             opacity: 0.4;
             cursor: not-allowed;
-            pointer-events: none;
+            pointer-events: none !important;
+        }
+
+        /* Shake animation for attention */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
         }
 
         /* Cancel button - light red */
@@ -943,14 +950,68 @@
             50% { opacity: 0.6; }
         }
 
-        /* Confirmation Checkbox Styles */
+        /* Confirmation Checkbox Styles - LOCKED STATE (default) */
         .confirm-checkbox-container {
             margin-top: 15px;
             padding: 12px 15px;
-            background: rgba(34, 197, 94, 0.1);
-            border: 1px solid rgba(34, 197, 94, 0.3);
+            background: rgba(71, 85, 105, 0.2);
+            border: 2px solid rgba(71, 85, 105, 0.4);
             border-radius: 8px;
-            animation: fadeIn 0.3s ease-out;
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .confirm-checkbox-container .confirm-text {
+            color: #64748b;
+        }
+
+        .confirm-checkbox-container .checkmark {
+            border-color: rgba(71, 85, 105, 0.5) !important;
+            background: rgba(30, 41, 59, 0.5) !important;
+        }
+
+        /* UNLOCKED STATE - flashing green, clickable */
+        .confirm-checkbox-container.unlocked {
+            opacity: 1;
+            pointer-events: auto;
+            background: rgba(34, 197, 94, 0.1);
+            border-color: rgba(34, 197, 94, 0.5);
+            animation: checkbox-flash 1.2s ease-in-out infinite;
+        }
+
+        .confirm-checkbox-container.unlocked .confirm-text {
+            color: #94a3b8;
+        }
+
+        .confirm-checkbox-container.unlocked .checkmark {
+            border-color: rgba(34, 197, 94, 0.5) !important;
+            background: rgba(30, 41, 59, 0.8) !important;
+        }
+
+        @keyframes checkbox-flash {
+            0%, 100% {
+                border-color: rgba(34, 197, 94, 0.5);
+                box-shadow: 0 0 8px rgba(34, 197, 94, 0.3);
+                background: rgba(34, 197, 94, 0.1);
+            }
+            50% {
+                border-color: rgba(34, 197, 94, 1);
+                box-shadow: 0 0 25px rgba(34, 197, 94, 0.7);
+                background: rgba(34, 197, 94, 0.25);
+            }
+        }
+
+        /* CHECKED STATE - solid green, no flash */
+        .confirm-checkbox-container.checked {
+            animation: none;
+            opacity: 1;
+            pointer-events: auto;
+            border-color: rgba(34, 197, 94, 0.8);
+            background: rgba(34, 197, 94, 0.15);
+        }
+
+        .confirm-checkbox-container.checked .confirm-text {
+            color: #22c55e;
         }
 
         @keyframes fadeIn {
@@ -1275,7 +1336,7 @@
                 <button class="modal-btn primary blink-green" id="downloadBtn" onclick="wizardDownload()">
                     <span id="downloadBtnText">Download Protocol</span>
                 </button>
-                <button class="modal-btn success waiting-yellow disabled" id="verifyBtn" onclick="wizardVerify()">
+                <button class="modal-btn success waiting-yellow disabled" id="verifyBtn" onclick="if(!this.classList.contains('disabled'))wizardVerify()">
                     <span id="verifyBtnText">Verify Installation</span>
                 </button>
             </div>
@@ -1781,9 +1842,12 @@
             verifyBtn.classList.add('waiting-yellow', 'disabled');
             document.getElementById('verifyBtnText').textContent = 'Verify Installation';
 
-            // Reset and hide confirmation checkbox
-            document.getElementById('confirmCheckboxContainer').style.display = 'none';
+            // Reset and hide confirmation checkbox - back to locked state
+            const checkboxContainer = document.getElementById('confirmCheckboxContainer');
+            checkboxContainer.style.display = 'none';
+            checkboxContainer.classList.remove('unlocked', 'checked');
             document.getElementById('confirmOkClicked').checked = false;
+            document.getElementById('confirmOkClicked').disabled = true;
         }
 
         function updateWizardStatus(type, message) {
@@ -1910,22 +1974,56 @@
             // Keep disabled and waiting-yellow - don't enable until checkbox is checked
             // verifyBtn.classList.remove('disabled'); // REMOVED - keep disabled
 
-            // Show the confirmation checkbox
-            document.getElementById('confirmCheckboxContainer').style.display = 'block';
+            // Show the confirmation checkbox - LOCKED initially
+            const checkboxContainer = document.getElementById('confirmCheckboxContainer');
+            checkboxContainer.style.display = 'block';
+            checkboxContainer.classList.remove('unlocked', 'checked');
             document.getElementById('confirmOkClicked').checked = false;
+            document.getElementById('confirmOkClicked').disabled = true;
 
             // Start a timer to remind user
             wizardState.installationStarted = true;
             startWaitingAnimation();
+
+            // After 8 seconds, unlock the checkbox (user should have completed steps by then)
+            setTimeout(() => {
+                if (wizardState.installationStarted && !wizardState.verificationStarted) {
+                    unlockCheckbox();
+                }
+            }, 8000);
+        }
+
+        // Unlock the checkbox after user has had time to complete steps
+        function unlockCheckbox() {
+            const checkboxContainer = document.getElementById('confirmCheckboxContainer');
+            const checkbox = document.getElementById('confirmOkClicked');
+
+            // Unlock - enable clicking and start flashing
+            checkboxContainer.classList.add('unlocked');
+            checkbox.disabled = false;
+
+            // Update status to prompt user
+            updateWizardStatus('waiting', 'Check the box below to confirm you completed all steps');
+
+            // Update instructions
+            document.getElementById('instructionText').innerHTML =
+                '<span style="color: #22c55e; font-weight: bold;">✓ Steps ready!</span><br><br>' +
+                'If you completed all 6 steps above and saw the <strong style="color: #22c55e;">success message</strong>, ' +
+                'check the flashing box below to enable verification.';
         }
 
         // Called when user checks the confirmation checkbox
         function onConfirmCheckboxChange() {
             const checkbox = document.getElementById('confirmOkClicked');
+            const checkboxContainer = document.getElementById('confirmCheckboxContainer');
             const verifyBtn = document.getElementById('verifyBtn');
 
             if (checkbox.checked) {
-                // User confirmed they clicked OK - enable Verify with blinking green
+                // User confirmed - stop flashing, mark as checked
+                checkboxContainer.classList.remove('unlocked');
+                checkboxContainer.classList.add('checked');
+
+                // Enable Verify with blinking green
                 verifyBtn.classList.remove('disabled', 'waiting-yellow');
                 verifyBtn.classList.add('blink-green');
 
@@ -1937,12 +2035,16 @@
                     '<span style="color: #22c55e; font-weight: bold;">✓ Great!</span> ' +
                     'Now click <strong style="color: #22c55e;">Verify Installation</strong> to confirm everything is working.';
             } else {
-                // User unchecked - disable Verify and make it yellow again
+                // User unchecked - go back to flashing state
+                checkboxContainer.classList.remove('checked');
+                checkboxContainer.classList.add('unlocked');
+
+                // Disable Verify and make it yellow again
                 verifyBtn.classList.remove('blink-green');
                 verifyBtn.classList.add('disabled', 'waiting-yellow');
 
                 // Restore waiting status
-                updateWizardStatus('loading', 'Waiting for you to complete installation steps...');
+                updateWizardStatus('waiting', 'Check the box below to confirm you completed all steps');
             }
         }
 
@@ -1967,6 +2069,17 @@
 
         // WIZARD STEP 3: Verify Installation
         async function wizardVerify() {
+            // BLOCK if checkbox not checked - user must confirm they completed steps
+            const checkbox = document.getElementById('confirmOkClicked');
+            if (!checkbox.checked) {
+                updateWizardStatus('waiting', 'Please check the confirmation box first!');
+                document.getElementById('confirmCheckboxContainer').style.animation = 'shake 0.5s ease';
+                setTimeout(() => {
+                    document.getElementById('confirmCheckboxContainer').style.animation = '';
+                }, 500);
+                return;
+            }
+
             if (wizardState.verificationStarted) return;
             wizardState.verificationStarted = true;
 
