@@ -129,13 +129,13 @@
         }
 
         .country-item.coming-soon {
-            opacity: 0.5;
+            opacity: 0.7;
         }
 
         .country-item.coming-soon:hover {
-            transform: none;
-            background: transparent;
-            cursor: not-allowed;
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.05);
+            cursor: pointer;
         }
 
         /* Rectangular flag container - shows full flag */
@@ -441,34 +441,64 @@
 
     <div class="footer">
         <p>Geo-Insights Lab, Decision-Support and Data Science Division, Economic and Social Commission for Western Asia (ESCWA), United Nations</p>
-        <p style="margin-top: 10px;">v4.0 Multi-Country Architecture</p>
+        <p style="margin-top: 10px;">v4.1 R2A Multi-Country Architecture</p>
     </div>
 
     <script>
-        // Country dashboard paths - expand as dashboards become available
+        /**
+         * Shared Dashboard Architecture - v4.1
+         * 22 Arab countries with shared dashboard code
+         * Somalia = full dashboard, others = Coming Soon with satellite view
+         *
+         * Keywords: GEO-INSIGHTS-ARCH, R2A-SPEED
+         */
+
+        // Country dashboard URLs - each country has its own folder
         const countryDashboards = {
-            'somalia': 'countries/somalia/index.html'
-            // Add more as they become available:
-            // 'jordan': 'countries/jordan/index.html',
-            // 'egypt': 'countries/egypt/index.html',
+            // ACTIVE - Full dashboard
+            'somalia': { url: 'countries/somalia/index.html', status: 'active' },
+
+            // COMING SOON - Satellite view with Coming Soon banner
+            'algeria': { url: 'countries/algeria/index.html', status: 'coming' },
+            'bahrain': { url: 'countries/bahrain/index.html', status: 'coming' },
+            'comoros': { url: 'countries/comoros/index.html', status: 'coming' },
+            'djibouti': { url: 'countries/djibouti/index.html', status: 'coming' },
+            'egypt': { url: 'countries/egypt/index.html', status: 'coming' },
+            'iraq': { url: 'countries/iraq/index.html', status: 'coming' },
+            'jordan': { url: 'countries/jordan/index.html', status: 'coming' },
+            'kuwait': { url: 'countries/kuwait/index.html', status: 'coming' },
+            'lebanon': { url: 'countries/lebanon/index.html', status: 'coming' },
+            'libya': { url: 'countries/libya/index.html', status: 'coming' },
+            'mauritania': { url: 'countries/mauritania/index.html', status: 'coming' },
+            'morocco': { url: 'countries/morocco/index.html', status: 'coming' },
+            'oman': { url: 'countries/oman/index.html', status: 'coming' },
+            'palestine': { url: 'countries/palestine/index.html', status: 'coming' },
+            'qatar': { url: 'countries/qatar/index.html', status: 'coming' },
+            'saudi-arabia': { url: 'countries/saudi/index.html', status: 'coming' },
+            'sudan': { url: 'countries/sudan/index.html', status: 'coming' },
+            'syria': { url: 'countries/syria/index.html', status: 'coming' },
+            'tunisia': { url: 'countries/tunisia/index.html', status: 'coming' },
+            'uae': { url: 'countries/uae/index.html', status: 'coming' },
+            'yemen': { url: 'countries/yemen/index.html', status: 'coming' }
         };
 
-        // Add click handlers
+        // Add click handlers - ALL countries now navigate to their dashboards
         document.querySelectorAll('.country-item').forEach(item => {
             item.addEventListener('click', function() {
                 const country = this.dataset.country;
+                const config = countryDashboards[country];
 
-                if (this.classList.contains('coming-soon')) {
-                    const countryName = this.querySelector('.country-name').textContent.replace('<br>', ' ');
-                    alert(`${countryName} dashboard is coming soon!\n\nWe are actively working on expanding coverage to all 22 Arab countries.`);
+                if (!config) {
+                    alert('Country configuration not found.');
                     return;
                 }
 
-                if (countryDashboards[country]) {
-                    window.location.href = countryDashboards[country];
-                }
+                // Navigate to dashboard (full or coming soon)
+                window.location.href = config.url;
             });
         });
+
+        console.log('[Geo-Insights] Country selector initialized - 22 countries ready');
     </script>
 </body>
 </html>

@@ -18,12 +18,14 @@
         "L1": {
             "count": 18,
             "name": "Region",
-            "name_local": "Gobol"
+            "name_local": "Gobol",
+            "nameField": "admin1Name"
         },
         "L2": {
             "count": 90,
             "name": "District",
-            "name_local": "Degmo"
+            "name_local": "Degmo",
+            "nameField": "admin2Name"
         }
     },
     "paths": {
@@ -73,6 +75,10 @@
         "accentColor": "#22c55e"
     },
     "enabled": true,
-    "version": "4.0",
-    "lastUpdated": "2026-01-29"
+    "version": "4.1",
+    "lastUpdated": "2026-01-29",
+    "r2a": {
+        "enabled": true,
+        "tilesPath": "../../data_warehouse/tiles/somalia"
+    }
 }

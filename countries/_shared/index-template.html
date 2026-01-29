@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <meta name="version" content="4.1">
+    <!-- COUNTRY_TITLE will be replaced -->
+    <title>Geo-Insights: COUNTRY_NAME Dashboard - ESCWA, UN</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Shared styles -->
+    <link rel="stylesheet" href="../_shared/styles.css?v=4.1" />
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 style="display: flex; align-items: center; justify-content: center; gap: 15px;">
+                <a href="https://dataportal.unescwa.org/gis/landing" target="_blank" title="Arab Development Portal - ESCWA" style="text-decoration: none;">
+                    <img src="../somalia/adp_logo.png" alt="Arab Development Portal" style="height: 44px; vertical-align: middle;">
+                </a>
+                <!-- COUNTRY_HEADER will be replaced -->
+                <span style="color: inherit;">Geo-Insights: COUNTRY_NAME Dashboard, ESCWA, UN</span>
+                <a href="../../country-selector.html" title="Back to Country Selector" style="text-decoration: none; font-size: 1.5rem; margin-left: 10px;">🌍</a>
+            </h1>
+            <div class="subtitle">By Geo-Insight Lab, ESCWA, 2026 <span style="font-size: 0.7em; opacity: 0.5;">(v4.1)</span></div>
+        </div>
+        <div id="map"></div>
+    </div>
+
+    <!-- Country Configuration - SET BEFORE LOADING DASHBOARD -->
+    <script>
+        // COUNTRY_CONFIG will be replaced for each country
+        window.COUNTRY_CODE = 'COUNTRY_CODE';
+        window.COUNTRY_NAME = 'COUNTRY_NAME';
+        window.COUNTRY_NAME_AR = 'COUNTRY_NAME_AR';
+        window.COUNTRY_FLAG = 'COUNTRY_FLAG';
+        window.COUNTRY_CENTER = [COUNTRY_LAT, COUNTRY_LON];
+        window.COUNTRY_ZOOM = COUNTRY_ZOOM;
+        window.COUNTRY_BOUNDS = COUNTRY_BOUNDS;
+    </script>
+
+    <!-- Shared Dashboard Script -->
+    <script src="../_shared/dashboard-coming-soon.js?v=4.1"></script>
+</body>
+</html>

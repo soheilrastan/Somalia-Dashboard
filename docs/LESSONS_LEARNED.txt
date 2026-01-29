@@ -2,7 +2,7 @@
 LESSONS LEARNED - Geo-Insights Dashboard Development
 Geo-Insights Lab, ESCWA, United Nations
 ================================================================================
-Last Updated: 2026-01-29 (v4.0 Multi-Country Architecture)
+Last Updated: 2026-01-29 (v4.1 Multi-Country Shared Dashboard Architecture)
 ================================================================================
 
 This document captures important lessons, fixes, and architectural decisions
@@ -2342,6 +2342,165 @@ FILES CENTRAL TO ARCHITECTURE:
 - shared/modules/*.js - All reusable modules
 - docs/LESSONS_LEARNED.txt - This documentation
 - tools/process_worldpop.py - Data processing template
+
+
+================================================================================
+LESSON 37: V4.1 MULTI-COUNTRY DASHBOARD - SHARED CODEBASE ARCHITECTURE
+================================================================================
+Date: 2026-01-29
+Issue: Need 22 Arab country dashboards without duplicating Somalia's code 22 times
+
+CONTEXT KEYWORD: "R2A-SPEED"
+--------------------------------------------------------------------------------
+When starting a new conversation about performance or multi-country, use:
+"Keyword: R2A-SPEED - Please read docs/LESSONS_LEARNED.txt Lesson 37"
+--------------------------------------------------------------------------------
+
+PROBLEM:
+--------------------------------------------------------------------------------
+- Somalia's dashboard has 7500+ lines of JavaScript
+- Copying this 22 times = maintenance nightmare
+- Each country needs different data but same UI/behavior
+- "Coming Soon" countries need professional placeholder dashboards
+--------------------------------------------------------------------------------
+
+SOLUTION: SHARED CODEBASE WITH MINIMAL COUNTRY FILES
+--------------------------------------------------------------------------------
+Structure implemented:
+
+countries/
+├── _shared/                          # MASTER CODE (shared by all)
+│   ├── styles.css                    # Universal dashboard styles
+│   └── dashboard-coming-soon.js      # Coming Soon dashboard script
+├── somalia/                          # FULL DASHBOARD (production)
+│   ├── index.html
+│   ├── script.js                     # 7500+ lines
+│   ├── styles.css
+│   └── config.json
+├── yemen/                            # COMING SOON (generated)
+│   └── index.html                    # ~40 lines only!
+├── egypt/
+│   └── index.html
+└── ... (19 more countries)
+
+Each "Coming Soon" country has ONLY index.html that:
+1. Sets window.COUNTRY_* variables (name, flag, center, zoom, bounds)
+2. Loads shared styles: ../_shared/styles.css
+3. Loads shared script: ../_shared/dashboard-coming-soon.js
+--------------------------------------------------------------------------------
+
+PYTHON GENERATOR SCRIPT:
+--------------------------------------------------------------------------------
+File: tools/generate_country_dashboards.py
+
+Generates all 21 "Coming Soon" index.html files automatically:
+
+    python tools/generate_country_dashboards.py
+
+Contains complete config for all 22 Arab countries:
+- Country name (English & Arabic)
+- Flag emoji
+- Map center coordinates [lat, lon]
+- Default zoom level
+- Country bounds [[sw_lat, sw_lon], [ne_lat, ne_lon]]
+
+To regenerate all dashboards after template changes, just run the script.
+--------------------------------------------------------------------------------
+
+"COMING SOON" DASHBOARD FEATURES (dashboard-coming-soon.js):
+--------------------------------------------------------------------------------
+Matches Somalia's exact UI layout:
+
+TOP LEFT:
+- 🗺️ Layers panel (collapsed) - Satellite toggle works, others disabled
+- 🧠 Geo-AI Insights panel (collapsed) - "Coming Soon" placeholder
+
+TOP RIGHT:
+- 📚 Concepts, Sources, Methods (collapsed) - Placeholder content
+- 🎨 Symbology (collapsed) - Placeholder content
+
+BOTTOM LEFT:
+- 📏 Measure Distance button - FULLY FUNCTIONAL
+- 🗑️ Clear button - FULLY FUNCTIONAL
+
+BOTTOM RIGHT:
+- 🔄 Clear Cache button - FULLY FUNCTIONAL
+
+BOTTOM CENTER:
+- Integrated banner: "← Countries | 🇾🇪 Yemen — Regional Analysis Coming Soon"
+- Click "← Countries" to return to country selector
+--------------------------------------------------------------------------------
+
+HEADER "← COUNTRIES" NAVIGATION:
+--------------------------------------------------------------------------------
+Both Somalia and Coming Soon dashboards have consistent header:
+
+    🌍← Countries
+
+- Earth emoji is the clickable link
+- "← Countries" is subtle cyan label (0.6rem, #0ea5e9)
+- Clicking either navigates to country-selector.html
+- Clean, professional look without bulky buttons
+--------------------------------------------------------------------------------
+
+COUNTRY SELECTOR IMPROVEMENTS:
+--------------------------------------------------------------------------------
+File: country-selector.html
+
+1. All 22 flags now clickable (no more "not-allowed" cursor)
+2. Coming Soon countries have opacity: 0.7 (slightly dimmed)
+3. Hover effect restored for all countries (lift + highlight)
+4. Each country navigates to its own folder:
+   - Somalia → countries/somalia/index.html (full dashboard)
+   - Yemen → countries/yemen/index.html (coming soon)
+   - etc.
+--------------------------------------------------------------------------------
+
+KEY FILES MODIFIED/CREATED:
+--------------------------------------------------------------------------------
+NEW:
+- countries/_shared/styles.css
+- countries/_shared/dashboard-coming-soon.js
+- tools/generate_country_dashboards.py
+- countries/{21 countries}/index.html (generated)
+
+MODIFIED:
+- country-selector.html (navigation logic, hover styles)
+- countries/somalia/index.html (added ← Countries label)
+--------------------------------------------------------------------------------
+
+WORKFLOW FOR ACTIVATING A NEW COUNTRY:
+--------------------------------------------------------------------------------
+When data becomes available for a country (e.g., Yemen):
+
+1. Copy Somalia's full files to countries/yemen/:
+   - script.js
+   - styles.css (or use _shared/)
+   - config.json (customize for Yemen)
+
+2. Update yemen/index.html to load full dashboard instead of coming-soon.js
+
+3. Process country data:
+   - Boundaries (L1/L2)
+   - Population (WorldPop)
+   - Roads (OSM)
+   - Nightlight (VIIRS)
+
+4. Update country-selector.html:
+   - Change status from 'coming' to 'active'
+   - Add "LIVE" badge if desired
+
+The Coming Soon architecture means countries are "ready to activate" with
+minimal additional work once data is available.
+--------------------------------------------------------------------------------
+
+REMAINING TODO (Post v4.1):
+--------------------------------------------------------------------------------
+□ Add /api/analytics/isee endpoint to Flask backend
+□ Generate R2A tiles for Somalia L1 regions (Bakool first)
+□ Implement R2A tile loading in full dashboard
+□ Add WebP tile generation to Python tools
+--------------------------------------------------------------------------------
 
 
 ================================================================================

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
+    <meta name="version" content="4.1">
+    <title>Geo-Insights: Saudi Arabia Dashboard - ESCWA, UN</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="../_shared/styles.css?v=4.1" />
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 style="display: flex; align-items: center; justify-content: center; gap: 15px;">
+                <a href="https://dataportal.unescwa.org/gis/landing" target="_blank" style="text-decoration: none;">
+                    <img src="../somalia/adp_logo.png" alt="Arab Development Portal" style="height: 44px; vertical-align: middle;">
+                </a>
+                <span style="color: inherit;">Geo-Insights: Saudi Arabia Dashboard, ESCWA, UN</span>
+                <a href="../../country-selector.html" title="Back to Country Selector" style="text-decoration: none; font-size: 1.5rem; margin-left: 5px; display: flex; align-items: center; gap: 6px;">🌍<span style="font-size: 0.6rem; color: #0ea5e9; font-weight: 500;">← Countries</span></a>
+            </h1>
+            <div class="subtitle">By Geo-Insight Lab, ESCWA, 2026 <span style="font-size: 0.7em; opacity: 0.5;">(v4.1)</span></div>
+        </div>
+        <div id="map"></div>
+    </div>
+
+    <script>
+        window.COUNTRY_CODE = 'saudi';
+        window.COUNTRY_NAME = 'Saudi Arabia';
+        window.COUNTRY_NAME_AR = 'المملكة العربية السعودية';
+        window.COUNTRY_FLAG = '🇸🇦';
+        window.COUNTRY_CENTER = [24.0, 45.0];
+        window.COUNTRY_ZOOM = 5;
+        window.COUNTRY_BOUNDS = [[16.0, 34.5], [32.2, 55.7]];
+    </script>
+    <script src="../_shared/dashboard-coming-soon.js?v=4.1"></script>
+</body>
+</html>
