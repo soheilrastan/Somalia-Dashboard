@@ -1,0 +1,175 @@
+{
+  "category": "Population",
+  "description": "Global and regional population distribution datasets",
+  "sources": {
+    "worldpop": {
+      "name": "WorldPop",
+      "provider": "WorldPop, University of Southampton",
+      "url": "https://www.worldpop.org/",
+      "data_portal": "https://hub.worldpop.org/geodata/listing?id=79",
+      "hdx_url": "https://data.humdata.org/organization/worldpop",
+      "resolution": ["100m", "1km"],
+      "methodology": "Top-down (census disaggregation) and bottom-up (microcensus) models",
+      "temporal_coverage": "2000-2030 (projections available)",
+      "update_frequency": "Annual",
+      "license": "CC BY 4.0",
+      "key_features": [
+        "Constrained and unconstrained estimates",
+        "Age/sex disaggregated versions available",
+        "UN-adjusted national totals",
+        "Global coverage"
+      ],
+      "somalia_available": true,
+      "status": "active"
+    },
+    "ghs_pop": {
+      "name": "Global Human Settlement Layer - Population (GHS-POP)",
+      "provider": "European Commission, Joint Research Centre (JRC)",
+      "url": "https://ghsl.jrc.ec.europa.eu/ghs_pop.php",
+      "data_portal": "https://ghsl.jrc.ec.europa.eu/download.php",
+      "resolution": ["100m", "1km"],
+      "methodology": "Population disaggregated using built-up area from Landsat/Sentinel",
+      "temporal_coverage": "1975, 1990, 2000, 2015, 2020, 2025, 2030",
+      "update_frequency": "Every 5 years with new GHSL epoch",
+      "license": "CC BY 4.0",
+      "key_features": [
+        "Linked to built-up area data (GHS-BUILT)",
+        "Long temporal coverage back to 1975",
+        "Consistent methodology across time",
+        "Integrated with GHSL ecosystem (SMOD, degree of urbanization)"
+      ],
+      "somalia_available": true,
+      "status": "coming_soon"
+    },
+    "gpwv4": {
+      "name": "Gridded Population of the World Version 4 (GPWv4)",
+      "provider": "NASA SEDAC, CIESIN Columbia University",
+      "url": "https://sedac.ciesin.columbia.edu/data/collection/gpw-v4",
+      "data_portal": "https://sedac.ciesin.columbia.edu/data/set/gpw-v4-population-count-rev11",
+      "resolution": ["1km (30 arc-seconds)"],
+      "methodology": "Census-based, minimal modeling - preserves input census geography",
+      "temporal_coverage": "2000, 2005, 2010, 2015, 2020",
+      "update_frequency": "Every 5 years",
+      "license": "CC BY 4.0",
+      "key_features": [
+        "Transparent methodology - minimal assumptions",
+        "Preserves census boundaries",
+        "No ancillary data used in allocation",
+        "Good for understanding census data distribution"
+      ],
+      "somalia_available": true,
+      "status": "coming_soon"
+    },
+    "landscan": {
+      "name": "LandScan Global",
+      "provider": "Oak Ridge National Laboratory (ORNL)",
+      "url": "https://landscan.ornl.gov/",
+      "data_portal": "https://landscan.ornl.gov/landscan-datasets",
+      "resolution": ["1km (30 arc-seconds)"],
+      "methodology": "Ambient (24-hour average) population using multi-variable dasymetric modeling",
+      "temporal_coverage": "2000-present (annual)",
+      "update_frequency": "Annual",
+      "license": "Free for non-commercial use",
+      "key_features": [
+        "Ambient population (accounts for daytime movement)",
+        "Uses roads, slope, land cover, nightlights, imagery",
+        "Best for daytime population exposure analysis",
+        "Widely used in disaster response"
+      ],
+      "somalia_available": true,
+      "status": "coming_soon"
+    },
+    "grump": {
+      "name": "Global Rural-Urban Mapping Project (GRUMP)",
+      "provider": "CIESIN, Columbia University",
+      "url": "https://sedac.ciesin.columbia.edu/data/collection/grump-v1",
+      "data_portal": "https://sedac.ciesin.columbia.edu/data/set/grump-v1-population-count",
+      "resolution": ["1km (30 arc-seconds)"],
+      "methodology": "GPW enhanced with urban extent masks from nighttime lights",
+      "temporal_coverage": "1990, 1995, 2000",
+      "update_frequency": "Legacy dataset (no longer updated)",
+      "license": "CC BY 4.0",
+      "key_features": [
+        "Urban/rural classification included",
+        "Based on stable nighttime lights urban extents",
+        "Historical baseline for urban growth studies"
+      ],
+      "somalia_available": true,
+      "status": "coming_soon",
+      "note": "Legacy dataset - use for historical comparison only"
+    },
+    "globpop": {
+      "name": "GlobPOP",
+      "provider": "Multiple institutions (fusion product)",
+      "url": "https://zenodo.org/record/7552840",
+      "data_portal": "https://zenodo.org/record/7552840",
+      "resolution": ["1km"],
+      "methodology": "Fusion of GPWv4, WorldPop, GHS-POP, LandScan, and GRUMP",
+      "temporal_coverage": "1990-2020 (31 years annual)",
+      "update_frequency": "One-time release",
+      "license": "CC BY 4.0",
+      "key_features": [
+        "31-year consistent time series",
+        "Reduces individual dataset biases through fusion",
+        "Best for long-term temporal analysis",
+        "Uncertainty estimates provided"
+      ],
+      "somalia_available": true,
+      "status": "coming_soon"
+    },
+    "hrsl": {
+      "name": "High Resolution Settlement Layer (HRSL)",
+      "provider": "Meta (Facebook) + CIESIN",
+      "url": "https://dataforgood.facebook.com/dfg/tools/high-resolution-population-density-maps",
+      "data_portal": "https://data.humdata.org/organization/meta",
+      "hdx_url": "https://data.humdata.org/dataset/highresolutionpopulationdensitymaps-som",
+      "resolution": ["30m"],
+      "methodology": "Machine learning on satellite imagery to identify buildings, then population allocated",
+      "temporal_coverage": "2015-2020 (varies by country)",
+      "update_frequency": "Periodic updates",
+      "license": "CC BY 4.0 (via HDX)",
+      "key_features": [
+        "Highest resolution (30m)",
+        "Building-level detection",
+        "Uses deep learning on satellite imagery",
+        "Excellent for settlement mapping"
+      ],
+      "somalia_available": true,
+      "status": "coming_soon"
+    },
+    "kontur": {
+      "name": "Kontur Population Dataset",
+      "provider": "Kontur",
+      "url": "https://www.kontur.io/portfolio/population-dataset/",
+      "data_portal": "https://data.humdata.org/dataset/kontur-population-dataset",
+      "hdx_url": "https://data.humdata.org/dataset/kontur-population-somalia",
+      "resolution": ["400m (H3 hexagons)"],
+      "methodology": "H3 hexagonal grid aggregation from multiple sources",
+      "temporal_coverage": "Latest available",
+      "update_frequency": "Quarterly",
+      "license": "ODbL",
+      "key_features": [
+        "H3 hexagonal grid (no edge effects)",
+        "Consistent global coverage",
+        "Easy to aggregate/disaggregate",
+        "Available on HDX"
+      ],
+      "somalia_available": true,
+      "status": "coming_soon"
+    }
+  },
+  "comparison_table": {
+    "headers": ["Source", "Resolution", "Methodology", "Best For"],
+    "rows": [
+      ["WorldPop", "100m-1km", "Top-down/Bottom-up", "General purpose, projections"],
+      ["GHS-POP", "100m-1km", "Built-up linked", "Urban analysis, long time series"],
+      ["GPWv4", "1km", "Census-based", "Transparency, census preservation"],
+      ["LandScan", "1km", "Ambient modeling", "Daytime exposure, disasters"],
+      ["GRUMP", "1km", "Urban-enhanced GPW", "Historical urban/rural"],
+      ["GlobPOP", "1km", "Multi-source fusion", "31-year time series"],
+      ["HRSL", "30m", "ML building detection", "High-resolution settlements"],
+      ["Kontur", "400m H3", "Hexagonal aggregation", "Consistent spatial units"]
+    ]
+  },
+  "last_updated": "2026-01-28"
+}

@@ -1,22 +1,27 @@
 /**
- * Road Length Calculator Module
- * ==============================
- * Independent calculator for computing road lengths in meters.
+ * Linear Length Calculator Module
+ * ================================
+ * Generic calculator for computing lengths of linear GeoJSON features in meters.
  * Uses Haversine formula for accurate geographic distance calculation.
  *
- * This module is called by:
- * - Archives and Updates Module (when downloading/processing roads)
- * - Any road layer that needs Length_m calculated
+ * Works with ANY linear feature type:
+ * - Roads (primary, secondary, tracks, etc.)
+ * - Electrical networks (transmission lines, distribution)
+ * - Water pipelines
+ * - Rivers and streams
+ * - Railway lines
+ * - Any LineString or MultiLineString geometry
  *
  * Usage:
- *   RoadLengthCalculator.calculate(feature);           // Returns length in meters (rounded to 1m)
- *   RoadLengthCalculator.addLengthToLayer(geoJson);    // Adds Length_m to all features
- *   RoadLengthCalculator.getTotalLength(geoJson);      // Returns total length of all roads
+ *   LinearLengthCalculator.calculate(feature);           // Returns length in meters (rounded to 1m)
+ *   LinearLengthCalculator.addLengthToLayer(geoJson);    // Adds Length_m to all features
+ *   LinearLengthCalculator.getTotalLength(geoJson);      // Returns total length of all features
+ *   LinearLengthCalculator.getStatistics(geoJson);       // Returns min/max/avg/total statistics
  */
 
-console.log('[RoadLengthCalculator] road-length.js file loading...');
+console.log('[LinearLengthCalculator] linear-length.js file loading...');
 
-var RoadLengthCalculator = (function() {
+var LinearLengthCalculator = (function() {
     'use strict';
 
     // Earth's radius in meters (WGS84 mean radius)
@@ -111,7 +116,7 @@ var RoadLengthCalculator = (function() {
      */
     function calculate(feature) {
         if (!feature || !feature.geometry) {
-            console.warn('[RoadLengthCalculator] Feature has no geometry');
+            console.warn('[LinearLengthCalculator] Feature has no geometry');
             return 0;
         }
 
@@ -128,7 +133,7 @@ var RoadLengthCalculator = (function() {
                 break;
 
             default:
-                console.warn(`[RoadLengthCalculator] Unsupported geometry type: ${geometry.type}`);
+                console.warn(`[LinearLengthCalculator] Unsupported geometry type: ${geometry.type}`);
                 return 0;
         }
 
@@ -139,11 +144,12 @@ var RoadLengthCalculator = (function() {
     /**
      * Add Length_m property to all features in a GeoJSON layer
      * @param {Object} geoJson - GeoJSON FeatureCollection
-     * @returns {Object} Same GeoJSON with Length_m added to each feature
+     * @param {string} propertyName - Optional custom property name (default: 'Length_m')
+     * @returns {Object} Same GeoJSON with length added to each feature
      */
-    function addLengthToLayer(geoJson) {
+    function addLengthToLayer(geoJson, propertyName = 'Length_m') {
         if (!geoJson || !geoJson.features) {
-            console.warn('[RoadLengthCalculator] Invalid GeoJSON - no features array');
+            console.warn('[LinearLengthCalculator] Invalid GeoJSON - no features array');
             return geoJson;
         }
 
@@ -156,22 +162,23 @@ var RoadLengthCalculator = (function() {
             }
 
             const length = calculate(feature);
-            feature.properties.Length_m = length;
+            feature.properties[propertyName] = length;
             totalLength += length;
             processedCount++;
         }
 
-        console.log(`[RoadLengthCalculator] Processed ${processedCount} features, total length: ${(totalLength / 1000).toFixed(2)} km`);
+        console.log(`[LinearLengthCalculator] Processed ${processedCount} features, total length: ${(totalLength / 1000).toFixed(2)} km`);
 
         return geoJson;
     }
 
     /**
-     * Get total length of all roads in a GeoJSON layer
+     * Get total length of all features in a GeoJSON layer
      * @param {Object} geoJson - GeoJSON FeatureCollection
+     * @param {string} propertyName - Optional property name to check first (default: 'Length_m')
      * @returns {number} Total length in meters
      */
-    function getTotalLength(geoJson) {
+    function getTotalLength(geoJson, propertyName = 'Length_m') {
         if (!geoJson || !geoJson.features) {
             return 0;
         }
@@ -179,9 +186,9 @@ var RoadLengthCalculator = (function() {
         let totalLength = 0;
 
         for (const feature of geoJson.features) {
-            // Use existing Length_m if available, otherwise calculate
-            if (feature.properties && feature.properties.Length_m) {
-                totalLength += feature.properties.Length_m;
+            // Use existing length property if available, otherwise calculate
+            if (feature.properties && feature.properties[propertyName]) {
+                totalLength += feature.properties[propertyName];
             } else {
                 totalLength += calculate(feature);
             }
@@ -193,9 +200,10 @@ var RoadLengthCalculator = (function() {
     /**
      * Get length statistics for a GeoJSON layer
      * @param {Object} geoJson - GeoJSON FeatureCollection
+     * @param {string} propertyName - Optional property name to check first (default: 'Length_m')
      * @returns {Object} Statistics object
      */
-    function getStatistics(geoJson) {
+    function getStatistics(geoJson, propertyName = 'Length_m') {
         if (!geoJson || !geoJson.features || geoJson.features.length === 0) {
             return {
                 count: 0,
@@ -208,8 +216,8 @@ var RoadLengthCalculator = (function() {
         }
 
         const lengths = geoJson.features.map(f => {
-            if (f.properties && f.properties.Length_m) {
-                return f.properties.Length_m;
+            if (f.properties && f.properties[propertyName]) {
+                return f.properties[propertyName];
             }
             return calculate(f);
         });
@@ -243,9 +251,12 @@ var RoadLengthCalculator = (function() {
 
 })();
 
+// Backward compatibility alias - RoadLengthCalculator points to same module
+var RoadLengthCalculator = LinearLengthCalculator;
+
 // Export for module systems (Node.js)
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = RoadLengthCalculator;
+    module.exports = LinearLengthCalculator;
 }
 
-console.log('[RoadLengthCalculator] Module fully loaded, typeof RoadLengthCalculator =', typeof RoadLengthCalculator);
+console.log('[LinearLengthCalculator] Module fully loaded, typeof LinearLengthCalculator =', typeof LinearLengthCalculator);

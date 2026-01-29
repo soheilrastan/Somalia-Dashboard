@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geo-Insights Dashboard - Country Selector</title>
+    <link rel="icon" type="image/x-icon" href="frontend/favicon.ico">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            min-height: 100vh;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            text-align: center;
+            padding: 50px 20px 30px;
+        }
+
+        .header h1 {
+            font-size: 2.8rem;
+            font-weight: 300;
+            margin-bottom: 15px;
+            background: linear-gradient(90deg, #00d4ff, #7c3aed, #f472b6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header .subtitle {
+            font-size: 1.2rem;
+            color: #94a3b8;
+            margin-bottom: 8px;
+        }
+
+        .header .org {
+            font-size: 1rem;
+            color: #64748b;
+        }
+
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 60px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 600;
+            color: #7c3aed;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #94a3b8;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 1.4rem;
+            color: #e2e8f0;
+            margin-bottom: 30px;
+            font-weight: 400;
+        }
+
+        /* Horizontal flag row - matching the image */
+        .countries-row {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            padding: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .country-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            padding: 10px;
+            border-radius: 10px;
+            min-width: 70px;
+        }
+
+        .country-item:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .country-item.active {
+            background: rgba(34, 197, 94, 0.15);
+        }
+
+        .country-item.active:hover {
+            background: rgba(34, 197, 94, 0.25);
+        }
+
+        .country-item.coming-soon {
+            opacity: 0.5;
+        }
+
+        .country-item.coming-soon:hover {
+            transform: none;
+            background: transparent;
+            cursor: not-allowed;
+        }
+
+        /* Circular flag container */
+        .flag-circle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.8rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .country-item:hover .flag-circle {
+            border-color: rgba(255, 255, 255, 0.5);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+        }
+
+        .country-item.active .flag-circle {
+            border-color: #22c55e;
+            box-shadow: 0 0 20px rgba(34, 197, 94, 0.4);
+        }
+
+        /* Arab Region special styling */
+        .country-item.arab-region .flag-circle {
+            background: #0088cc;
+            border-color: #00aaff;
+        }
+
+        .country-item.arab-region .flag-circle img {
+            width: 35px;
+            height: 35px;
+        }
+
+        .country-name {
+            font-size: 0.75rem;
+            color: #e2e8f0;
+            text-align: center;
+            line-height: 1.2;
+            max-width: 70px;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 30px 20px;
+            color: #64748b;
+            font-size: 0.85rem;
+        }
+
+        .footer a {
+            color: #7c3aed;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Active badge */
+        .active-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #22c55e;
+            color: #fff;
+            font-size: 0.5rem;
+            padding: 2px 5px;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+
+        .flag-wrapper {
+            position: relative;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            .countries-row {
+                gap: 10px;
+            }
+            .flag-circle {
+                width: 50px;
+                height: 50px;
+                font-size: 2.2rem;
+            }
+            .country-name {
+                font-size: 0.65rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Geo-Insights Dashboard</h1>
+        <p class="subtitle">Multi-Layer Geospatial Analytics Platform</p>
+        <p class="org">Geo-Insights Lab, ESCWA, United Nations</p>
+    </div>
+
+    <div class="container">
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-value">22</div>
+                <div class="stat-label">Arab Countries</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">100+</div>
+                <div class="stat-label">Data Layers</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">L1/L2</div>
+                <div class="stat-label">Admin Analysis</div>
+            </div>
+        </div>
+
+        <h2 class="section-title">Select a Country to Explore</h2>
+
+        <!-- Horizontal flag row matching the image order -->
+        <div class="countries-row">
+            <!-- Arab Region (special) -->
+            <div class="country-item arab-region coming-soon" data-country="arab-region" title="Arab Region Overview - Coming Soon">
+                <div class="flag-wrapper">
+                    <div class="flag-circle">
+                        <svg width="35" height="35" viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="45" fill="none" stroke="#fff" stroke-width="2"/>
+                            <text x="50" y="58" text-anchor="middle" fill="#fff" font-size="24">UN</text>
+                        </svg>
+                    </div>
+                </div>
+                <div class="country-name">Arab<br>Region</div>
+            </div>
+
+            <!-- Algeria -->
+            <div class="country-item coming-soon" data-country="algeria" title="Algeria - Coming Soon">
+                <div class="flag-circle">🇩🇿</div>
+                <div class="country-name">Algeria</div>
+            </div>
+
+            <!-- Bahrain -->
+            <div class="country-item coming-soon" data-country="bahrain" title="Bahrain - Coming Soon">
+                <div class="flag-circle">🇧🇭</div>
+                <div class="country-name">Bahrain</div>
+            </div>
+
+            <!-- Comoros -->
+            <div class="country-item coming-soon" data-country="comoros" title="Comoros - Coming Soon">
+                <div class="flag-circle">🇰🇲</div>
+                <div class="country-name">Comoros</div>
+            </div>
+
+            <!-- Djibouti -->
+            <div class="country-item coming-soon" data-country="djibouti" title="Djibouti - Coming Soon">
+                <div class="flag-circle">🇩🇯</div>
+                <div class="country-name">Djibouti</div>
+            </div>
+
+            <!-- Egypt -->
+            <div class="country-item coming-soon" data-country="egypt" title="Egypt - Coming Soon">
+                <div class="flag-circle">🇪🇬</div>
+                <div class="country-name">Egypt</div>
+            </div>
+
+            <!-- Iraq -->
+            <div class="country-item coming-soon" data-country="iraq" title="Iraq - Coming Soon">
+                <div class="flag-circle">🇮🇶</div>
+                <div class="country-name">Iraq</div>
+            </div>
+
+            <!-- Jordan -->
+            <div class="country-item coming-soon" data-country="jordan" title="Jordan - Coming Soon">
+                <div class="flag-circle">🇯🇴</div>
+                <div class="country-name">Jordan</div>
+            </div>
+
+            <!-- Kuwait -->
+            <div class="country-item coming-soon" data-country="kuwait" title="Kuwait - Coming Soon">
+                <div class="flag-circle">🇰🇼</div>
+                <div class="country-name">Kuwait</div>
+            </div>
+
+            <!-- Lebanon -->
+            <div class="country-item coming-soon" data-country="lebanon" title="Lebanon - Coming Soon">
+                <div class="flag-circle">🇱🇧</div>
+                <div class="country-name">Lebanon</div>
+            </div>
+
+            <!-- Libya -->
+            <div class="country-item coming-soon" data-country="libya" title="Libya - Coming Soon">
+                <div class="flag-circle">🇱🇾</div>
+                <div class="country-name">Libya</div>
+            </div>
+
+            <!-- Mauritania -->
+            <div class="country-item coming-soon" data-country="mauritania" title="Mauritania - Coming Soon">
+                <div class="flag-circle">🇲🇷</div>
+                <div class="country-name">Mauritania</div>
+            </div>
+
+            <!-- Morocco -->
+            <div class="country-item coming-soon" data-country="morocco" title="Morocco - Coming Soon">
+                <div class="flag-circle">🇲🇦</div>
+                <div class="country-name">Morocco</div>
+            </div>
+
+            <!-- Oman -->
+            <div class="country-item coming-soon" data-country="oman" title="Oman - Coming Soon">
+                <div class="flag-circle">🇴🇲</div>
+                <div class="country-name">Oman</div>
+            </div>
+
+            <!-- State of Palestine -->
+            <div class="country-item coming-soon" data-country="palestine" title="State of Palestine - Coming Soon">
+                <div class="flag-circle">🇵🇸</div>
+                <div class="country-name">State of<br>Palestine</div>
+            </div>
+
+            <!-- Qatar -->
+            <div class="country-item coming-soon" data-country="qatar" title="Qatar - Coming Soon">
+                <div class="flag-circle">🇶🇦</div>
+                <div class="country-name">Qatar</div>
+            </div>
+
+            <!-- Saudi Arabia -->
+            <div class="country-item coming-soon" data-country="saudi-arabia" title="Saudi Arabia - Coming Soon">
+                <div class="flag-circle">🇸🇦</div>
+                <div class="country-name">Saudi<br>Arabia</div>
+            </div>
+
+            <!-- Somalia - ACTIVE -->
+            <div class="country-item active" data-country="somalia" onclick="window.location.href='countries/somalia/index.html'" title="Somalia - Click to Enter Dashboard">
+                <div class="flag-wrapper">
+                    <div class="flag-circle">🇸🇴</div>
+                    <span class="active-badge">LIVE</span>
+                </div>
+                <div class="country-name">Somalia</div>
+            </div>
+
+            <!-- Sudan -->
+            <div class="country-item coming-soon" data-country="sudan" title="Sudan - Coming Soon">
+                <div class="flag-circle">🇸🇩</div>
+                <div class="country-name">Sudan</div>
+            </div>
+
+            <!-- Syria -->
+            <div class="country-item coming-soon" data-country="syria" title="Syria - Coming Soon">
+                <div class="flag-circle">🇸🇾</div>
+                <div class="country-name">Syria</div>
+            </div>
+
+            <!-- Tunisia -->
+            <div class="country-item coming-soon" data-country="tunisia" title="Tunisia - Coming Soon">
+                <div class="flag-circle">🇹🇳</div>
+                <div class="country-name">Tunisia</div>
+            </div>
+
+            <!-- United Arab Emirates -->
+            <div class="country-item coming-soon" data-country="uae" title="United Arab Emirates - Coming Soon">
+                <div class="flag-circle">🇦🇪</div>
+                <div class="country-name">United Arab<br>Emirates</div>
+            </div>
+
+            <!-- Yemen -->
+            <div class="country-item coming-soon" data-country="yemen" title="Yemen - Coming Soon">
+                <div class="flag-circle">🇾🇪</div>
+                <div class="country-name">Yemen</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Geo-Insights Lab, Economic and Social Commission for Western Asia (ESCWA), United Nations</p>
+        <p style="margin-top: 10px;">v4.0 Multi-Country Architecture</p>
+    </div>
+
+    <script>
+        // Country dashboard paths - expand as dashboards become available
+        const countryDashboards = {
+            'somalia': 'countries/somalia/index.html'
+            // Add more as they become available:
+            // 'jordan': 'countries/jordan/index.html',
+            // 'egypt': 'countries/egypt/index.html',
+        };
+
+        // Add click handlers
+        document.querySelectorAll('.country-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const country = this.dataset.country;
+
+                if (this.classList.contains('coming-soon')) {
+                    const countryName = this.querySelector('.country-name').textContent.replace('<br>', ' ');
+                    alert(`${countryName} dashboard is coming soon!\n\nWe are actively working on expanding coverage to all 22 Arab countries.`);
+                    return;
+                }
+
+                if (countryDashboards[country]) {
+                    window.location.href = countryDashboards[country];
+                }
+            });
+        });
+    </script>
+</body>
+</html>

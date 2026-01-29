@@ -1236,3 +1236,67 @@
         .select-region-hint.hidden {
             display: none;
         }
+
+        /* ========================================
+           POPULATION LAYER STYLES
+           ======================================== */
+
+        /* Population layer drag-and-drop styles */
+        #pop2015Label:not(.layer-dropped):hover,
+        #pop2020Label:not(.layer-dropped):hover,
+        #pop2025Label:not(.layer-dropped):hover,
+        #pop2030Label:not(.layer-dropped):hover {
+            cursor: grab;
+            animation: grabHandGlow 1s infinite;
+            border-radius: 4px;
+        }
+
+        #pop2015Label:active,
+        #pop2020Label:active,
+        #pop2025Label:active,
+        #pop2030Label:active {
+            cursor: grabbing;
+        }
+
+        /* Population tooltip styling */
+        .population-tooltip {
+            background: rgba(236, 64, 122, 0.95) !important;
+            border: none !important;
+            color: white !important;
+            font-weight: 600;
+            padding: 6px 10px !important;
+            border-radius: 6px !important;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3) !important;
+        }
+
+        .population-tooltip::before {
+            border-top-color: rgba(236, 64, 122, 0.95) !important;
+        }
+
+        /* Population legend gradient */
+        .population-gradient {
+            background: linear-gradient(to right,
+                #ffffb2 0%,
+                #fed976 14%,
+                #feb24c 28%,
+                #fd8d3c 42%,
+                #fc4e2a 56%,
+                #e31a1c 70%,
+                #bd0026 85%,
+                #800026 100%
+            );
+            height: 12px;
+            border-radius: 3px;
+            margin: 5px 0;
+        }
+
+        /* Coming Soon links styling */
+        .coming-soon-link {
+            opacity: 0.7;
+            transition: opacity 0.2s ease;
+        }
+
+        .coming-soon-link:hover {
+            opacity: 1;
+            text-decoration: underline !important;
+        }

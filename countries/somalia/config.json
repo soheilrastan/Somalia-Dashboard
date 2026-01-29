@@ -1,0 +1,78 @@
+{
+    "country": {
+        "code": "SOM",
+        "iso2": "SO",
+        "iso3": "SOM",
+        "name": "Somalia",
+        "name_ar": "الصومال",
+        "flag": "🇸🇴"
+    },
+    "map": {
+        "center": [5.15, 46.2],
+        "zoom": 6,
+        "minZoom": 5,
+        "maxZoom": 18,
+        "bounds": [[-1.5, 40.9], [12.0, 51.5]]
+    },
+    "admin": {
+        "L1": {
+            "count": 18,
+            "name": "Region",
+            "name_local": "Gobol"
+        },
+        "L2": {
+            "count": 90,
+            "name": "District",
+            "name_local": "Degmo"
+        }
+    },
+    "paths": {
+        "boundaries": {
+            "adm0": "../../layers/boundaries/adm0/somalia_adm0_boundaries.geojson",
+            "adm1": "../../layers/boundaries/adm1/somalia_adm1_boundaries.geojson",
+            "adm2": "../../layers/boundaries/adm2/somalia_adm2_boundaries.geojson"
+        },
+        "population": "../../data_warehouse/population/worldpop_1km/",
+        "roads": "../../data_warehouse/roads/",
+        "nightlight": "../../data_warehouse/nightlight/",
+        "health": "../../data_warehouse/health/",
+        "education": "../../data_warehouse/education/"
+    },
+    "dataSources": {
+        "population": {
+            "provider": "WorldPop",
+            "resolution": "1km",
+            "years": [2015, 2020, 2025, 2030],
+            "type": "Constrained"
+        },
+        "roads": {
+            "provider": "OpenStreetMap",
+            "types": ["primary", "secondary", "tertiary", "trunk", "motorway"]
+        },
+        "nightlight": {
+            "provider": "VIIRS",
+            "years": [2014, 2019, 2024]
+        }
+    },
+    "gee": {
+        "projectId": "ee-geo-insights",
+        "assetPath": "projects/ee-geo-insights/assets/somalia/"
+    },
+    "api": {
+        "baseUrl": "/api/v1",
+        "endpoints": {
+            "boundaries": "/boundaries",
+            "population": "/population",
+            "roads": "/roads",
+            "analysis": "/analysis"
+        }
+    },
+    "ui": {
+        "theme": "dark",
+        "primaryColor": "#7c3aed",
+        "accentColor": "#22c55e"
+    },
+    "enabled": true,
+    "version": "4.0",
+    "lastUpdated": "2026-01-29"
+}

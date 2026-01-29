@@ -17,7 +17,12 @@
       "Bash(python tools/download_worldpop.py:*)",
       "Bash(python tools/process_worldpop.py:*)",
       "Bash(more:*)",
-      "Bash(powershell -Command \"Get-ChildItem -Path ''data_warehouse\\\\population\\\\worldpop_1km\\\\by_year'' -Recurse -File | Group-Object Directory | ForEach-Object { $_Name + '': '' + $_Count + '' files'' }\")"
+      "Bash(powershell -Command \"Get-ChildItem -Path ''data_warehouse\\\\population\\\\worldpop_1km\\\\by_year'' -Recurse -File | Group-Object Directory | ForEach-Object { $_Name + '': '' + $_Count + '' files'' }\")",
+      "Bash(wsl stat:*)",
+      "Bash(powershell -Command \"\\(Get-Item ''c:\\\\Users\\\\10145080\\\\Downloads\\\\Somalia Dashboard\\\\data_warehouse\\\\population\\\\worldpop_1km\\\\by_year\\\\2015\\\\Bari_pop_2015.geojson''\\).Length\")",
+      "Bash(powershell -Command:*)",
+      "Bash(where:*)",
+      "Bash(python -m http.server:*)"
     ]
   }
 }

@@ -1,0 +1,39 @@
+{
+  "concept": "Population Distribution",
+  "description": "Spatial distribution of human population across geographic areas, typically represented as gridded data at various resolutions.",
+  "importance": [
+    "Foundation for per-capita calculations (roads per 1000 people, etc.)",
+    "Essential for humanitarian planning and resource allocation",
+    "Enables population-weighted analysis of other indicators",
+    "Critical for understanding urbanization and settlement patterns"
+  ],
+  "key_terms": {
+    "top_down_modeling": "Disaggregating census counts to grid cells using ancillary data (land cover, roads, lights)",
+    "bottom_up_modeling": "Building estimates from microcensus surveys and high-resolution imagery",
+    "ambient_population": "Average 24-hour population accounting for daytime movement (work, travel)",
+    "residential_population": "Nighttime population where people sleep/reside",
+    "constrained_estimates": "Population totals adjusted to match UN national estimates",
+    "unconstrained_estimates": "Raw model outputs without adjustment to official totals"
+  },
+  "resolution_comparison": {
+    "30m": "Building-level detail (HRSL)",
+    "100m": "Neighborhood-level (GHS-POP, WorldPop 100m)",
+    "400m": "H3 hexagonal grids (Kontur)",
+    "1km": "Regional analysis (WorldPop 1km, GPWv4, LandScan, GlobPOP)"
+  },
+  "use_cases": {
+    "humanitarian": "Disaster response, refugee camp planning, aid distribution",
+    "infrastructure": "Roads, electricity, water access per capita",
+    "health": "Healthcare facility coverage, disease burden estimation",
+    "urban_planning": "Settlement growth, urbanization trends",
+    "climate": "Population exposure to climate hazards"
+  },
+  "limitations": [
+    "All gridded products are modeled estimates, not actual counts",
+    "Accuracy varies by region - typically lower in data-sparse areas",
+    "Temporal lag - census data may be 5-10 years old",
+    "Projections (2025, 2030) have increasing uncertainty"
+  ],
+  "related_concepts": ["nightlight", "roads", "settlements", "urbanization"],
+  "last_updated": "2026-01-28"
+}

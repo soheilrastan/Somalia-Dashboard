@@ -1,8 +1,8 @@
 ================================================================================
-LESSONS LEARNED - Somalia Dashboard Development
+LESSONS LEARNED - Geo-Insights Dashboard Development
 Geo-Insights Lab, ESCWA, United Nations
 ================================================================================
-Last Updated: 2026-01-26
+Last Updated: 2026-01-29 (v4.0 Multi-Country Architecture)
 ================================================================================
 
 This document captures important lessons, fixes, and architectural decisions
@@ -1716,6 +1716,477 @@ CHECKLIST WHEN MOVING FILES:
 --------------------------------------------------------------------------------
 
 Files affected: index.html (moved from launcher/ to root)
+
+
+================================================================================
+LESSON 32: iSEE ANALYTICS v4.0 - PROFESSIONAL GEOSPATIAL ANALYTICS REDESIGN
+================================================================================
+Date: 2026-01-28
+Issue: iSEE Analytics module providing basic statistics without professional visuals
+
+PROBLEM:
+- Original iSEE Analytics only showed basic text statistics
+- No professional charts or visualizations
+- No time-series analysis for comparing years
+- No cross-thematic correlation analysis
+- No AI-driven development recommendations
+- Error: "Cannot read properties of undefined (reading 'toFixed')" due to missing null checks
+
+ROOT CAUSE:
+- Initial implementation focused on proof-of-concept
+- No defensive coding for undefined statistics
+- No professional visualization library integration
+- Single-layer analysis only, no temporal or cross-layer features
+
+SOLUTION - COMPLETE v4.0 REWRITE:
+--------------------------------------------------------------------------------
+Key features added:
+
+1. ENHANCED STATISTICS (calculateStats function):
+   - Mean, median, standard deviation, variance
+   - Percentiles: P5, P10, Q1 (P25), Q3 (P75), P90, P95
+   - IQR (Interquartile Range)
+   - Skewness and Kurtosis (distribution shape)
+   - Coefficient of Variation (CV)
+   - 10-bin histogram for distribution analysis
+   - Correlation coefficient and linear regression
+
+2. PROFESSIONAL SVG CHARTS (no external libraries):
+   - generateBarChart() - Vertical bars with gradients and animations
+   - generateGroupedBarChart() - Multi-series comparison
+   - generateHorizontalBarChart() - Rankings and comparisons
+   - generateLineChart() - Time series with area fill
+   - generateDistributionChart() - Histogram with mean line
+   - generateRadarChart() - Spider/radar chart for multi-dimensional
+   - generateKPICard() - Key Performance Indicator summary cards
+   - generateStatisticsPanel() - Comprehensive statistics display
+
+3. COMPOSITE DEVELOPMENT INDICATORS:
+   - Road Density Index (RDI) - km per 1000 people
+   - Infrastructure Quality Index (IQI) - based on road type diversity
+   - Electrification Index (EI) - from nightlight data
+   - Population Accessibility Index (PAI) - population served by roads
+   Based on World Bank/IMF methodologies
+
+4. TEMPORAL ANALYSIS:
+   - performTemporalAnalysis() groups layers by type and year
+   - Calculates year-over-year change percentages
+   - Identifies trends (growing, declining, stable)
+   - Line charts showing metric evolution
+
+5. CROSS-LAYER ANALYSIS:
+   - calculateCorrelation() for statistical correlation
+   - calculateLinearRegression() with R² values
+   - Significance ratings: Critical, High, Medium, Low
+   - Population-Roads density correlation
+   - Nightlight-Infrastructure correlation
+
+6. AI-DRIVEN RECOMMENDATIONS:
+   - generateRecommendations() based on data patterns
+   - Priority levels for development interventions
+   - Context-aware suggestions based on available data
+--------------------------------------------------------------------------------
+
+DEFENSIVE CODING PATTERNS ADDED:
+--------------------------------------------------------------------------------
+// Safe number formatting - prevents toFixed errors
+function safeFixed(val, decimals = 2) {
+    if (val === undefined || val === null || isNaN(val)) return 'N/A';
+    return Number(val).toFixed(decimals);
+}
+
+// Safe locale string formatting
+function formatNumber(num, decimals = 0) {
+    if (num === undefined || num === null || isNaN(num)) return 'N/A';
+    if (Math.abs(num) >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+    if (Math.abs(num) >= 1000) return (num / 1000).toFixed(1) + 'K';
+    return num.toFixed(decimals);
+}
+
+// Check for valid statistics before rendering
+const hasMean = stats.mean !== undefined;
+const hasMedian = stats.median !== undefined;
+if (!hasMean && !hasMedian && !hasMin && !hasMax) return '';
+--------------------------------------------------------------------------------
+
+SVG CHART IMPLEMENTATION PATTERN:
+--------------------------------------------------------------------------------
+function generateBarChart(data, options = {}) {
+    const {
+        width = 450,
+        height = 280,
+        title = '',
+        colors = [ChartColors.primary],
+        showValues = true,
+        showGrid = true,
+        animate = true
+    } = options;
+
+    // Create SVG with viewBox for responsiveness
+    let svg = `<svg viewBox="0 0 ${width} ${height}"
+                    style="width: 100%; max-width: ${width}px; height: auto;">`;
+
+    // Dark background with rounded corners
+    svg += `<rect width="${width}" height="${height}" fill="#0f172a" rx="12"/>`;
+
+    // Define gradients for visual appeal
+    svg += `<defs>
+        <linearGradient id="barGrad_${i}" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:${color};stop-opacity:1"/>
+            <stop offset="100%" style="stop-color:${color};stop-opacity:0.6"/>
+        </linearGradient>
+    </defs>`;
+
+    // Add bars with optional animation
+    if (animate) {
+        svg += `<style>
+            @keyframes growBar { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+            .chart-bar { animation: growBar 0.5s ease-out forwards; transform-origin: bottom; }
+        </style>`;
+    }
+
+    svg += '</svg>';
+    return svg;
+}
+--------------------------------------------------------------------------------
+
+LAYER TYPE REGISTRATION SYSTEM:
+--------------------------------------------------------------------------------
+// Register layer type once with all analysis functions
+ISEEAnalytics.registerLayerType({
+    type: 'infrastructure-roads',
+    name: 'Road Network',
+
+    // How to detect this layer type
+    detect: (name, layer) => /roads|osm|hdx/i.test(name),
+
+    // How to extract GeoJSON data from layer
+    getData: (name, layer) => {
+        const geojsonData = layer.toGeoJSON?.() || layer._geojson;
+        return geojsonData?.features || [];
+    },
+
+    // How to calculate statistics
+    extractStats: (features) => {
+        // Process features, return stats object
+        return { count, byClass, totalLength, ... };
+    },
+
+    // How to generate insights from stats
+    generateInsights: (stats, metadata) => {
+        return ['Insight 1', 'Insight 2', ...];
+    },
+
+    // Cross-layer analysis configuration
+    crossLayerAnalysis: {
+        population: {
+            generate: (roadsData, popData) => ({ title, finding, significance })
+        }
+    }
+});
+--------------------------------------------------------------------------------
+
+COLOR PALETTE FOR CHARTS:
+--------------------------------------------------------------------------------
+const ChartColors = {
+    primary: '#3b82f6',
+    secondary: '#8b5cf6',
+    success: '#10b981',
+    warning: '#f59e0b',
+    danger: '#ef4444',
+    info: '#06b6d4',
+    pink: '#ec4899',
+
+    // Theme-specific gradient palettes (8 colors each)
+    population: ['#fce7f3', '#fbcfe8', '#f9a8d4', '#f472b6',
+                 '#ec4899', '#db2777', '#be185d', '#9d174d'],
+    roads: ['#fef3c7', '#fde68a', '#fcd34d', '#fbbf24',
+            '#f59e0b', '#d97706', '#b45309', '#92400e'],
+    nightlight: ['#ede9fe', '#ddd6fe', '#c4b5fd', '#a78bfa',
+                 '#8b5cf6', '#7c3aed', '#6d28d9', '#5b21b6'],
+    infrastructure: ['#d1fae5', '#a7f3d0', '#6ee7b7', '#34d399',
+                     '#10b981', '#059669', '#047857', '#065f46']
+};
+--------------------------------------------------------------------------------
+
+FILES AFFECTED:
+- modules/isee_analytics.js - Complete rewrite (2305 lines)
+
+RESEARCH SOURCES USED:
+- CARTO geospatial analytics best practices
+- ResearchGate: Road density vs population correlation studies
+- IMF Working Paper: Road Infrastructure Investment Analysis
+- World Bank: Infrastructure Development Indicators
+
+
+================================================================================
+LESSON 33: CHECKBOX SYNCHRONIZATION FOR LAYER REMOVAL
+================================================================================
+Date: 2026-01-28
+Issue: When layers removed via right-click context menu, checkboxes remain checked
+
+PROBLEM:
+- Layer checkbox controls in sidebar show "checked" state
+- User removes layer via right-click context menu "Remove Layer"
+- Checkbox stays checked even though layer is gone
+- Confusing UX - checkbox state doesn't match map state
+
+ROOT CAUSE:
+- Checkbox state managed independently from layer state
+- No event listener for layer removal
+- Context menu removal bypassed checkbox update logic
+
+SOLUTION - CENTRALIZED LAYER-CHECKBOX MAPPING:
+--------------------------------------------------------------------------------
+// 1. Create mapping between layers and their checkboxes
+const layerCheckboxMapping = {
+    patterns: {
+        // Pattern-based matching for dynamic layer names
+        'Population': function(layerName, year) {
+            const yearMatch = layerName.match(/Population\s+(\d{4})/);
+            if (yearMatch) return `pop${yearMatch[1]}Toggle`;
+            return null;
+        },
+        // Static mappings for known layers
+        'Roads OSM 2023': 'roadsOSMToggle',
+        'Roads 2024': 'roads2024Toggle',
+        'Bakool 2022': 'bakool2022Toggle',
+        'Bakool 2023': 'bakool2023Toggle',
+        'iSEE': 'iseeAnalyticsToggle'
+    },
+
+    // Find checkbox ID for a layer name
+    getCheckboxId: function(layerName) {
+        for (const [pattern, value] of Object.entries(this.patterns)) {
+            if (layerName.includes(pattern)) {
+                if (typeof value === 'function') {
+                    return value(layerName);
+                }
+                return value;
+            }
+        }
+        return null;
+    },
+
+    // Uncheck checkbox when layer removed
+    syncCheckboxOnRemove: function(layerName) {
+        const checkboxId = this.getCheckboxId(layerName);
+        if (checkboxId) {
+            const checkbox = document.getElementById(checkboxId);
+            if (checkbox) {
+                checkbox.checked = false;
+                console.log(`[Checkbox Sync] Unchecked ${checkboxId} for layer: ${layerName}`);
+            }
+        }
+    }
+};
+
+// 2. Create registry for runtime layer-checkbox associations
+const layerCheckboxRegistry = new Map();
+
+function registerLayerCheckbox(layer, checkboxId) {
+    layerCheckboxRegistry.set(layer, checkboxId);
+}
+
+// 3. Listen to Leaflet's layerremove event
+map.on('layerremove', function(e) {
+    // Check registry first
+    if (layerCheckboxRegistry.has(e.layer)) {
+        const checkboxId = layerCheckboxRegistry.get(e.layer);
+        const checkbox = document.getElementById(checkboxId);
+        if (checkbox) checkbox.checked = false;
+        layerCheckboxRegistry.delete(e.layer);
+    }
+});
+
+// 4. Update regionLockState.removeLayer to call sync
+removeLayer: function(layerName) {
+    // ... existing removal logic ...
+
+    // Sync checkbox state
+    layerCheckboxMapping.syncCheckboxOnRemove(layerName);
+
+    // Reset iSEE Analytics if needed
+    if (typeof window.resetISEEAnalytics === 'function') {
+        window.resetISEEAnalytics();
+    }
+}
+--------------------------------------------------------------------------------
+
+REGISTRATION EXAMPLE:
+--------------------------------------------------------------------------------
+// When creating a layer with checkbox control
+const roadsLayer = L.geoJSON(data, { style: roadStyle });
+roadsLayer.addTo(map);
+regionLockState.addLayer('Roads OSM - Bakool', roadsLayer, 'roads');
+registerLayerCheckbox(roadsLayer, 'roadsOSMToggle');
+
+// Now when layer is removed (any method), checkbox auto-unchecks
+--------------------------------------------------------------------------------
+
+FILES AFFECTED:
+- frontend/script_v3.1.js (layerCheckboxMapping, registerLayerCheckbox, map.on('layerremove'))
+
+
+================================================================================
+LESSON 34: SAFE STATISTICS RENDERING - NULL/UNDEFINED HANDLING
+================================================================================
+Date: 2026-01-28
+Issue: TypeError when rendering statistics with missing values
+
+PROBLEM:
+- Error: "Cannot read properties of undefined (reading 'toFixed')"
+- Occurs when stats object missing expected properties (mean, median, etc.)
+- Different layer types have different available statistics
+- Nightlight may have mean but not median, roads may have count but not mean
+
+ROOT CAUSE:
+- Assumed all stats objects have same properties
+- Direct .toFixed() call on potentially undefined values
+- No conditional rendering based on available data
+
+SOLUTION - DEFENSIVE STATISTICS RENDERING:
+--------------------------------------------------------------------------------
+// 1. Safe number formatting function
+function safeFixed(val, decimals = 2) {
+    if (val === undefined || val === null || isNaN(val)) return 'N/A';
+    return Number(val).toFixed(decimals);
+}
+
+// 2. Safe locale formatting function
+function safeLocale(val) {
+    if (val === undefined || val === null || isNaN(val)) return 'N/A';
+    return Number(val).toLocaleString();
+}
+
+// 3. Check what statistics are available before rendering
+function generateStatisticsPanel(stats, options = {}) {
+    if (!stats) return '';
+
+    const hasMean = stats.mean !== undefined && !isNaN(stats.mean);
+    const hasMedian = stats.median !== undefined && !isNaN(stats.median);
+    const hasMin = stats.min !== undefined && !isNaN(stats.min);
+    const hasMax = stats.max !== undefined && !isNaN(stats.max);
+
+    // Don't render empty panel
+    if (!hasMean && !hasMedian && !hasMin && !hasMax) {
+        return '';
+    }
+
+    let html = '<div class="stats-panel">';
+
+    // Only render rows for available statistics
+    if (hasMean) {
+        html += `<div class="stat-row">Mean: ${safeFixed(stats.mean)}</div>`;
+    }
+    if (hasMedian) {
+        html += `<div class="stat-row">Median: ${safeFixed(stats.median)}</div>`;
+    }
+    // ... etc
+
+    return html;
+}
+
+// 4. Debug logging for troubleshooting
+function analyzeLayer(name, layer) {
+    console.log(`[iSEE] Analyzing: ${name}`);
+    const stats = extractStats(layer);
+    console.log('[iSEE] Stats:', JSON.stringify(stats, null, 2));
+    // If stats has unexpected structure, log will show it
+    return stats;
+}
+--------------------------------------------------------------------------------
+
+PATTERN - ALWAYS USE DEFENSIVE CHECKS:
+--------------------------------------------------------------------------------
+// WRONG - crashes if stats.mean is undefined
+const display = stats.mean.toFixed(2);
+
+// CORRECT - handles undefined gracefully
+const display = safeFixed(stats.mean);
+
+// WRONG - crashes if stats doesn't have property
+const insight = `Mean: ${stats.values.mean}`;
+
+// CORRECT - optional chaining + fallback
+const insight = `Mean: ${stats?.values?.mean ?? 'N/A'}`;
+--------------------------------------------------------------------------------
+
+FILES AFFECTED:
+- modules/isee_analytics.js (safeFixed, safeLocale, conditional rendering)
+
+
+================================================================================
+LESSON 35: V4.0 MULTI-COUNTRY ARCHITECTURE
+================================================================================
+Date: 2026-01-29
+Issue: Dashboard needed to scale from Somalia-only to 22 Arab countries
+
+SOLUTION - SCALABLE FOLDER STRUCTURE:
+--------------------------------------------------------------------------------
+Geo-Insights-Dashboard/
+├── index.html                    # Launcher (URL protocol, server checks)
+├── country-selector.html         # NEW: 22 Arab flags selector page
+├── countries/
+│   └── somalia/
+│       ├── index.html           # Country dashboard
+│       ├── script.js            # Country-specific logic
+│       ├── styles.css           # Country styles
+│       └── config.json          # Country parameters (bounds, zoom, paths)
+├── shared/
+│   └── modules/                 # Reusable JS modules
+│       ├── isee_analytics.js    # Analysis engine
+│       ├── ddr.js               # Drag-drop registry
+│       ├── layer-registry.js    # Layer management
+│       ├── road-symbology.js    # Road styling
+│       ├── ssm-module.js        # Selection state
+│       ├── l1-clip.js           # Region clipping
+│       ├── geo-api.js           # GEE/API integration
+│       └── data-loader.js       # Data loading utilities
+├── data_warehouse/              # Data stays at root
+├── layers/
+├── tools/
+├── backend/
+└── docs/
+--------------------------------------------------------------------------------
+
+KEY ARCHITECTURAL DECISIONS:
+1. Country selector as entry point after launcher verification
+2. Each country gets own folder under countries/
+3. Shared modules at root level for reuse
+4. Config.json per country for parameterization
+5. Data warehouse stays at root (shared across countries)
+
+PATH UPDATES REQUIRED:
+- Dashboard HTML: ../../shared/modules/ for modules
+- Dashboard HTML: ../../data_warehouse/ for data
+- Script.js: ../../data_warehouse/ for fetch paths
+- Launcher: country-selector.html instead of frontend/
+
+CONFIG.JSON STRUCTURE:
+--------------------------------------------------------------------------------
+{
+    "country": { "code": "SOM", "name": "Somalia", "flag": "🇸🇴" },
+    "map": { "center": [5.15, 46.2], "zoom": 6, "bounds": [...] },
+    "admin": { "L1": { "count": 18, "name": "Region" } },
+    "paths": { "boundaries": "../../layers/boundaries/..." },
+    "enabled": true
+}
+--------------------------------------------------------------------------------
+
+ADDING NEW COUNTRIES:
+1. Create countries/{country-code}/ folder
+2. Copy and modify config.json with country-specific values
+3. Copy dashboard files, update paths in index.html
+4. Update country-selector.html to mark country as active
+5. Add countryDashboards entry in selector JavaScript
+
+FILES AFFECTED:
+- NEW: country-selector.html (22 circular flag layout)
+- NEW: countries/somalia/ (index.html, script.js, styles.css, config.json)
+- NEW: shared/modules/ (all modules moved here)
+- MODIFIED: index.html (launcher now opens country-selector)
+- MODIFIED: countries/somalia/script.js (paths updated to ../../)
 
 
 ================================================================================

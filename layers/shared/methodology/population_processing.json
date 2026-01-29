@@ -1,0 +1,131 @@
+{
+  "methodology": "Population Data Processing",
+  "version": "1.0",
+  "last_updated": "2026-01-28",
+
+  "overview": {
+    "description": "Pipeline for acquiring, processing, and integrating population raster data into the Somalia Dashboard",
+    "input_formats": ["GeoTIFF", "NetCDF", "GeoJSON"],
+    "output_format": "GeoJSON (vector grid cells)",
+    "coordinate_system": "EPSG:4326 (WGS84)"
+  },
+
+  "processing_steps": {
+    "1_acquisition": {
+      "description": "Download population raster data from source",
+      "worldpop_example": {
+        "url_pattern": "https://data.worldpop.org/GIS/Population/Global_2000_2020_Constrained/2020/maxar_v1/SOM/som_ppp_2020_constrained.tif",
+        "file_naming": "som_pop_{year}_CN_1km_R2025A_UA_v1.tif",
+        "parameters": {
+          "CN": "Constrained (adjusted to UN totals)",
+          "1km": "1 kilometer resolution",
+          "UA": "Urban/Rural adjusted"
+        }
+      },
+      "tool": "tools/download_worldpop.py"
+    },
+
+    "2_raster_to_vector": {
+      "description": "Convert GeoTIFF raster to GeoJSON vector grid cells",
+      "steps": [
+        "Read raster with rasterio",
+        "Identify nodata value from metadata",
+        "Create mask: valid = (not nodata) AND (value > 0)",
+        "For each valid cell, create polygon from pixel bounds",
+        "Store population value as property",
+        "Export as GeoJSON"
+      ],
+      "optimization": {
+        "filter_nodata": true,
+        "filter_zero": true,
+        "reduction": "Typically 88% reduction (only ~11% of cells have population)"
+      },
+      "tool": "tools/process_worldpop.py"
+    },
+
+    "3_clip_by_region": {
+      "description": "Clip national GeoJSON to L1 administrative regions",
+      "steps": [
+        "Load Somalia L1 boundaries",
+        "For each region, clip population grid",
+        "Save as {Region}_pop_{year}.geojson"
+      ],
+      "output_structure": "data_warehouse/population/{source}/by_year/{year}/{Region}_pop_{year}.geojson"
+    },
+
+    "4_metadata_enrichment": {
+      "description": "Add metadata to each output file",
+      "metadata_fields": {
+        "source": "WorldPop/GHS-POP/etc",
+        "year": "2020",
+        "resolution": "1km",
+        "region": "Bakool",
+        "total_population": "Sum of all cells",
+        "cell_count": "Number of grid cells",
+        "processing_date": "ISO timestamp",
+        "methodology": "Link to this document"
+      }
+    }
+  },
+
+  "python_requirements": {
+    "packages": [
+      {"name": "rasterio", "version": ">=1.3.0", "purpose": "Read GeoTIFF rasters"},
+      {"name": "shapely", "version": ">=2.0.0", "purpose": "Create geometries"},
+      {"name": "geopandas", "version": ">=0.14.0", "purpose": "Spatial operations, GeoJSON I/O"},
+      {"name": "numpy", "version": ">=1.24.0", "purpose": "Array operations"},
+      {"name": "pyproj", "version": ">=3.6.0", "purpose": "CRS transformations"}
+    ],
+    "install_command": "pip install rasterio shapely geopandas numpy pyproj"
+  },
+
+  "output_schema": {
+    "type": "FeatureCollection",
+    "properties": {
+      "metadata": {
+        "source": "string",
+        "year": "integer",
+        "resolution_m": "integer",
+        "region": "string",
+        "total_population": "number",
+        "cell_count": "integer",
+        "processing_date": "string (ISO)",
+        "crs": "EPSG:4326"
+      }
+    },
+    "feature_properties": {
+      "population": "number (people in this cell)",
+      "density_km2": "number (people per km2, optional)",
+      "row": "integer (original raster row)",
+      "col": "integer (original raster column)"
+    },
+    "geometry": "Polygon (rectangular grid cell)"
+  },
+
+  "visualization": {
+    "color_scheme": "Sequential (light to dark)",
+    "recommended_palette": {
+      "name": "YlOrRd (Yellow-Orange-Red)",
+      "breaks": [0, 10, 50, 100, 500, 1000, 5000, 10000],
+      "colors": ["#ffffb2", "#fed976", "#feb24c", "#fd8d3c", "#fc4e2a", "#e31a1c", "#bd0026", "#800026"]
+    },
+    "alternative_palettes": ["Viridis", "Plasma", "Magma"],
+    "opacity": 0.7,
+    "stroke": false
+  },
+
+  "quality_notes": [
+    "All gridded products are MODEL ESTIMATES, not actual counts",
+    "Accuracy is lower in areas with sparse input data",
+    "Projections (2025, 2030) have higher uncertainty than historical years",
+    "Cell-level values should not be interpreted as exact counts",
+    "Aggregate to larger areas for more reliable estimates"
+  ],
+
+  "sources": {
+    "worldpop_methodology": "https://www.worldpop.org/methods",
+    "ghs_pop_methodology": "https://ghsl.jrc.ec.europa.eu/documents/GHSL_Data_Package_2023.pdf",
+    "gpw_methodology": "https://sedac.ciesin.columbia.edu/data/collection/gpw-v4/methods",
+    "landscan_methodology": "https://landscan.ornl.gov/about"
+  }
+}

@@ -7,6 +7,69 @@
         // User must select (lock) a region before any layer operations
         // This prevents map overload and ensures focused analysis
 
+        // ========================================
+        // LAYER-CHECKBOX SYNCHRONIZATION SYSTEM
+        // ========================================
+        // Centralized mapping of layer types to their checkbox IDs
+        // When ANY layer is removed, the corresponding checkbox is automatically unchecked
+
+        const layerCheckboxMapping = {
+            // Pattern-based matching: layer name contains these strings
+            patterns: {
+                'Population': function(layerName, year) {
+                    // Population layers use dynamic IDs with year
+                    const yearMatch = layerName.match(/Population\s+(\d{4})/);
+                    if (yearMatch) {
+                        return `pop${yearMatch[1]}Toggle`;
+                    }
+                    return null;
+                },
+                'Roads OSM 2023': 'roadsOSMToggle',
+                'Roads 2023': 'roadsOSMToggle',
+                'Roads Latest': 'roadsOSMLatestToggle',
+                'Roads OSM Latest': 'roadsOSMLatestToggle',
+                'Roads 2024': 'roads2024Toggle',
+                'Bakool 2022': 'bakool2022Toggle',
+                'Bakool 2023': 'bakool2023Toggle',
+                'iSEE': 'iseeAnalyticsToggle'
+            },
+
+            // Get checkbox ID for a layer name
+            getCheckboxId: function(layerName) {
+                for (const [pattern, checkboxId] of Object.entries(this.patterns)) {
+                    if (layerName.includes(pattern)) {
+                        // Handle function-based IDs (for dynamic cases like population years)
+                        if (typeof checkboxId === 'function') {
+                            return checkboxId(layerName);
+                        }
+                        return checkboxId;
+                    }
+                }
+                return null;
+            },
+
+            // Sync checkbox state - uncheck when layer is removed
+            syncCheckboxOnRemove: function(layerName) {
+                const checkboxId = this.getCheckboxId(layerName);
+                if (checkboxId) {
+                    const checkbox = document.getElementById(checkboxId);
+                    if (checkbox) {
+                        checkbox.checked = false;
+                        console.log(`☑️ Checkbox synced (unchecked): ${checkboxId} for layer "${layerName}"`);
+
+                        // Also remove layer-dropped class from associated label
+                        const label = checkbox.closest('label');
+                        if (label) {
+                            const draggableSpan = label.querySelector('[draggable="true"]');
+                            if (draggableSpan) {
+                                draggableSpan.classList.remove('layer-dropped');
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
         const regionLockState = {
             isLocked: false,
             lockedRegion: null,        // Region name (e.g., "Bakool")
@@ -31,11 +94,13 @@
             unlock: function() {
                 const previousRegion = this.lockedRegion;
 
-                // Remove all loaded layers from map
+                // Remove all loaded layers from map and sync checkboxes
                 this.loadedLayers.forEach(layerInfo => {
                     if (layerInfo.layer && map.hasLayer(layerInfo.layer)) {
                         map.removeLayer(layerInfo.layer);
                     }
+                    // CENTRALIZED: Sync checkbox state for each removed layer
+                    layerCheckboxMapping.syncCheckboxOnRemove(layerInfo.name);
                 });
 
                 // Reset state
@@ -78,6 +143,9 @@
                     this.loadedLayers.splice(idx, 1);
                     console.log(`🗑️ Layer removed: ${name}`);
 
+                    // CENTRALIZED: Sync checkbox state when layer is removed
+                    layerCheckboxMapping.syncCheckboxOnRemove(name);
+
                     // Reset iSEE Analytics when layers change (invalidate cached results)
                     if (typeof window.resetISEEAnalytics === 'function') {
                         window.resetISEEAnalytics();
@@ -104,6 +172,41 @@
         const isTablet = window.innerWidth > 767 && window.innerWidth <= 1024;
 
         const map = L.map('map').setView([5.5, 46.2], isMobile ? 5 : 6);
+
+        // ========================================
+        // LAYER-TO-CHECKBOX REGISTRY
+        // ========================================
+        // Maps Leaflet layer objects to their checkbox IDs for automatic sync
+        const layerCheckboxRegistry = new Map();
+
+        // Register a layer with its checkbox ID
+        function registerLayerCheckbox(layer, checkboxId, labelId) {
+            layerCheckboxRegistry.set(layer, { checkboxId, labelId });
+            console.log(`📝 Layer registered with checkbox: ${checkboxId}`);
+        }
+
+        // Unregister a layer
+        function unregisterLayerCheckbox(layer) {
+            layerCheckboxRegistry.delete(layer);
+        }
+
+        // Listen for layer removal events and auto-sync checkboxes
+        map.on('layerremove', function(e) {
+            const info = layerCheckboxRegistry.get(e.layer);
+            if (info) {
+                const checkbox = document.getElementById(info.checkboxId);
+                if (checkbox && checkbox.checked) {
+                    checkbox.checked = false;
+                    console.log(`☑️ Auto-synced checkbox on layer remove: ${info.checkboxId}`);
+                }
+                if (info.labelId) {
+                    const label = document.getElementById(info.labelId);
+                    if (label) {
+                        label.classList.remove('layer-dropped');
+                    }
+                }
+            }
+        });
 
         // Define base layers
         const darkMap = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
@@ -533,6 +636,10 @@
 
         console.log('Bakool 2023 nightlight polygons loaded');
 
+        // Register Bakool nightlight layers with checkbox for auto-sync on removal
+        registerLayerCheckbox(detailedNLBakool2022, 'bakool2022Toggle', 'bakool2022Label');
+        registerLayerCheckbox(detailedNLBakool2023, 'bakool2023Toggle', 'bakool2023Label');
+
         // Add Somalia ADM1 (regional) boundaries - thicker lines
         let selectedRegion = null;  // Track selected region (visual only, not lock)
 
@@ -777,7 +884,7 @@
                     `)
                     .openOn(map);
 
-                    setTimeout(() => map.closePopup(), 2000);
+                    setTimeout(() => map.closePopup(), 6000);
                 }
             } else {
                 // No region locked - show hint to select a region
@@ -794,7 +901,7 @@
                 `)
                 .openOn(map);
 
-                setTimeout(() => map.closePopup(), 2000);
+                setTimeout(() => map.closePopup(), 6000);
             }
         });
 
@@ -1106,7 +1213,7 @@
             `)
             .openOn(map);
 
-            setTimeout(() => map.closePopup(), 2500);
+            setTimeout(() => map.closePopup(), 7500);
         }
 
         // Store references to ALL regions for drag-drop (iSEE Analytics can now work with any region)
@@ -1692,47 +1799,123 @@
                         </div>
                     </div>
 
-                    <!-- Population hierarchical structure -->
-                    <div style="margin-top: 8px; border-left: 2px solid #EC407A; padding-left: 8px;">
-                        <label style="font-weight: bold; color: #EC407A;">
-                            <input type="checkbox" id="populationMainToggle"> Population
+                    <!-- ============================================ -->
+                    <!-- POPULATION - Hierarchical Structure -->
+                    <!-- ============================================ -->
+                    <div style="margin-top: 12px; border-left: 3px solid #EC407A; padding-left: 10px;">
+                        <label style="font-weight: bold; color: #EC407A; font-size: 1em; display: block; margin-bottom: 8px;">
+                            👥 Population Distribution
                         </label>
 
-                        <!-- Female sub-level -->
-                        <div style="margin-left: 12px; margin-top: 4px; border-left: 2px solid #F48FB1; padding-left: 8px;">
-                            <label style="font-weight: 600; color: #F48FB1;">
-                                <input type="checkbox" id="femaleToggle"> Female
-                            </label>
+                        <!-- WorldPop - Active Source -->
+                        <div style="margin-left: 8px; border-left: 2px solid #F48FB1; padding-left: 10px; margin-bottom: 10px;">
+                            <div style="font-size: 0.9em; color: #F48FB1; margin-bottom: 6px; font-weight: 600;">
+                                🌍 WorldPop (1km Grid)
+                            </div>
 
-                            <!-- Infants sub-sub-level -->
-                            <div style="margin-left: 12px; margin-top: 4px; border-left: 2px solid #FCE4EC; padding-left: 8px;">
-                                <label style="font-weight: 500; color: #C2185B;">
-                                    <input type="checkbox" id="infantsToggle"> Infants (0-12mo)
+                            <!-- 2015 -->
+                            <div style="margin-bottom: 4px; padding: 5px; background: rgba(244, 143, 177, 0.08); border-left: 2px solid #F48FB1; border-radius: 3px;">
+                                <label style="font-size: 0.8em; color: #F48FB1; display: flex; align-items: center; gap: 5px;">
+                                    <input type="checkbox" id="pop2015Toggle">
+                                    <span id="pop2015Label" class="ddr-layer-label" data-layer="pop2015" data-year="2015" draggable="true" style="cursor: grab; user-select: none; display: inline-flex; align-items: center; gap: 4px;">
+                                        <span style="opacity: 0.5;">⋮⋮</span>
+                                        <span>🗓️ 2015</span>
+                                    </span>
                                 </label>
+                            </div>
 
-                                <!-- 3 class categories -->
-                                <div style="margin-left: 12px; margin-top: 4px; font-size: 0.9em;">
-                                    <label style="color: #666;">
-                                        <input type="checkbox" id="pop_1_25_Toggle">
-                                        <span style="color: #F48FB1;">●</span> 1-25 (number of infants)
-                                    </label>
-                                    <label style="color: #666;">
-                                        <input type="checkbox" id="pop_25_50_Toggle">
-                                        <span style="color: #EC407A;">●</span> 25-50 (number of infants)
-                                    </label>
-                                    <label style="color: #666;">
-                                        <input type="checkbox" id="pop_50plus_Toggle">
-                                        <span style="color: #AD1457;">●</span> 50+ (number of infants)
-                                    </label>
-                                </div>
+                            <!-- 2020 -->
+                            <div style="margin-bottom: 4px; padding: 5px; background: rgba(244, 143, 177, 0.12); border-left: 2px solid #EC407A; border-radius: 3px;">
+                                <label style="font-size: 0.8em; color: #EC407A; display: flex; align-items: center; gap: 5px;">
+                                    <input type="checkbox" id="pop2020Toggle">
+                                    <span id="pop2020Label" class="ddr-layer-label" data-layer="pop2020" data-year="2020" draggable="true" style="cursor: grab; user-select: none; display: inline-flex; align-items: center; gap: 4px;">
+                                        <span style="opacity: 0.5;">⋮⋮</span>
+                                        <span>🗓️ 2020</span>
+                                    </span>
+                                </label>
+                            </div>
+
+                            <!-- 2025 (Projection) -->
+                            <div style="margin-bottom: 4px; padding: 5px; background: rgba(236, 64, 122, 0.15); border-left: 2px solid #C2185B; border-radius: 3px;">
+                                <label style="font-size: 0.8em; color: #C2185B; display: flex; align-items: center; gap: 5px;">
+                                    <input type="checkbox" id="pop2025Toggle">
+                                    <span id="pop2025Label" class="ddr-layer-label" data-layer="pop2025" data-year="2025" draggable="true" style="cursor: grab; user-select: none; display: inline-flex; align-items: center; gap: 4px;">
+                                        <span style="opacity: 0.5;">⋮⋮</span>
+                                        <span>📊 2025 (Projected)</span>
+                                    </span>
+                                </label>
+                            </div>
+
+                            <!-- 2030 (Projection) -->
+                            <div style="margin-bottom: 4px; padding: 5px; background: rgba(173, 20, 87, 0.12); border-left: 2px solid #AD1457; border-radius: 3px;">
+                                <label style="font-size: 0.8em; color: #AD1457; display: flex; align-items: center; gap: 5px;">
+                                    <input type="checkbox" id="pop2030Toggle">
+                                    <span id="pop2030Label" class="ddr-layer-label" data-layer="pop2030" data-year="2030" draggable="true" style="cursor: grab; user-select: none; display: inline-flex; align-items: center; gap: 4px;">
+                                        <span style="opacity: 0.5;">⋮⋮</span>
+                                        <span>📊 2030 (Projected)</span>
+                                    </span>
+                                </label>
+                            </div>
+
+                            <div style="margin-top: 4px; font-size: 0.65em; color: #6b7280; margin-left: 4px;">
+                                Drag year to region • UN-adjusted estimates
                             </div>
                         </div>
 
-                        <!-- Male sub-level (placeholder for future) -->
-                        <div style="margin-left: 12px; margin-top: 4px; border-left: 2px solid #90CAF9; padding-left: 8px;">
-                            <label style="font-weight: 600; color: #90CAF9; opacity: 0.5;">
-                                <input type="checkbox" id="maleToggle" disabled> Male (coming soon)
-                            </label>
+                        <!-- Other Sources - Coming Soon -->
+                        <div style="margin-left: 8px; border-left: 2px solid #6b7280; padding-left: 10px;">
+                            <div style="font-size: 0.85em; color: #6b7280; margin-bottom: 6px; font-weight: 500;">
+                                Other Sources (Coming Soon)
+                            </div>
+
+                            <!-- GHS-POP -->
+                            <div style="margin-bottom: 3px; padding: 3px 6px; font-size: 0.75em; color: #9ca3af;">
+                                <a href="https://ghsl.jrc.ec.europa.eu/ghs_pop.php" target="_blank" style="color: #9ca3af; text-decoration: none; opacity: 0.7;">
+                                    📡 GHS-POP (JRC) - Built-up linked
+                                </a>
+                            </div>
+
+                            <!-- GPWv4 -->
+                            <div style="margin-bottom: 3px; padding: 3px 6px; font-size: 0.75em; color: #9ca3af;">
+                                <a href="https://sedac.ciesin.columbia.edu/data/collection/gpw-v4" target="_blank" style="color: #9ca3af; text-decoration: none; opacity: 0.7;">
+                                    🗺️ GPWv4 (NASA SEDAC) - Census-based
+                                </a>
+                            </div>
+
+                            <!-- LandScan -->
+                            <div style="margin-bottom: 3px; padding: 3px 6px; font-size: 0.75em; color: #9ca3af;">
+                                <a href="https://landscan.ornl.gov/" target="_blank" style="color: #9ca3af; text-decoration: none; opacity: 0.7;">
+                                    🌐 LandScan (ORNL) - Ambient population
+                                </a>
+                            </div>
+
+                            <!-- HRSL -->
+                            <div style="margin-bottom: 3px; padding: 3px 6px; font-size: 0.75em; color: #9ca3af;">
+                                <a href="https://dataforgood.facebook.com/dfg/tools/high-resolution-population-density-maps" target="_blank" style="color: #9ca3af; text-decoration: none; opacity: 0.7;">
+                                    🏘️ HRSL (Meta) - 30m resolution
+                                </a>
+                            </div>
+
+                            <!-- Kontur -->
+                            <div style="margin-bottom: 3px; padding: 3px 6px; font-size: 0.75em; color: #9ca3af;">
+                                <a href="https://data.humdata.org/dataset/kontur-population-dataset" target="_blank" style="color: #9ca3af; text-decoration: none; opacity: 0.7;">
+                                    ⬡ Kontur (H3 Hexagons) - HDX
+                                </a>
+                            </div>
+
+                            <!-- GlobPOP -->
+                            <div style="margin-bottom: 3px; padding: 3px 6px; font-size: 0.75em; color: #9ca3af;">
+                                <a href="https://zenodo.org/record/7552840" target="_blank" style="color: #9ca3af; text-decoration: none; opacity: 0.7;">
+                                    📈 GlobPOP - 31-year fusion
+                                </a>
+                            </div>
+
+                            <!-- GRUMP -->
+                            <div style="padding: 3px 6px; font-size: 0.75em; color: #9ca3af;">
+                                <a href="https://sedac.ciesin.columbia.edu/data/collection/grump-v1" target="_blank" style="color: #9ca3af; text-decoration: none; opacity: 0.7;">
+                                    🏙️ GRUMP - Urban/Rural historical
+                                </a>
+                            </div>
                         </div>
                     </div>
 
@@ -2105,6 +2288,125 @@
             });
 
             // ========================================
+            // RIGHT-CLICK CONTEXT MENUS: Bakool Nightlight Layers
+            // ========================================
+
+            // Right-click context menu for Bakool 2022 Nightlight
+            document.getElementById('bakool2022Label').addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                const isActive = map.hasLayer(detailedNLBakool2022);
+                const toggle = document.getElementById('bakool2022Toggle');
+                const label = document.getElementById('bakool2022Label');
+
+                showLayerContextMenu('bakool2022', 'Bakool 2022 Nightlight', '#a855f7', e.clientX, e.clientY, {
+                    isActive,
+                    onToggle: function() {
+                        if (isActive) {
+                            map.removeLayer(detailedNLBakool2022);
+                            toggle.checked = false;
+                            activeBakoolLayers['bakool2022'] = false;
+                            label.classList.remove('layer-dropped');
+                        } else if (detailedNLBakool2022) {
+                            map.addLayer(detailedNLBakool2022);
+                            toggle.checked = true;
+                            activeBakoolLayers['bakool2022'] = true;
+                            label.classList.add('layer-dropped');
+                        }
+                    },
+                    onZoom: function() {
+                        if (detailedNLBakool2022) {
+                            map.fitBounds(detailedNLBakool2022.getBounds());
+                        }
+                    },
+                    onRemove: function() {
+                        if (detailedNLBakool2022 && map.hasLayer(detailedNLBakool2022)) {
+                            map.removeLayer(detailedNLBakool2022);
+                            toggle.checked = false;
+                            activeBakoolLayers['bakool2022'] = false;
+                            label.classList.remove('layer-dropped');
+                            layerCheckboxMapping.syncCheckboxOnRemove('Bakool 2022');
+                        }
+                    },
+                    onInfo: function() {
+                        alert('Bakool 2022 Nightlight\n\nSource: NASA VIIRS Nighttime Lights\nYear: 2022\nResolution: 500m\nType: Average radiance');
+                    }
+                });
+            });
+
+            // Right-click context menu for Bakool 2023 Nightlight
+            document.getElementById('bakool2023Label').addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                const isActive = map.hasLayer(detailedNLBakool2023);
+                const toggle = document.getElementById('bakool2023Toggle');
+                const label = document.getElementById('bakool2023Label');
+
+                showLayerContextMenu('bakool2023', 'Bakool 2023 Nightlight', '#a855f7', e.clientX, e.clientY, {
+                    isActive,
+                    onToggle: function() {
+                        if (isActive) {
+                            map.removeLayer(detailedNLBakool2023);
+                            toggle.checked = false;
+                            activeBakoolLayers['bakool2023'] = false;
+                            label.classList.remove('layer-dropped');
+                        } else if (detailedNLBakool2023) {
+                            map.addLayer(detailedNLBakool2023);
+                            toggle.checked = true;
+                            activeBakoolLayers['bakool2023'] = true;
+                            label.classList.add('layer-dropped');
+                        }
+                    },
+                    onZoom: function() {
+                        if (detailedNLBakool2023) {
+                            map.fitBounds(detailedNLBakool2023.getBounds());
+                        }
+                    },
+                    onRemove: function() {
+                        if (detailedNLBakool2023 && map.hasLayer(detailedNLBakool2023)) {
+                            map.removeLayer(detailedNLBakool2023);
+                            toggle.checked = false;
+                            activeBakoolLayers['bakool2023'] = false;
+                            label.classList.remove('layer-dropped');
+                            layerCheckboxMapping.syncCheckboxOnRemove('Bakool 2023');
+                        }
+                    },
+                    onInfo: function() {
+                        alert('Bakool 2023 Nightlight\n\nSource: NASA VIIRS Nighttime Lights\nYear: 2023\nResolution: 500m\nType: Average radiance');
+                    }
+                });
+            });
+
+            // Right-click context menu for iSEE Analytics
+            iseeAnalyticsLabel.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                const toggle = document.getElementById('iseeAnalyticsToggle');
+
+                showLayerContextMenu('iseeAnalytics', 'iSEE Analytics', '#22c55e', e.clientX, e.clientY, {
+                    isActive: iseeAnalyticsActive,
+                    onToggle: function() {
+                        if (iseeAnalyticsActive) {
+                            iseeAnalyticsActive = false;
+                            toggle.checked = false;
+                            iseeAnalyticsLabel.classList.remove('layer-dropped');
+                        } else {
+                            iseeAnalyticsActive = true;
+                            toggle.checked = true;
+                            iseeAnalyticsLabel.classList.add('layer-dropped');
+                        }
+                    },
+                    onZoom: null, // iSEE doesn't have a layer to zoom to
+                    onRemove: function() {
+                        iseeAnalyticsActive = false;
+                        toggle.checked = false;
+                        iseeAnalyticsLabel.classList.remove('layer-dropped');
+                        layerCheckboxMapping.syncCheckboxOnRemove('iSEE');
+                    },
+                    onInfo: function() {
+                        alert('iSEE Analytics\n\nIntelligent Socio-Economic Evidence Analysis\nDrag and drop onto a locked region to run analytics.\nAnalyzes population, roads, and infrastructure data.');
+                    }
+                });
+            });
+
+            // ========================================
             // DRAG-AND-DROP: Bakool 2022 Layer
             // ========================================
 
@@ -2213,7 +2515,7 @@
                 if (toggle2023 && toggle2023.checked) activeBakoolLayers['bakool2023'] = true;
 
                 // Build comprehensive layerRefs object
-                // Includes both legacy references AND new dynamic layers
+                // UNIFIED: Same structure used by both right-click AND drag-drop iSEE Analytics
                 const layerRefs = {
                     // ========================================
                     // NEW: Dynamic layers (auto-discovered)
@@ -2236,14 +2538,28 @@
                     somaliaData: adm1Boundaries,
                     targetRegion: regionName,
 
-                    // Roads (from dynamic or legacy)
-                    clippedRoadsLayer: layersByType.roads[0]?.layer || clippedRoadsLayer,
-                    activeRoadsRegion: layersByType.roads.length > 0 ? regionName : activeRoadsRegion,
+                    // ========================================
+                    // MULTI-SOURCE ROADS (for time-series/comparison)
+                    // ========================================
+                    roadsLayers: {
+                        osm2023: { layer: activeRoadsOSMLayer, region: activeRoadsOSMRegion },
+                        osmLatest: { layer: activeRoadsOSMLatestLayer, region: activeRoadsOSMLatestRegion }
+                    },
+                    // Legacy roads references
+                    clippedRoadsLayer: layersByType.roads[0]?.layer || activeRoadsOSMLayer || clippedRoadsLayer,
+                    activeRoadsRegion: layersByType.roads.length > 0 ? regionName : (activeRoadsOSMRegion || activeRoadsRegion),
                     roadsData: layersByType.roads[0]?.data || roadsData,
 
-                    // Population and MPI
+                    // ========================================
+                    // MULTI-YEAR POPULATION (for time-series)
+                    // ========================================
+                    populationLayers: populationLayers,
+                    getLoadedPopulationLayers: getLoadedPopulationLayers,
+                    // Legacy population references
                     populationLayer: layersByType.population[0]?.layer || (typeof populationLayer !== 'undefined' ? populationLayer : null),
                     populationData: layersByType.population[0]?.data || (typeof populationData !== 'undefined' ? populationData : null),
+
+                    // MPI layer reference
                     mpiLayer: mpiLayer
                 };
 
@@ -3074,23 +3390,75 @@
                                 console.log('='.repeat(60));
 
                                 if (typeof runISEEAnalytics === 'function') {
-                                    // Prepare layer references to pass to analytics function
+                                    // ========================================
+                                    // DYNAMIC LAYER DISCOVERY (same as right-click)
+                                    // ========================================
+                                    const dynamicLayers = {};
+                                    const layersByType = {
+                                        nightlight: [],
+                                        roads: [],
+                                        population: [],
+                                        landcover: [],
+                                        vegetation: [],
+                                        socioeconomic: [],
+                                        infrastructure: [],
+                                        other: []
+                                    };
+
+                                    // Categorize all loaded layers automatically
+                                    regionLockState.loadedLayers.forEach(l => {
+                                        const safeKey = l.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+                                        dynamicLayers[safeKey] = {
+                                            active: true,
+                                            name: l.name,
+                                            layer: l.layer,
+                                            type: l.type,
+                                            region: droppedRegion,
+                                            data: l.layer && l.layer.toGeoJSON ? l.layer.toGeoJSON() : null
+                                        };
+                                        const category = layersByType[l.type] ? l.type : 'other';
+                                        layersByType[category].push({
+                                            name: l.name,
+                                            layer: l.layer,
+                                            data: l.layer && l.layer.toGeoJSON ? l.layer.toGeoJSON() : null
+                                        });
+                                    });
+
+                                    // Prepare UNIFIED layer references (same structure as right-click)
                                     const layerRefs = {
+                                        // Dynamic layers (auto-discovered)
+                                        dynamicLayers: dynamicLayers,
+                                        layersByType: layersByType,
+                                        loadedLayersList: regionLockState.loadedLayers,
+
+                                        // Legacy nightlight references
                                         detailedNLBakool2022: detailedNLBakool2022,
                                         detailedNLBakool2023: detailedNLBakool2023,
                                         bakoolNightlightPolygons2022: bakoolNightlightPolygons2022,
                                         bakoolNightlightPolygons2023: bakoolNightlightPolygons2023,
+
+                                        // Region data
                                         regionLayer: droppedRegionLayer,
                                         allRegionLayers: allRegionLayers,
-                                        somaliaData: adm1Boundaries,  // Pass MPI/region data for basic analysis
-                                        // Roads 2023 layer references for iSEE Analytics
-                                        clippedRoadsLayer: clippedRoadsLayer,
-                                        activeRoadsRegion: activeRoadsRegion,
-                                        roadsData: roadsData,
-                                        // Population layer references for iSEE Analytics
-                                        populationLayer: populationLayer,
-                                        populationData: populationData,
-                                        // MPI layer reference for iSEE Analytics
+                                        somaliaData: adm1Boundaries,
+                                        targetRegion: droppedRegion,
+
+                                        // MULTI-SOURCE ROADS
+                                        roadsLayers: {
+                                            osm2023: { layer: activeRoadsOSMLayer, region: activeRoadsOSMRegion },
+                                            osmLatest: { layer: activeRoadsOSMLatestLayer, region: activeRoadsOSMLatestRegion }
+                                        },
+                                        clippedRoadsLayer: layersByType.roads[0]?.layer || activeRoadsOSMLayer || clippedRoadsLayer,
+                                        activeRoadsRegion: layersByType.roads.length > 0 ? droppedRegion : (activeRoadsOSMRegion || activeRoadsRegion),
+                                        roadsData: layersByType.roads[0]?.data || roadsData,
+
+                                        // MULTI-YEAR POPULATION
+                                        populationLayers: populationLayers,
+                                        getLoadedPopulationLayers: getLoadedPopulationLayers,
+                                        populationLayer: layersByType.population[0]?.layer || null,
+                                        populationData: layersByType.population[0]?.data || null,
+
+                                        // MPI layer
                                         mpiLayer: mpiLayer
                                     };
 
@@ -3113,6 +3481,407 @@
                     mapContainer.classList.remove('drop-target');
                     mapContainer.classList.remove('drop-invalid');
                 }
+            });
+
+            // ========================================
+            // DRAG-AND-DROP: WorldPop Population Layers (2015, 2020, 2025, 2030)
+            // ========================================
+            // MULTI-YEAR SUPPORT: Each year is independent, all can be loaded simultaneously
+            // Only exact duplicates prevented (same year + same region)
+
+            // Population layer state - per-year storage for multi-year time-series analysis
+            const populationLayers = {
+                '2015': { layer: null, region: null, data: null },
+                '2020': { layer: null, region: null, data: null },
+                '2025': { layer: null, region: null, data: null },
+                '2030': { layer: null, region: null, data: null }
+            };
+
+            // Population color scale (YlOrRd - Yellow to Orange to Red)
+            const populationColors = {
+                breaks: [0, 10, 50, 100, 500, 1000, 5000, 10000],
+                colors: ['#ffffb2', '#fed976', '#feb24c', '#fd8d3c', '#fc4e2a', '#e31a1c', '#bd0026', '#800026']
+            };
+
+            function getWorldPopColor(population) {
+                for (let i = populationColors.breaks.length - 1; i >= 0; i--) {
+                    if (population >= populationColors.breaks[i]) {
+                        return populationColors.colors[i];
+                    }
+                }
+                return populationColors.colors[0];
+            }
+
+            // Setup drag handlers for each population year
+            const populationYears = ['2015', '2020', '2025', '2030'];
+
+            // Helper function to reset population label to original state
+            function resetPopulationLabel(year) {
+                const label = document.getElementById(`pop${year}Label`);
+                if (label) {
+                    const labelSpan = label.querySelector('span:last-child');
+                    if (labelSpan) {
+                        const isProjection = year === '2025' || year === '2030';
+                        labelSpan.textContent = isProjection ? `📊 ${year} (Projected)` : `🗓️ ${year}`;
+                    }
+                }
+            }
+
+            // Helper to get all loaded population layers (for iSEE Analytics time-series)
+            function getLoadedPopulationLayers() {
+                const loaded = [];
+                for (const [year, state] of Object.entries(populationLayers)) {
+                    if (state.layer && state.region) {
+                        loaded.push({ year, ...state });
+                    }
+                }
+                return loaded;
+            }
+
+            populationYears.forEach(year => {
+                const popLabel = document.getElementById(`pop${year}Label`);
+                const popToggle = document.getElementById(`pop${year}Toggle`);
+
+                if (!popLabel || !popToggle) {
+                    console.warn(`[Population] Missing elements for year ${year}`);
+                    return;
+                }
+
+                // Checkbox toggle handler - uses per-year state
+                popToggle.addEventListener('change', function(e) {
+                    const yearState = populationLayers[year];
+                    if (e.target.checked) {
+                        if (yearState.layer) {
+                            map.addLayer(yearState.layer);
+                            popLabel.classList.add('layer-dropped');
+                        }
+                    } else {
+                        if (yearState.layer) {
+                            map.removeLayer(yearState.layer);
+                            popLabel.classList.remove('layer-dropped');
+                        }
+                    }
+                });
+
+                // Drag start
+                popLabel.addEventListener('dragstart', function(e) {
+                    // REGION-FIRST: Check if a region is locked
+                    if (!regionLockState.isLocked) {
+                        e.preventDefault();
+                        showSelectRegionWarning();
+                        return;
+                    }
+
+                    draggedLayerId = `population${year}`;
+
+                    // Add dragging class to body for cursor control
+                    document.body.classList.add('dragging');
+
+                    // Create cursor indicator
+                    cursorIndicator = document.createElement('div');
+                    cursorIndicator.className = 'cursor-indicator';
+                    document.body.appendChild(cursorIndicator);
+
+                    // Create ghost element
+                    dragGhost = document.createElement('div');
+                    dragGhost.style.cssText = `
+                        position: fixed;
+                        background: rgba(236, 64, 122, 0.9);
+                        color: white;
+                        padding: 8px 12px;
+                        border-radius: 6px;
+                        font-size: 0.85em;
+                        pointer-events: none;
+                        z-index: 10000;
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                    `;
+                    dragGhost.textContent = `👥 Population ${year}`;
+                    document.body.appendChild(dragGhost);
+
+                    // Add dragging class
+                    popLabel.classList.add('dragging-layer');
+
+                    // Store data
+                    e.dataTransfer.effectAllowed = 'copy';
+                    e.dataTransfer.setData('text/plain', `population${year}`);
+
+                    // Hide default drag image
+                    const img = new Image();
+                    img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+                    e.dataTransfer.setDragImage(img, 0, 0);
+                });
+
+                // Drag end - cleanup
+                popLabel.addEventListener('dragend', function(e) {
+                    popLabel.classList.remove('dragging-layer');
+                    document.body.classList.remove('dragging');
+
+                    if (dragGhost) {
+                        document.body.removeChild(dragGhost);
+                        dragGhost = null;
+                    }
+                    if (cursorIndicator) {
+                        document.body.removeChild(cursorIndicator);
+                        cursorIndicator = null;
+                    }
+                    draggedLayerId = null;
+
+                    // Remove highlight from all regions
+                    Object.values(allRegionLayers).forEach(regionLayer => {
+                        adm1Layer.resetStyle(regionLayer);
+                    });
+                });
+
+                // Right-click context menu - uses per-year state
+                popLabel.addEventListener('contextmenu', function(e) {
+                    e.preventDefault();
+                    const yearState = populationLayers[year];
+                    const isActive = yearState.layer && map.hasLayer(yearState.layer);
+
+                    showLayerContextMenu(`population${year}`, `Population ${year}`, '#EC407A', e.clientX, e.clientY, {
+                        isActive,
+                        onToggle: function() {
+                            if (isActive) {
+                                map.removeLayer(yearState.layer);
+                                popToggle.checked = false;
+                                popLabel.classList.remove('layer-dropped');
+                            } else if (yearState.layer) {
+                                map.addLayer(yearState.layer);
+                                popToggle.checked = true;
+                                popLabel.classList.add('layer-dropped');
+                            }
+                        },
+                        onZoom: function() {
+                            if (yearState.layer) {
+                                map.fitBounds(yearState.layer.getBounds());
+                            }
+                        },
+                        onRemove: function() {
+                            if (yearState.layer) {
+                                map.removeLayer(yearState.layer);
+                                regionLockState.removeLayer(`Population ${year} - ${yearState.region}`);
+                                // Clear this year's state
+                                populationLayers[year] = { layer: null, region: null, data: null };
+                                popToggle.checked = false;
+                                popLabel.classList.remove('layer-dropped');
+                                // Reset label to original state
+                                resetPopulationLabel(year);
+                                // Centralized sync as backup
+                                layerCheckboxMapping.syncCheckboxOnRemove(`Population ${year}`);
+                            }
+                        },
+                        onInfo: function() {
+                            alert(`WorldPop ${year}\n\nSource: University of Southampton\nResolution: 1km\nMethodology: UN-adjusted constrained estimates\n\nRegion: ${yearState.region || 'Not loaded'}\nCells: ${yearState.data?.features?.length || 'Not loaded'}`);
+                        }
+                    });
+                });
+            });
+
+            // Shared dragover handler for all population years
+            mapContainer.addEventListener('dragover', function(e) {
+                const isPopulationDrag = draggedLayerId && draggedLayerId.startsWith('population');
+                if (!isPopulationDrag) return;
+
+                e.preventDefault();
+
+                const rect = mapContainer.getBoundingClientRect();
+                const latlng = map.containerPointToLatLng([e.clientX - rect.left, e.clientY - rect.top]);
+
+                // REGION-FIRST: Only allow drop on the LOCKED region
+                const isOverLockedRegion = isPointInLockedRegion(latlng);
+                const lockedRegionName = regionLockState.lockedRegion;
+
+                if (isOverLockedRegion) {
+                    if (dragGhost) {
+                        dragGhost.style.background = 'rgba(34, 197, 94, 0.9)'; // Green (ready)
+                        const year = draggedLayerId.replace('population', '');
+                        dragGhost.textContent = `✓ Drop to load Population ${year} for ${lockedRegionName}`;
+                    }
+
+                    // Highlight locked region in green
+                    if (regionLockState.lockedRegionLayer) {
+                        regionLockState.lockedRegionLayer.setStyle({
+                            fillColor: '#22c55e',
+                            fillOpacity: 0.4,
+                            weight: 3,
+                            color: '#22c55e'
+                        });
+                    }
+                    mapContainer.classList.add('drop-target');
+                    mapContainer.classList.remove('drop-invalid');
+                } else {
+                    if (dragGhost) {
+                        dragGhost.style.background = 'rgba(239, 68, 68, 0.9)'; // Red (invalid)
+                        dragGhost.textContent = `✗ Drop only on ${lockedRegionName}`;
+                    }
+
+                    // Reset locked region style
+                    if (regionLockState.lockedRegionLayer) {
+                        adm1Layer.resetStyle(regionLockState.lockedRegionLayer);
+                    }
+                    mapContainer.classList.remove('drop-target');
+                    mapContainer.classList.add('drop-invalid');
+                }
+            });
+
+            // Shared drop handler for all population years
+            // MULTI-YEAR: Each year loads independently, all can coexist
+            mapContainer.addEventListener('drop', function(e) {
+                const isPopulationDrag = draggedLayerId && draggedLayerId.startsWith('population');
+                if (!isPopulationDrag) return;
+
+                e.preventDefault();
+
+                const year = draggedLayerId.replace('population', '');
+                const popLabel = document.getElementById(`pop${year}Label`);
+                const popToggle = document.getElementById(`pop${year}Toggle`);
+
+                const rect = mapContainer.getBoundingClientRect();
+                const latlng = map.containerPointToLatLng([e.clientX - rect.left, e.clientY - rect.top]);
+
+                // REGION-FIRST: Only allow drop on the LOCKED region
+                const isOverLockedRegion = isPointInLockedRegion(latlng);
+                const droppedRegion = isOverLockedRegion ? regionLockState.lockedRegion : null;
+
+                if (!droppedRegion) {
+                    showDropOutsideRegionWarning(`Population ${year}`, latlng);
+                    return;
+                }
+
+                // DUPLICATE CHECK: Only prevent exact same year + region combo
+                const populationLayerName = `Population ${year} - ${droppedRegion}`;
+                if (regionLockState.hasLayer(populationLayerName)) {
+                    L.popup({
+                        closeButton: false,
+                        autoClose: true,
+                        closeOnEscapeKey: true,
+                        closeOnClick: true,
+                        className: 'drop-warning-popup'
+                    })
+                    .setLatLng(latlng)
+                    .setContent(`⚠ Population ${year} already loaded for ${droppedRegion}`)
+                    .openOn(map);
+                    setTimeout(() => map.closePopup(), 6000);
+                    return;
+                }
+
+                // Show loading indicator
+                const loadingPopup = L.popup({
+                    closeButton: false,
+                    autoClose: false,
+                    className: 'drop-warning-popup'
+                })
+                .setLatLng(latlng)
+                .setContent(`⏳ Loading Population ${year} for ${droppedRegion}...`)
+                .openOn(map);
+
+                // Convert region name to safe filename
+                const safeRegionName = droppedRegion.replace(/\s+/g, '_');
+                const populationUrl = `../../data_warehouse/population/worldpop_1km/by_year/${year}/${safeRegionName}_pop_${year}.geojson`;
+
+                console.log(`[Population] Loading: ${populationUrl}`);
+
+                // Fetch population data
+                fetch(populationUrl)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log(`[Population] Loaded ${data.features.length} cells for ${droppedRegion} ${year}`);
+
+                        // Calculate total population
+                        let totalPopulation = 0;
+                        data.features.forEach(f => {
+                            totalPopulation += f.properties.population || 0;
+                        });
+
+                        // Create GeoJSON layer with population styling
+                        const newLayer = L.geoJSON(data, {
+                            style: function(feature) {
+                                const pop = feature.properties.population || 0;
+                                return {
+                                    fillColor: getWorldPopColor(pop),
+                                    fillOpacity: 0.7,
+                                    weight: 0.5,
+                                    color: '#666',
+                                    opacity: 0.3
+                                };
+                            },
+                            onEachFeature: function(feature, layer) {
+                                const pop = feature.properties.population || 0;
+                                layer.bindTooltip(
+                                    `<strong>${Math.round(pop).toLocaleString()}</strong> people (${year})`,
+                                    { sticky: true, className: 'population-tooltip' }
+                                );
+                            }
+                        }).addTo(map);
+
+                        // Register layer with checkbox for auto-sync on removal
+                        registerLayerCheckbox(newLayer, `pop${year}Toggle`, `pop${year}Label`);
+
+                        // Store in per-year state (MULTI-YEAR: doesn't remove other years)
+                        populationLayers[year] = {
+                            layer: newLayer,
+                            region: droppedRegion,
+                            data: data
+                        };
+
+                        // Register layer with regionLockState
+                        regionLockState.addLayer(populationLayerName, newLayer, 'population');
+
+                        // Update UI
+                        popToggle.checked = true;
+                        popLabel.classList.add('layer-dropped');
+
+                        // Update label text
+                        const labelSpan = popLabel.querySelector('span:last-child');
+                        if (labelSpan) {
+                            const isProjection = year === '2025' || year === '2030';
+                            labelSpan.textContent = isProjection
+                                ? `📊 ${year} - ${droppedRegion}`
+                                : `🗓️ ${year} - ${droppedRegion}`;
+                        }
+
+                        // Close loading popup and show success
+                        map.closePopup(loadingPopup);
+
+                        L.popup({
+                            closeButton: false,
+                            autoClose: true,
+                            className: 'drop-success-popup'
+                        })
+                        .setLatLng(latlng)
+                        .setContent(`✓ Population ${year} loaded for ${droppedRegion}<br><small>${data.features.length.toLocaleString()} cells • ${Math.round(totalPopulation).toLocaleString()} total</small>`)
+                        .openOn(map);
+
+                        setTimeout(() => map.closePopup(), 9000);
+
+                        console.log(`✅ Population ${year} loaded for ${droppedRegion}: ${data.features.length} cells, ${Math.round(totalPopulation).toLocaleString()} total population`);
+                    })
+                    .catch(error => {
+                        console.error(`[Population] Error loading ${year} for ${droppedRegion}:`, error);
+
+                        // Close loading popup and show error
+                        map.closePopup(loadingPopup);
+
+                        L.popup({
+                            closeButton: false,
+                            autoClose: true,
+                            className: 'drop-error-popup'
+                        })
+                        .setLatLng(latlng)
+                        .setContent(`✗ Failed to load Population ${year}<br><small>${error.message}</small>`)
+                        .openOn(map);
+
+                        setTimeout(() => map.closePopup(), 9000);
+                    });
+
+                // Cleanup
+                mapContainer.classList.remove('drop-target');
+                mapContainer.classList.remove('drop-invalid');
             });
 
             // ========================================
@@ -3185,6 +3954,8 @@
                             activeRoadsOSMRegion = null;
                             roadsOSMToggle.checked = false;
                             roadsOSMLabel.classList.remove('layer-dropped');
+                            // Centralized sync as backup
+                            layerCheckboxMapping.syncCheckboxOnRemove('Roads OSM 2023');
                         }
                     },
                     onInfo: function() {
@@ -3375,7 +4146,7 @@
                             .setContent(`⚠️ Roads OSM already loaded for ${droppedRegion}`)
                             .openOn(map);
 
-                            setTimeout(() => map.closePopup(), 2500);
+                            setTimeout(() => map.closePopup(), 7500);
                             mapContainer.classList.remove('drop-target', 'drop-invalid');
                             return;
                         }
@@ -3405,7 +4176,7 @@
 
                         // Convert region name to safe filename
                         const safeRegionName = droppedRegion.replace(/ /g, '_').replace(/\//g, '_');
-                        const roadsFilePath = `../data_warehouse/roads/roads_by_region/${safeRegionName}_roads.js`;
+                        const roadsFilePath = `../../data_warehouse/roads/roads_by_region/${safeRegionName}_roads.js`;
 
                         // Dynamically load the roads file using fetch and eval
                         const roadsVarName = safeRegionName.toLowerCase() + 'Roads';
@@ -3454,13 +4225,46 @@
                                     }
                                 }).addTo(map);
 
+                                // Register layer with checkbox for auto-sync on removal
+                                registerLayerCheckbox(activeRoadsOSMLayer, 'roadsOSMToggle', 'roadsOSMLabel');
+
                                 activeRoadsOSMRegion = droppedRegion;
+
+                                // Calculate Haversine lengths for comparison with ArcGIS Pro
+                                let totalLengthArcGIS = 0;
+                                let totalLengthHaversine = 0;
+
+                                if (typeof LinearLengthCalculator !== 'undefined') {
+                                    loadedRoadsData.features.forEach(feature => {
+                                        // Preserve ArcGIS Pro Length_m and sum it
+                                        if (feature.properties && feature.properties.Length_m) {
+                                            totalLengthArcGIS += feature.properties.Length_m;
+                                        }
+                                        // Calculate Haversine length and add as new property
+                                        const haversineLength = LinearLengthCalculator.calculate(feature);
+                                        if (!feature.properties) feature.properties = {};
+                                        feature.properties.Length_m_haversine = haversineLength;
+                                        totalLengthHaversine += haversineLength;
+                                    });
+                                    console.log(`[Roads 2023] ArcGIS Pro total: ${(totalLengthArcGIS/1000).toFixed(2)} km`);
+                                    console.log(`[Roads 2023] Haversine total: ${(totalLengthHaversine/1000).toFixed(2)} km`);
+                                    console.log(`[Roads 2023] Difference: ${((totalLengthHaversine - totalLengthArcGIS)/1000).toFixed(2)} km (${((totalLengthHaversine/totalLengthArcGIS - 1) * 100).toFixed(2)}%)`);
+                                }
 
                                 // REGION-FIRST: Register layer with regionLockState
                                 regionLockState.addLayer(`Roads OSM - ${droppedRegion}`, activeRoadsOSMLayer, 'roads');
 
                                 // Close loading popup
                                 map.closePopup(loadingPopup);
+
+                                // Build success message with comparison
+                                let successContent = `✓ Loaded ${loadedRoadsData.metadata.total_roads.toLocaleString()} OSM Roads for ${droppedRegion}`;
+                                if (totalLengthArcGIS > 0 && totalLengthHaversine > 0) {
+                                    const diffPercent = ((totalLengthHaversine / totalLengthArcGIS - 1) * 100).toFixed(1);
+                                    const diffSign = diffPercent >= 0 ? '+' : '';
+                                    successContent += `<br><small><b>ArcGIS Pro:</b> ${(totalLengthArcGIS/1000).toFixed(1)} km</small>`;
+                                    successContent += `<br><small><b>Haversine:</b> ${(totalLengthHaversine/1000).toFixed(1)} km (${diffSign}${diffPercent}%)</small>`;
+                                }
 
                                 // Show success notification
                                 const successPopup = L.popup({
@@ -3470,12 +4274,12 @@
                                     className: 'drop-success-popup'
                                 })
                                 .setLatLng(latlng)
-                                .setContent(`✓ Loaded ${loadedRoadsData.metadata.total_roads.toLocaleString()} OSM Roads for ${droppedRegion}`)
+                                .setContent(successContent)
                                 .openOn(map);
 
                                 setTimeout(() => {
                                     map.closePopup(successPopup);
-                                }, 3000);
+                                }, 9000);
 
                                 // Zoom to region
                                 const regionBounds = droppedRegionLayer.getBounds();
@@ -3622,7 +4426,7 @@
                             .setContent(`⚠️ Roads Latest already loaded for ${droppedRegion}`)
                             .openOn(map);
 
-                            setTimeout(() => map.closePopup(), 2500);
+                            setTimeout(() => map.closePopup(), 7500);
                             mapContainer.classList.remove('drop-target', 'drop-invalid');
                             return;
                         }
@@ -3652,7 +4456,7 @@
 
                         // Convert region name to safe filename
                         const safeRegionName = droppedRegion.replace(/ /g, '_').replace(/\//g, '_');
-                        const roadsFilePath = `../data_warehouse/roads/roads_by_region_latest/${safeRegionName}_roads.geojson`;
+                        const roadsFilePath = `../../data_warehouse/roads/roads_by_region_latest/${safeRegionName}_roads.geojson`;
 
                         // Fetch GeoJSON file directly
                         fetch(roadsFilePath + '?t=' + new Date().getTime())
@@ -3664,6 +4468,18 @@
                             })
                             .then(loadedRoadsData => {
                                 if (loadedRoadsData && loadedRoadsData.features) {
+                                    // Calculate Haversine lengths for all road segments
+                                    let totalLengthHaversine = 0;
+                                    if (typeof LinearLengthCalculator !== 'undefined') {
+                                        loadedRoadsData.features.forEach(feature => {
+                                            const haversineLength = LinearLengthCalculator.calculate(feature);
+                                            if (!feature.properties) feature.properties = {};
+                                            feature.properties.Length_m_haversine = haversineLength;
+                                            totalLengthHaversine += haversineLength;
+                                        });
+                                        console.log(`[Roads Latest] Haversine total: ${(totalLengthHaversine/1000).toFixed(2)} km for ${droppedRegion}`);
+                                    }
+
                                     // Create Leaflet GeoJSON layer
                                     activeRoadsOSMLatestLayer = L.geoJSON(loadedRoadsData, {
                                         style: function(feature) {
@@ -3709,6 +4525,9 @@
                                         }
                                     }).addTo(map);
 
+                                    // Register layer with checkbox for auto-sync on removal
+                                    registerLayerCheckbox(activeRoadsOSMLatestLayer, 'roadsOSMLatestToggle', 'roadsOSMLatestLabel');
+
                                     // Store active region
                                     activeRoadsOSMLatestRegion = droppedRegion;
 
@@ -3728,18 +4547,24 @@
                                         labelSpan.textContent = `🔄 Roads OSM Latest - ${droppedRegion}`;
                                     }
 
-                                    // Close loading popup and show success
+                                    // Close loading popup and show success with length info
                                     map.closePopup(loadingPopup);
+
+                                    let successContent = `✓ Latest OSM Roads loaded for ${droppedRegion}<br><small>${loadedRoadsData.features.length} road segments</small>`;
+                                    if (totalLengthHaversine > 0) {
+                                        successContent += `<br><small><b>Total Length:</b> ${(totalLengthHaversine/1000).toFixed(1)} km</small>`;
+                                    }
+
                                     L.popup({
                                         closeButton: false,
                                         autoClose: true,
                                         className: 'drop-success-popup'
                                     })
                                     .setLatLng(latlng)
-                                    .setContent(`✓ Latest OSM Roads loaded for ${droppedRegion}<br><small>${loadedRoadsData.features.length} road segments</small>`)
+                                    .setContent(successContent)
                                     .openOn(map);
 
-                                    setTimeout(() => map.closePopup(), 3000);
+                                    setTimeout(() => map.closePopup(), 9000);
                                 } else {
                                     throw new Error('Invalid roads data format');
                                 }
@@ -3810,6 +4635,8 @@
                             activeRoadsOSMLatestRegion = null;
                             document.getElementById('roadsOSMLatestToggle').checked = false;
                             roadsOSMLatestLabel.classList.remove('layer-dropped');
+                            // Centralized sync as backup
+                            layerCheckboxMapping.syncCheckboxOnRemove('Roads OSM Latest');
                         }
                     },
                     onInfo: function() {
@@ -3982,6 +4809,8 @@
                                 activeRoads2024Region = null;
                                 roads2024Toggle.checked = false;
                                 roads2024Label.classList.remove('layer-dropped');
+                                // Centralized sync as backup
+                                layerCheckboxMapping.syncCheckboxOnRemove('Roads 2024');
                             }
                         },
                         onInfo: function() {
@@ -4143,7 +4972,7 @@
                             .setContent(`⚠️ Roads 2024 already loaded for ${droppedRegion}`)
                             .openOn(map);
 
-                            setTimeout(() => map.closePopup(), 2500);
+                            setTimeout(() => map.closePopup(), 7500);
                             mapContainer.classList.remove('drop-target', 'drop-invalid');
                             return;
                         }
@@ -4168,7 +4997,7 @@
 
                         // Load roads from roads_by_region_2024_07_23 folder using fetch (GeoJSON)
                         const safeRegionName = droppedRegion.replace(/ /g, '_');
-                        const roadsFilePath = `../data_warehouse/roads/roads_by_region_2024_07_23/${safeRegionName}_roads.geojson`;
+                        const roadsFilePath = `../../data_warehouse/roads/roads_by_region_2024_07_23/${safeRegionName}_roads.geojson`;
 
                         fetch(roadsFilePath)
                             .then(response => {
@@ -4179,6 +5008,18 @@
                                 map.closePopup(loadingPopup);
 
                                 if (loadedData && loadedData.features) {
+                                    // Calculate Haversine lengths for all road segments
+                                    let totalLengthHaversine = 0;
+                                    if (typeof LinearLengthCalculator !== 'undefined') {
+                                        loadedData.features.forEach(feature => {
+                                            const haversineLength = LinearLengthCalculator.calculate(feature);
+                                            if (!feature.properties) feature.properties = {};
+                                            feature.properties.Length_m_haversine = haversineLength;
+                                            totalLengthHaversine += haversineLength;
+                                        });
+                                        console.log(`[Roads 2024] Haversine total: ${(totalLengthHaversine/1000).toFixed(2)} km for ${droppedRegion}`);
+                                    }
+
                                     // Create layer using unified RoadSymbology module
                                     activeRoads2024Layer = L.geoJSON(loadedData, {
                                         style: function(feature) {
@@ -4200,6 +5041,9 @@
                                         }
                                     }).addTo(map);
 
+                                    // Register layer with checkbox for auto-sync on removal
+                                    registerLayerCheckbox(activeRoads2024Layer, 'roads2024Toggle', 'roads2024Label');
+
                                     activeRoads2024Region = droppedRegion;
 
                                     // REGION-FIRST: Register layer with regionLockState
@@ -4215,7 +5059,12 @@
                                         maxZoom: 11
                                     });
 
-                                    // Success popup
+                                    // Success popup with length info
+                                    let successContent = `✓ 2024 Roads loaded for ${droppedRegion}<br><small>${loadedData.features.length} road segments</small>`;
+                                    if (totalLengthHaversine > 0) {
+                                        successContent += `<br><small><b>Total Length:</b> ${(totalLengthHaversine/1000).toFixed(1)} km</small>`;
+                                    }
+
                                     L.popup({
                                         closeButton: false,
                                         autoClose: true,
@@ -4223,10 +5072,10 @@
                                         className: 'drop-success-popup'
                                     })
                                     .setLatLng(latlng)
-                                    .setContent(`✓ 2024 Roads loaded for ${droppedRegion}<br><small>${loadedData.features.length} road segments</small>`)
+                                    .setContent(successContent)
                                     .openOn(map);
 
-                                    setTimeout(() => map.closePopup(), 3000);
+                                    setTimeout(() => map.closePopup(), 9000);
 
                                     console.log(`[Roads 2024] Loaded ${loadedData.features.length} roads for ${droppedRegion}`);
                                 } else {
@@ -6545,7 +7394,7 @@
                                         id: layerId,
                                         name: `Roads ${dateFormatted.substring(0, 7).replace('-', '/')}`,
                                         thematic: 'roads',
-                                        folder: `../data_warehouse/roads/roads_by_region_${folderDate}`,
+                                        folder: `../../data_warehouse/roads/roads_by_region_${folderDate}`,
                                         date: dateFormatted,
                                         color: '#fbbf24',  // Yellow/gold for archived versions
                                         source: 'HDX - Humanitarian OpenStreetMap Team',
