@@ -2190,6 +2190,161 @@ FILES AFFECTED:
 
 
 ================================================================================
+LESSON 36: V4.0 MULTI-COUNTRY TEMPLATE ARCHITECTURE - KEYWORD REMINDER
+================================================================================
+Date: 2026-01-29
+Issue: Need consistent architecture where Somalia serves as template for all countries
+
+CONTEXT KEYWORD: "GEO-INSIGHTS-ARCH"
+--------------------------------------------------------------------------------
+When starting a new conversation, remind Claude with:
+"Keyword: GEO-INSIGHTS-ARCH - Please read docs/LESSONS_LEARNED.txt Lesson 36"
+
+This ensures Claude understands the modular architecture philosophy.
+--------------------------------------------------------------------------------
+
+CORE PHILOSOPHY:
+--------------------------------------------------------------------------------
+Somalia is the TEMPLATE COUNTRY. Every feature, module, and workflow developed
+for Somalia must be designed with multi-country replication in mind.
+
+Rule: "If it works for Somalia, it should copy to any Arab country with
+minimal changes - ideally just config.json updates."
+--------------------------------------------------------------------------------
+
+MODULAR SYSTEM COMPONENTS:
+--------------------------------------------------------------------------------
+1. CLIPPING MODULE (l1-clip.js)
+   - Point-in-polygon detection for any country
+   - Region boundary filtering
+   - Works with any L1/L2 administrative structure
+   - Config: paths.boundaries in config.json
+
+2. DRAG-DROP-RIGHTCLICK (ddr.js)
+   - Unified drag-drop registration
+   - Context menu management
+   - Layer loading orchestration
+   - No country-specific code
+
+3. iSEE ANALYTICS (isee_analytics.js)
+   - Automatic layer detection
+   - Universal statistics engine
+   - Cross-layer correlation analysis
+   - Works with any layer types
+
+4. REPORT GENERATION
+   - PDF/HTML export from iSEE Analytics
+   - Standardized report templates
+   - Country metadata from config.json
+
+5. SYMBOLOGY (road-symbology.js)
+   - Bridging table for road type standardization
+   - Consistent colors across countries
+   - Legend generation
+
+6. DATA SOURCES
+   - WorldPop: Universal processing (tools/process_worldpop.py)
+   - OSM Roads: Universal processing (tools/update_osm_roads.py)
+   - VIIRS Nightlight: Universal processing
+   - All use config.json for country-specific paths
+
+7. LAYER REGISTRY (layer-registry.js)
+   - Centralized layer state management
+   - Checkbox synchronization
+   - Layer type categorization
+
+8. SELECTION STATE MODULE (ssm-module.js)
+   - Region lock/unlock workflow
+   - Multi-layer management per region
+   - Universal for any L1/L2 structure
+--------------------------------------------------------------------------------
+
+STANDARDIZATION RULES FOR COMPARATIVE ANALYSIS:
+--------------------------------------------------------------------------------
+L1 (Region) Level:
+- Population density (people/km²)
+- Road network density (km/km²)
+- Electrification index (nightlight radiance)
+- Infrastructure quality index
+
+L2 (District) Level:
+- Same metrics at finer granularity
+- Enable drill-down from L1 to L2
+
+Cross-L Comparison:
+- Normalize all metrics per capita or per area
+- Use consistent color scales across countries
+- Enable country-to-country comparison dashboards
+--------------------------------------------------------------------------------
+
+ADDING A NEW COUNTRY - CHECKLIST:
+--------------------------------------------------------------------------------
+□ 1. Create countries/{code}/ folder
+□ 2. Create config.json with country parameters
+□ 3. Copy index.html, script.js, styles.css from somalia/
+□ 4. Update all relative paths (../../shared/modules/, etc.)
+□ 5. Download/process boundaries (L1, L2)
+□ 6. Download/process population data (WorldPop)
+□ 7. Download/process roads data (OSM)
+□ 8. Update country-selector.html:
+     - Add country to countryDashboards object
+     - Update badge to "LIVE" if ready
+□ 9. Test all modules work with new country
+□ 10. Document any country-specific quirks
+--------------------------------------------------------------------------------
+
+DATA WAREHOUSE STRUCTURE (UNIVERSAL):
+--------------------------------------------------------------------------------
+data_warehouse/
+├── population/
+│   └── worldpop_1km/
+│       └── by_year/{year}/{Region}_pop_{year}.geojson
+├── roads/
+│   └── roads_by_region/{source}/{Region}_roads.geojson
+├── nightlight/
+│   └── viirs/{year}/{Region}_nightlight_{year}.geojson
+├── health/
+│   └── facilities/{Region}_health.geojson
+└── education/
+    └── facilities/{Region}_education.geojson
+
+All paths relative to country config.json paths section.
+--------------------------------------------------------------------------------
+
+COUNTRY-SELECTOR UI DESIGN (ESTABLISHED):
+--------------------------------------------------------------------------------
+- Black background (#000000)
+- Rectangular flags (not circular) - shows full flag detail
+- CDN flag images with enhanced vibrancy:
+  filter: brightness(1.5) saturate(2.2) contrast(1.3)
+- Country-specific glow colors (box-shadow)
+- "Alpha" badge for template countries (Somalia)
+- "LIVE" badge for production-ready countries
+- All 22 Arab flags on single line, alphabetical order
+- ADP logo centered at top
+- Gradient text for titles matching main header
+--------------------------------------------------------------------------------
+
+KEYWORD QUICK REFERENCE:
+--------------------------------------------------------------------------------
+When discussing architecture, reference these:
+- "GEO-INSIGHTS-ARCH" - Full architecture context
+- "MODULAR-COPY" - Copy-paste philosophy for new countries
+- "L1-L2-STANDARD" - Administrative level standardization
+- "TEMPLATE-SOMALIA" - Somalia as reference implementation
+
+Example prompt: "Keyword: GEO-INSIGHTS-ARCH - I want to add Yemen..."
+--------------------------------------------------------------------------------
+
+FILES CENTRAL TO ARCHITECTURE:
+- country-selector.html - Entry point after launcher
+- countries/somalia/config.json - Template configuration
+- shared/modules/*.js - All reusable modules
+- docs/LESSONS_LEARNED.txt - This documentation
+- tools/process_worldpop.py - Data processing template
+
+
+================================================================================
 FUTURE LESSONS TO ADD:
 ================================================================================
 - Add new lessons here as they are discovered
