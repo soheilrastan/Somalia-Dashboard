@@ -14,7 +14,7 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #1a1a2e;
+            background: #000000;
             min-height: 100vh;
             color: #fff;
             display: flex;
@@ -44,7 +44,10 @@
 
         .header .org {
             font-size: 1rem;
-            color: #64748b;
+            background: linear-gradient(90deg, #00d4ff, #7c3aed, #f472b6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         .container {
@@ -81,20 +84,24 @@
         .section-title {
             text-align: center;
             font-size: 1.4rem;
-            color: #e2e8f0;
+            background: linear-gradient(90deg, #00d4ff, #7c3aed, #f472b6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             margin-bottom: 30px;
             font-weight: 400;
         }
 
-        /* Horizontal flag row - matching the image */
+        /* Horizontal flag row - all on ONE LINE */
         .countries-row {
             display: flex;
             justify-content: center;
-            flex-wrap: wrap;
-            gap: 15px;
-            padding: 20px;
-            max-width: 1600px;
+            flex-wrap: nowrap;
+            gap: 8px;
+            padding: 10px 20px;
+            max-width: 100%;
             margin: 0 auto;
+            overflow-x: auto;
         }
 
         .country-item {
@@ -103,9 +110,9 @@
             align-items: center;
             cursor: pointer;
             transition: all 0.3s ease;
-            padding: 10px;
-            border-radius: 10px;
-            min-width: 70px;
+            padding: 6px;
+            border-radius: 8px;
+            min-width: 55px;
         }
 
         .country-item:hover {
@@ -131,20 +138,26 @@
             cursor: not-allowed;
         }
 
-        /* Circular flag container */
+        /* Rectangular flag container - shows full flag */
         .flag-circle {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
+            width: 48px;
+            height: 32px;
+            border-radius: 4px;
             overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 2.8rem;
             background: rgba(255, 255, 255, 0.1);
             border: 2px solid rgba(255, 255, 255, 0.2);
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             transition: all 0.3s ease;
+        }
+
+        .flag-circle img {
+            width: 48px;
+            height: 32px;
+            object-fit: cover;
+            filter: brightness(1.5) saturate(2.2) contrast(1.3);
         }
 
         .country-item:hover .flag-circle {
@@ -153,9 +166,33 @@
         }
 
         .country-item.active .flag-circle {
-            border-color: #22c55e;
-            box-shadow: 0 0 20px rgba(34, 197, 94, 0.4);
+            border-color: #4fc3f7;
+            box-shadow: 0 0 20px rgba(79, 195, 247, 0.6);
         }
+
+        /* Country-specific flag glow colors based on dominant flag colors */
+        .country-item[data-country="algeria"] .flag-circle { box-shadow: 0 0 12px rgba(0, 128, 0, 0.5); }
+        .country-item[data-country="bahrain"] .flag-circle { box-shadow: 0 0 12px rgba(206, 17, 38, 0.5); }
+        .country-item[data-country="comoros"] .flag-circle { box-shadow: 0 0 12px rgba(61, 185, 80, 0.5); }
+        .country-item[data-country="djibouti"] .flag-circle { box-shadow: 0 0 12px rgba(106, 178, 231, 0.5); }
+        .country-item[data-country="egypt"] .flag-circle { box-shadow: 0 0 12px rgba(206, 17, 38, 0.5); }
+        .country-item[data-country="iraq"] .flag-circle { box-shadow: 0 0 12px rgba(206, 17, 38, 0.5); }
+        .country-item[data-country="jordan"] .flag-circle { box-shadow: 0 0 12px rgba(206, 17, 38, 0.5); }
+        .country-item[data-country="kuwait"] .flag-circle { box-shadow: 0 0 12px rgba(0, 122, 61, 0.5); }
+        .country-item[data-country="lebanon"] .flag-circle { box-shadow: 0 0 12px rgba(206, 17, 38, 0.5); }
+        .country-item[data-country="libya"] .flag-circle { box-shadow: 0 0 12px rgba(206, 17, 38, 0.5); }
+        .country-item[data-country="mauritania"] .flag-circle { box-shadow: 0 0 12px rgba(0, 106, 77, 0.5); }
+        .country-item[data-country="morocco"] .flag-circle { box-shadow: 0 0 12px rgba(193, 39, 45, 0.5); }
+        .country-item[data-country="oman"] .flag-circle { box-shadow: 0 0 12px rgba(206, 17, 38, 0.5); }
+        .country-item[data-country="palestine"] .flag-circle { box-shadow: 0 0 12px rgba(0, 128, 0, 0.5); }
+        .country-item[data-country="qatar"] .flag-circle { box-shadow: 0 0 12px rgba(128, 21, 66, 0.5); }
+        .country-item[data-country="saudi-arabia"] .flag-circle { box-shadow: 0 0 12px rgba(0, 106, 77, 0.5); }
+        .country-item[data-country="somalia"] .flag-circle { box-shadow: 0 0 15px rgba(79, 195, 247, 0.6); }
+        .country-item[data-country="sudan"] .flag-circle { box-shadow: 0 0 12px rgba(206, 17, 38, 0.5); }
+        .country-item[data-country="syria"] .flag-circle { box-shadow: 0 0 12px rgba(206, 17, 38, 0.5); }
+        .country-item[data-country="tunisia"] .flag-circle { box-shadow: 0 0 12px rgba(206, 17, 38, 0.5); }
+        .country-item[data-country="uae"] .flag-circle { box-shadow: 0 0 12px rgba(0, 115, 47, 0.5); }
+        .country-item[data-country="yemen"] .flag-circle { box-shadow: 0 0 12px rgba(206, 17, 38, 0.5); }
 
         /* Arab Region special styling */
         .country-item.arab-region .flag-circle {
@@ -163,17 +200,17 @@
             border-color: #00aaff;
         }
 
-        .country-item.arab-region .flag-circle img {
-            width: 35px;
-            height: 35px;
+        .country-item.arab-region .flag-circle svg {
+            width: 40px;
+            height: 28px;
         }
 
         .country-name {
-            font-size: 0.75rem;
+            font-size: 0.65rem;
             color: #e2e8f0;
             text-align: center;
-            line-height: 1.2;
-            max-width: 70px;
+            line-height: 1.1;
+            max-width: 55px;
         }
 
         .footer {
@@ -195,14 +232,17 @@
         /* Active badge */
         .active-badge {
             position: absolute;
-            top: -5px;
-            right: -5px;
-            background: #22c55e;
+            top: -8px;
+            right: -12px;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
             color: #fff;
-            font-size: 0.5rem;
-            padding: 2px 5px;
-            border-radius: 8px;
-            font-weight: 600;
+            font-size: 0.45rem;
+            padding: 2px 4px;
+            border-radius: 6px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
         }
 
         .flag-wrapper {
@@ -214,21 +254,29 @@
                 font-size: 2rem;
             }
             .countries-row {
-                gap: 10px;
+                gap: 6px;
+                flex-wrap: wrap;
             }
             .flag-circle {
-                width: 50px;
-                height: 50px;
-                font-size: 2.2rem;
+                width: 40px;
+                height: 27px;
+            }
+            .flag-circle img {
+                width: 40px;
+                height: 27px;
+                filter: brightness(1.5) saturate(2.2) contrast(1.3);
             }
             .country-name {
-                font-size: 0.65rem;
+                font-size: 0.6rem;
             }
         }
     </style>
 </head>
 <body>
     <div class="header">
+        <a href="https://dataportal.unescwa.org/gis/landing" target="_blank" title="Arab Development Portal - ESCWA" style="text-decoration: none; display: block; margin-bottom: 20px;">
+            <img src="countries/somalia/adp_logo.png" alt="Arab Development Portal" style="height: 60px;">
+        </a>
         <h1>Geo-Insights Dashboard</h1>
         <p class="subtitle">Multi-Layer Geospatial Analytics Platform</p>
         <p class="org">Geo-Insights Lab, ESCWA, United Nations</p>
@@ -252,160 +300,147 @@
 
         <h2 class="section-title">Select a Country to Explore</h2>
 
-        <!-- Horizontal flag row matching the image order -->
+        <!-- Horizontal flag row - ALL ON ONE LINE, alphabetical order -->
         <div class="countries-row">
-            <!-- Arab Region (special) -->
-            <div class="country-item arab-region coming-soon" data-country="arab-region" title="Arab Region Overview - Coming Soon">
-                <div class="flag-wrapper">
-                    <div class="flag-circle">
-                        <svg width="35" height="35" viewBox="0 0 100 100">
-                            <circle cx="50" cy="50" r="45" fill="none" stroke="#fff" stroke-width="2"/>
-                            <text x="50" y="58" text-anchor="middle" fill="#fff" font-size="24">UN</text>
-                        </svg>
-                    </div>
-                </div>
-                <div class="country-name">Arab<br>Region</div>
-            </div>
-
             <!-- Algeria -->
             <div class="country-item coming-soon" data-country="algeria" title="Algeria - Coming Soon">
-                <div class="flag-circle">🇩🇿</div>
+                <div class="flag-circle"><img src="https://flagcdn.com/w80/dz.png" alt="Algeria"></div>
                 <div class="country-name">Algeria</div>
             </div>
 
             <!-- Bahrain -->
             <div class="country-item coming-soon" data-country="bahrain" title="Bahrain - Coming Soon">
-                <div class="flag-circle">🇧🇭</div>
+                <div class="flag-circle"><img src="https://flagcdn.com/w80/bh.png" alt="Bahrain"></div>
                 <div class="country-name">Bahrain</div>
             </div>
 
             <!-- Comoros -->
             <div class="country-item coming-soon" data-country="comoros" title="Comoros - Coming Soon">
-                <div class="flag-circle">🇰🇲</div>
+                <div class="flag-circle"><img src="https://flagcdn.com/w80/km.png" alt="Comoros"></div>
                 <div class="country-name">Comoros</div>
             </div>
 
             <!-- Djibouti -->
             <div class="country-item coming-soon" data-country="djibouti" title="Djibouti - Coming Soon">
-                <div class="flag-circle">🇩🇯</div>
+                <div class="flag-circle"><img src="https://flagcdn.com/w80/dj.png" alt="Djibouti"></div>
                 <div class="country-name">Djibouti</div>
             </div>
 
             <!-- Egypt -->
             <div class="country-item coming-soon" data-country="egypt" title="Egypt - Coming Soon">
-                <div class="flag-circle">🇪🇬</div>
+                <div class="flag-circle"><img src="https://flagcdn.com/w80/eg.png" alt="Egypt"></div>
                 <div class="country-name">Egypt</div>
             </div>
 
             <!-- Iraq -->
             <div class="country-item coming-soon" data-country="iraq" title="Iraq - Coming Soon">
-                <div class="flag-circle">🇮🇶</div>
+                <div class="flag-circle"><img src="https://flagcdn.com/w80/iq.png" alt="Iraq"></div>
                 <div class="country-name">Iraq</div>
             </div>
 
             <!-- Jordan -->
             <div class="country-item coming-soon" data-country="jordan" title="Jordan - Coming Soon">
-                <div class="flag-circle">🇯🇴</div>
+                <div class="flag-circle"><img src="https://flagcdn.com/w80/jo.png" alt="Jordan"></div>
                 <div class="country-name">Jordan</div>
             </div>
 
             <!-- Kuwait -->
             <div class="country-item coming-soon" data-country="kuwait" title="Kuwait - Coming Soon">
-                <div class="flag-circle">🇰🇼</div>
+                <div class="flag-circle"><img src="https://flagcdn.com/w80/kw.png" alt="Kuwait"></div>
                 <div class="country-name">Kuwait</div>
             </div>
 
             <!-- Lebanon -->
             <div class="country-item coming-soon" data-country="lebanon" title="Lebanon - Coming Soon">
-                <div class="flag-circle">🇱🇧</div>
+                <div class="flag-circle"><img src="https://flagcdn.com/w80/lb.png" alt="Lebanon"></div>
                 <div class="country-name">Lebanon</div>
             </div>
 
             <!-- Libya -->
             <div class="country-item coming-soon" data-country="libya" title="Libya - Coming Soon">
-                <div class="flag-circle">🇱🇾</div>
+                <div class="flag-circle"><img src="https://flagcdn.com/w80/ly.png" alt="Libya"></div>
                 <div class="country-name">Libya</div>
             </div>
 
             <!-- Mauritania -->
             <div class="country-item coming-soon" data-country="mauritania" title="Mauritania - Coming Soon">
-                <div class="flag-circle">🇲🇷</div>
+                <div class="flag-circle"><img src="https://flagcdn.com/w80/mr.png" alt="Mauritania"></div>
                 <div class="country-name">Mauritania</div>
             </div>
 
             <!-- Morocco -->
             <div class="country-item coming-soon" data-country="morocco" title="Morocco - Coming Soon">
-                <div class="flag-circle">🇲🇦</div>
+                <div class="flag-circle"><img src="https://flagcdn.com/w80/ma.png" alt="Morocco"></div>
                 <div class="country-name">Morocco</div>
             </div>
 
             <!-- Oman -->
             <div class="country-item coming-soon" data-country="oman" title="Oman - Coming Soon">
-                <div class="flag-circle">🇴🇲</div>
+                <div class="flag-circle"><img src="https://flagcdn.com/w80/om.png" alt="Oman"></div>
                 <div class="country-name">Oman</div>
             </div>
 
             <!-- State of Palestine -->
             <div class="country-item coming-soon" data-country="palestine" title="State of Palestine - Coming Soon">
-                <div class="flag-circle">🇵🇸</div>
-                <div class="country-name">State of<br>Palestine</div>
+                <div class="flag-circle"><img src="https://flagcdn.com/w80/ps.png" alt="Palestine"></div>
+                <div class="country-name">Palestine</div>
             </div>
 
             <!-- Qatar -->
             <div class="country-item coming-soon" data-country="qatar" title="Qatar - Coming Soon">
-                <div class="flag-circle">🇶🇦</div>
+                <div class="flag-circle"><img src="https://flagcdn.com/w80/qa.png" alt="Qatar"></div>
                 <div class="country-name">Qatar</div>
             </div>
 
             <!-- Saudi Arabia -->
             <div class="country-item coming-soon" data-country="saudi-arabia" title="Saudi Arabia - Coming Soon">
-                <div class="flag-circle">🇸🇦</div>
-                <div class="country-name">Saudi<br>Arabia</div>
+                <div class="flag-circle"><img src="https://flagcdn.com/w80/sa.png" alt="Saudi Arabia"></div>
+                <div class="country-name">Saudi Arabia</div>
             </div>
 
             <!-- Somalia - ACTIVE -->
             <div class="country-item active" data-country="somalia" onclick="window.location.href='countries/somalia/index.html'" title="Somalia - Click to Enter Dashboard">
                 <div class="flag-wrapper">
-                    <div class="flag-circle">🇸🇴</div>
-                    <span class="active-badge">LIVE</span>
+                    <div class="flag-circle"><img src="https://flagcdn.com/w80/so.png" alt="Somalia"></div>
+                    <span class="active-badge">Alpha</span>
                 </div>
                 <div class="country-name">Somalia</div>
             </div>
 
             <!-- Sudan -->
             <div class="country-item coming-soon" data-country="sudan" title="Sudan - Coming Soon">
-                <div class="flag-circle">🇸🇩</div>
+                <div class="flag-circle"><img src="https://flagcdn.com/w80/sd.png" alt="Sudan"></div>
                 <div class="country-name">Sudan</div>
             </div>
 
             <!-- Syria -->
             <div class="country-item coming-soon" data-country="syria" title="Syria - Coming Soon">
-                <div class="flag-circle">🇸🇾</div>
+                <div class="flag-circle"><img src="https://flagcdn.com/w80/sy.png" alt="Syria"></div>
                 <div class="country-name">Syria</div>
             </div>
 
             <!-- Tunisia -->
             <div class="country-item coming-soon" data-country="tunisia" title="Tunisia - Coming Soon">
-                <div class="flag-circle">🇹🇳</div>
+                <div class="flag-circle"><img src="https://flagcdn.com/w80/tn.png" alt="Tunisia"></div>
                 <div class="country-name">Tunisia</div>
             </div>
 
             <!-- United Arab Emirates -->
             <div class="country-item coming-soon" data-country="uae" title="United Arab Emirates - Coming Soon">
-                <div class="flag-circle">🇦🇪</div>
-                <div class="country-name">United Arab<br>Emirates</div>
+                <div class="flag-circle"><img src="https://flagcdn.com/w80/ae.png" alt="UAE"></div>
+                <div class="country-name">UAE</div>
             </div>
 
             <!-- Yemen -->
             <div class="country-item coming-soon" data-country="yemen" title="Yemen - Coming Soon">
-                <div class="flag-circle">🇾🇪</div>
+                <div class="flag-circle"><img src="https://flagcdn.com/w80/ye.png" alt="Yemen"></div>
                 <div class="country-name">Yemen</div>
             </div>
         </div>
     </div>
 
     <div class="footer">
-        <p>Geo-Insights Lab, Economic and Social Commission for Western Asia (ESCWA), United Nations</p>
+        <p>Geo-Insights Lab, Decision-Support and Data Science Division, Economic and Social Commission for Western Asia (ESCWA), United Nations</p>
         <p style="margin-top: 10px;">v4.0 Multi-Country Architecture</p>
     </div>
 
